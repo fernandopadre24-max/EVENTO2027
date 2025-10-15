@@ -1,3 +1,4 @@
+
 export interface Client {
   id: string;
   name: string;
@@ -19,7 +20,6 @@ export type PaymentStatus = 'Não Pago' | 'Pago';
 
 export interface Event {
   id: string;
-  title: string;
   date: string;
   time: string;
   clientId: string;

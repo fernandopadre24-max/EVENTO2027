@@ -157,7 +157,6 @@ export default function DashboardPage() {
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Evento</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Data</TableHead>
                 </TableRow>
@@ -167,8 +166,7 @@ export default function DashboardPage() {
                   const client = clients?.find(c => c.id === event.clientId);
                   return (
                     <TableRow key={event.id}>
-                      <TableCell className="font-medium">{event.title}</TableCell>
-                      <TableCell>{client?.name || 'N/A'}</TableCell>
+                      <TableCell className="font-medium">{client?.name || 'N/A'}</TableCell>
                       <TableCell>{format(parseISO(event.date), 'dd/MM')}</TableCell>
                     </TableRow>
                   );

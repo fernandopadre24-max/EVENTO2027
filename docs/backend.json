@@ -62,10 +62,6 @@
       "type": "object",
       "description": "Represents a scheduled event for the musical group.",
       "properties": {
-        "title": {
-          "type": "string",
-          "description": "Title of the event."
-        },
         "clientId": {
           "type": "string",
           "description": "Reference to Client."
@@ -108,7 +104,6 @@
         }
       },
       "required": [
-        "title",
         "clientId",
         "artistIds",
         "date",

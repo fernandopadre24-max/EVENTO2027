@@ -79,7 +79,6 @@ export default function EventsPage() {
 
   const [open, setOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
-    title: '',
     clientId: '',
     date: new Date(),
     time: '',
@@ -113,7 +112,11 @@ export default function EventsPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!eventsRef) return;
+    if (!eventsRef || !newEvent.clientId || newEvent.artistIds.length === 0) {
+      // Basic validation
+      alert('Por favor, preencha todos os campos obrigatórios.');
+      return;
+    }
     const newEventData = {
       ...newEvent,
       date: format(newEvent.date, 'yyyy-MM-dd'),
@@ -123,7 +126,6 @@ export default function EventsPage() {
     addDocumentNonBlocking(eventsRef, newEventData);
     setOpen(false);
     setNewEvent({
-      title: '',
       clientId: '',
       date: new Date(),
       time: '',
@@ -144,9 +146,10 @@ export default function EventsPage() {
     updateDocumentNonBlocking(eventDocRef, { paymentStatus });
     
     if (paymentStatus === 'Pago') {
+      const client = clients?.find(c => c.id === event.clientId);
       const financialTransaction = {
         type: 'Receita' as 'Receita' | 'Despesa',
-        description: `Pagamento do evento: ${event.title}`,
+        description: `Pagamento do evento para ${client?.name || 'Cliente desconhecido'} em ${format(parseISO(event.date), 'dd/MM/yyyy', { locale: ptBR })}`,
         amount: event.payment,
         date: format(new Date(), 'yyyy-MM-dd'),
         eventId: event.id,
@@ -177,12 +180,6 @@ export default function EventsPage() {
             </DialogHeader>
             <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="title" className="text-right">
-                    Título
-                  </Label>
-                  <Input id="title" value={newEvent.title} onChange={handleInputChange} placeholder="Título do Evento" className="col-span-3" />
-                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="clientId" className="text-right">
                     Cliente
@@ -287,7 +284,6 @@ export default function EventsPage() {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Título</TableHead>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Data e Hora</TableHead>
                 <TableHead>Artistas</TableHead>
@@ -305,8 +301,7 @@ export default function EventsPage() {
                 const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
                 return (
                   <TableRow key={event.id}>
-                    <TableCell className="font-medium">{event.title}</TableCell>
-                    <TableCell>{client?.name}</TableCell>
+                    <TableCell className="font-medium">{client?.name}</TableCell>
                     <TableCell>
                       {format(parseISO(event.date), 'dd MMM, yyyy', { locale: ptBR })} às {event.time}
                     </TableCell>
