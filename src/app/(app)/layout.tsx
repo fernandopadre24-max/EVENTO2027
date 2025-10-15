@@ -25,7 +25,11 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     if (auth && !user && !isUserLoading) {
-      initiateAnonymousSignIn(auth);
+      // Check if we have already signed in anonymously
+      if (!sessionStorage.getItem('anonymous-auth-initiated')) {
+        initiateAnonymousSignIn(auth);
+        sessionStorage.setItem('anonymous-auth-initiated', 'true');
+      }
     }
   }, [auth, user, isUserLoading]);
 

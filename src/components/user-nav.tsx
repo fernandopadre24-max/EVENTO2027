@@ -1,3 +1,4 @@
+
 'use client';
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
@@ -20,7 +21,9 @@ export function UserNav() {
 
   const handleLogout = () => {
     if (auth) {
-      signOut(auth);
+      signOut(auth).then(() => {
+        sessionStorage.removeItem('anonymous-auth-initiated');
+      });
     }
   };
 
