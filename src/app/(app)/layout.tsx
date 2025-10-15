@@ -77,10 +77,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <UserNav />
           </div>
         </header>
-      <main className="flex-1 overflow-y-auto p-4 md:p-8">
+      <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-20">
         {children}
       </main>
-      <nav className="sticky bottom-0 z-10 flex items-center justify-center h-16 px-4 bg-background/80 backdrop-blur-sm border-t md:hidden">
+      <nav className="fixed bottom-0 z-10 w-full flex items-center justify-center h-16 px-4 bg-background/80 backdrop-blur-sm border-t">
           <MainNav />
       </nav>
     </div>
