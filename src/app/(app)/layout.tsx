@@ -2,17 +2,32 @@
 'use client';
 
 import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { MainNav } from '@/components/main-nav';
 import { UserNav } from '@/components/user-nav';
 import { Calculator } from '@/components/calculator';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { BandMateLogo } from '@/components/icons';
 import { useUser } from '@/firebase';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { ArrowLeft } from 'lucide-react';
+import { cn } from '@/lib/utils';
+
+const topLevelRoutes = [
+  '/dashboard',
+  '/events',
+  '/clients',
+  '/artists',
+  '/finances',
+  '/reports',
+];
+
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
+  const pathname = usePathname();
 
   useEffect(() => {
     // If loading is finished and there's no user, redirect to login
@@ -33,15 +48,25 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     );
   }
 
+  const isTopLevel = topLevelRoutes.includes(pathname);
+
+
   // If user is loaded and present, render the app layout
   return (
     <div className="flex flex-col h-screen">
        <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 bg-background/80 backdrop-blur-sm border-b md:px-8">
           <div className="flex items-center gap-4">
-            <BandMateLogo className="w-8 h-8 text-primary" />
-             <span className="text-xl font-bold font-headline hidden sm:inline-block">
-                BandMate
-              </span>
+            {!isTopLevel && (
+              <Button variant="ghost" size="icon" onClick={() => router.back()}>
+                <ArrowLeft />
+              </Button>
+            )}
+            <Link href="/dashboard" className={cn("flex items-center gap-2", !isTopLevel && "hidden sm:flex")}>
+                <BandMateLogo className="w-8 h-8 text-primary" />
+                <span className="text-xl font-bold font-headline hidden sm:inline-block">
+                    BandMate
+                </span>
+            </Link>
           </div>
           <div className="flex items-center gap-4">
             <Calculator />
@@ -52,7 +77,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-y-auto p-4 md:p-8">
         {children}
       </main>
-      <nav className="sticky bottom-0 z-10 flex items-center justify-center h-16 px-4 bg-background/80 backdrop-blur-sm border-t md:px-8">
+      <nav className="sticky bottom-0 z-10 flex items-center justify-center h-16 px-4 bg-background/80 backdrop-blur-sm border-t md:hidden">
           <MainNav />
       </nav>
     </div>
