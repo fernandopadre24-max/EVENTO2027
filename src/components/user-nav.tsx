@@ -13,42 +13,49 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import { CreditCard, LogOut, Settings, User } from "lucide-react"
-import { useAuth } from "@/firebase";
+import { useAuth, useUser } from "@/firebase";
 import { signOut } from "firebase/auth";
+import { useRouter } from "next/navigation";
 
 export function UserNav() {
   const auth = useAuth();
+  const { user } = useUser();
+  const router = useRouter();
+
 
   const handleLogout = () => {
     if (auth) {
       signOut(auth).then(() => {
-        sessionStorage.removeItem('anonymous-auth-initiated');
-        // Force a reload to clear all states and re-trigger auth checks properly.
-        window.location.reload();
+        router.push('/login');
       });
     }
   };
+  
+  const userEmail = user?.email || "usuario@bandmate.com"
+  const userName = user?.displayName || (user?.isAnonymous ? "Anônimo" : "Gerente")
+  const userAvatar = user?.photoURL || `https://i.pravatar.cc/150?u=${user?.uid}`
+
 
   return (
     <DropdownMenu>
       <DropdownMenuTrigger asChild>
         <Button variant="ghost" className="relative h-10 w-full justify-start gap-2">
           <Avatar className="h-8 w-8">
-            <AvatarImage src="https://picsum.photos/seed/user/100/100" alt="@user" />
-            <AvatarFallback>BM</AvatarFallback>
+            <AvatarImage src={userAvatar} alt="@user" />
+            <AvatarFallback>{userName.substring(0,2).toUpperCase()}</AvatarFallback>
           </Avatar>
           <div className="flex flex-col space-y-1 items-start">
-             <p className="text-sm font-medium leading-none">Gerente</p>
-             <p className="text-xs leading-none text-muted-foreground">admin@bandmate.com</p>
+             <p className="text-sm font-medium leading-none">{userName}</p>
+             <p className="text-xs leading-none text-muted-foreground">{userEmail}</p>
           </div>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Gerente</p>
+            <p className="text-sm font-medium leading-none">{userName}</p>
             <p className="text-xs leading-none text-muted-foreground">
-              admin@bandmate.com
+              {userEmail}
             </p>
           </div>
         </DropdownMenuLabel>

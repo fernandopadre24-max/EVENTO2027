@@ -2,6 +2,7 @@
 'use client';
 
 import { useEffect } from 'react';
+import { useRouter } from 'next/navigation';
 import {
   Sidebar,
   SidebarContent,
@@ -17,22 +18,32 @@ import { ThemeToggle } from '@/components/theme-toggle';
 import { BandMateLogo } from '@/components/icons';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { FirebaseClientProvider, useAuth, useUser, initiateAnonymousSignIn } from '@/firebase';
+import { useUser } from '@/firebase';
 
-function AppLayoutContent({ children }: { children: React.ReactNode }) {
-  const auth = useAuth();
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
-    if (auth && !user && !isUserLoading) {
-      // Check if we have already signed in anonymously
-      if (!sessionStorage.getItem('anonymous-auth-initiated')) {
-        initiateAnonymousSignIn(auth);
-        sessionStorage.setItem('anonymous-auth-initiated', 'true');
-      }
+    // If loading is finished and there's no user, redirect to login
+    if (!isUserLoading && !user) {
+      router.push('/login');
     }
-  }, [auth, user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
+  // While loading, you can show a loader or null
+  if (isUserLoading || !user) {
+    return (
+        <div className="flex h-screen items-center justify-center">
+            <div className="flex flex-col items-center gap-4">
+                <BandMateLogo className="w-16 h-16 text-primary animate-pulse" />
+                <p className="text-muted-foreground">Carregando...</p>
+            </div>
+        </div>
+    );
+  }
+
+  // If user is loaded and present, render the app layout
   return (
     <SidebarProvider>
       <Sidebar side="left" variant="sidebar" collapsible="icon">
@@ -66,13 +77,5 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
         </main>
       </SidebarInset>
     </SidebarProvider>
-  )
-}
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-    <FirebaseClientProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
-    </FirebaseClientProvider>
   );
 }
