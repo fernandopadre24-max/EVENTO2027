@@ -21,6 +21,9 @@ const topLevelRoutes = [
   '/artists',
   '/finances',
   '/reports',
+  '/calendar',
+  '/profile',
+  '/settings'
 ];
 
 

@@ -10,7 +10,6 @@ import {
   Home,
   Music,
   Users,
-  Settings,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
@@ -23,11 +22,7 @@ const navItems = [
   { href: '/artists', label: 'Artistas', icon: Music },
   { href: '/finances', label: 'Finanças', icon: DollarSign },
   { href: '/reports', label: 'Relatórios', icon: BarChart2 },
-];
-
-const secondaryNavItems = [
-    { href: '/calendar', label: 'Calendário', icon: Calendar },
-    { href: '/settings', label: 'Configurações', icon: Settings },
+  { href: '/calendar', label: 'Calendário', icon: Calendar },
 ];
 
 export function MainNav() {
