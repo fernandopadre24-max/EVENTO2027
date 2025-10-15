@@ -1,78 +1,120 @@
 /**
- * @description This ruleset enforces a strict authorization model where only authenticated users can access data.
- * All collections are readable by any authenticated user, but write access is forbidden.
- * @dataStructure The database consists of top-level collections for clients, artists, events, and finances.
- * @keySecurityDecisions
- *   - All collections are publicly readable by signed-in users, supporting open data access.
- *   - No write operations are allowed through the client; all data is considered read-only.
+ * @fileoverview Firestore Security Rules for the musical group app.
+ *
+ * Core Philosophy:
+ * This ruleset allows full access to all data, but only to authenticated users.
+ * This is intended for rapid prototyping and is NOT suitable for production.
+ *
+ * Data Structure:
+ * - /clients/{clientId}: Stores client information.
+ * - /artists/{artistId}: Stores artist information.
+ * - /events/{eventId}: Stores event information.
+ * - /finances/{financeId}: Stores financial information.
+ *
+ * Key Security Decisions:
+ * - All read and write access is granted to authenticated users only.
+ * - No data validation is performed beyond authentication.
+ *
+ *
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants read access to the 'clients' collection for any authenticated user.  Write access is denied.
+     * @description Grants access to the clients collection for authenticated users.
      * @path /clients/{clientId}
-     * @allow (get, list) An authenticated user can retrieve or list client documents.
-     * @deny (create, update, delete) No user can create, update, or delete client documents.
-     * @principle Allows any signed-in user to read client information, but prevents any modification.
+     * @allow (list) Authenticated user can list clients.
+     * @deny (list) Unauthenticated user cannot list clients.
+     * @allow (create) Authenticated user can create clients.
+     * @deny (create) Unauthenticated user cannot create clients.
+     * @allow (get) Authenticated user can get a client.
+     * @deny (get) Unauthenticated user cannot get a client.
+     * @allow (update) Authenticated user can update a client.
+     * @deny (update) Unauthenticated user cannot update a client.
+     * @allow (delete) Authenticated user can delete a client.
+     * @deny (delete) Unauthenticated user cannot delete a client.
+     * @principle Authenticated users can manage all clients.
      */
     match /clients/{clientId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Grants read access to the 'artists' collection for any authenticated user.  Write access is denied.
+     * @description Grants access to the artists collection for authenticated users.
      * @path /artists/{artistId}
-     * @allow (get, list) An authenticated user can retrieve or list artist documents.
-     * @deny (create, update, delete) No user can create, update, or delete artist documents.
-     * @principle Allows any signed-in user to read artist information, but prevents any modification.
+     * @allow (list) Authenticated user can list artists.
+     * @deny (list) Unauthenticated user cannot list artists.
+     * @allow (create) Authenticated user can create artists.
+     * @deny (create) Unauthenticated user cannot create artists.
+     * @allow (get) Authenticated user can get an artist.
+     * @deny (get) Unauthenticated user cannot get an artist.
+     * @allow (update) Authenticated user can update an artist.
+     * @deny (update) Unauthenticated user cannot update an artist.
+     * @allow (delete) Authenticated user can delete an artist.
+     * @deny (delete) Unauthenticated user cannot delete an artist.
+     * @principle Authenticated users can manage all artists.
      */
     match /artists/{artistId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Grants read access to the 'events' collection for any authenticated user.  Write access is denied.
+     * @description Grants access to the events collection for authenticated users.
      * @path /events/{eventId}
-     * @allow (get, list) An authenticated user can retrieve or list event documents.
-     * @deny (create, update, delete) No user can create, update, or delete event documents.
-     * @principle Allows any signed-in user to read event information, but prevents any modification.
+     * @allow (list) Authenticated user can list events.
+     * @deny (list) Unauthenticated user cannot list events.
+     * @allow (create) Authenticated user can create events.
+     * @deny (create) Unauthenticated user cannot create events.
+     * @allow (get) Authenticated user can get an event.
+     * @deny (get) Unauthenticated user cannot get an event.
+     * @allow (update) Authenticated user can update an event.
+     * @deny (update) Unauthenticated user cannot update an event.
+     * @allow (delete) Authenticated user can delete an event.
+     * @deny (delete) Unauthenticated user cannot delete an event.
+     * @principle Authenticated users can manage all events.
      */
     match /events/{eventId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     /**
-     * @description Grants read access to the 'finances' collection for any authenticated user.  Write access is denied.
+     * @description Grants access to the finances collection for authenticated users.
      * @path /finances/{financeId}
-     * @allow (get, list) An authenticated user can retrieve or list finance documents.
-     * @deny (create, update, delete) No user can create, update, or delete finance documents.
-     * @principle Allows any signed-in user to read finance information, but prevents any modification.
+     * @allow (list) Authenticated user can list finances.
+     * @deny (list) Unauthenticated user cannot list finances.
+     * @allow (create) Authenticated user can create finances.
+     * @deny (create) Unauthenticated user cannot create finances.
+     * @allow (get) Authenticated user can get a finance record.
+     * @deny (get) Unauthenticated user cannot get a finance record.
+     * @allow (update) Authenticated user can update a finance record.
+     * @deny (update) Unauthenticated user cannot update a finance record.
+     * @allow (delete) Authenticated user can delete a finance record.
+     * @deny (delete) Unauthenticated user cannot delete a finance record.
+     * @principle Authenticated users can manage all finances.
      */
     match /finances/{financeId} {
       allow get: if isSignedIn();
       allow list: if isSignedIn();
-      allow create: if false;
-      allow update: if false;
-      allow delete: if false;
+      allow create: if isSignedIn();
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
+  }
 
-    // Helper function to determine if a user is signed in.
-    function isSignedIn() {
-      return request.auth != null;
-    }
+  function isSignedIn() {
+    return request.auth != null;
   }
 }
