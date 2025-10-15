@@ -11,7 +11,7 @@ import { BandMateLogo } from '@/components/icons';
 import { useUser } from '@/firebase';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft } from 'lucide-react';
+import { ArrowLeft, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const topLevelRoutes = [
@@ -72,6 +72,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             </Link>
           </div>
           <div className="flex items-center gap-4">
+            <Button variant="outline" size="icon" asChild>
+                <Link href="/calendar">
+                    <Calendar className="h-5 w-5" />
+                    <span className="sr-only">Calendário</span>
+                </Link>
+            </Button>
             <Calculator />
             <ThemeToggle />
             <UserNav />

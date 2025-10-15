@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BarChart2,
-  Calendar,
   DollarSign,
   Home,
   Music,
@@ -17,12 +16,11 @@ import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/dashboard', label: 'Painel', icon: Home },
-  { href: '/events', label: 'Eventos', icon: Calendar },
+  { href: '/events', label: 'Eventos', icon: Users },
   { href: '/clients', label: 'Clientes', icon: Users },
   { href: '/artists', label: 'Artistas', icon: Music },
   { href: '/finances', label: 'Finanças', icon: DollarSign },
   { href: '/reports', label: 'Relatórios', icon: BarChart2 },
-  { href: '/calendar', label: 'Calendário', icon: Calendar },
 ];
 
 export function MainNav() {
