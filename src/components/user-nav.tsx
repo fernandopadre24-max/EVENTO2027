@@ -23,6 +23,8 @@ export function UserNav() {
     if (auth) {
       signOut(auth).then(() => {
         sessionStorage.removeItem('anonymous-auth-initiated');
+        // Force a reload to clear all states and re-trigger auth checks properly.
+        window.location.reload();
       });
     }
   };
