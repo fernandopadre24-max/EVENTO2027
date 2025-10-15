@@ -74,6 +74,9 @@ export default function EventsPage() {
   const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
 
+  const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
+
+
   const [open, setOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -135,10 +138,21 @@ export default function EventsPage() {
     updateDocumentNonBlocking(eventDocRef, { status });
   };
 
-  const updatePaymentStatus = (eventId: string, paymentStatus: PaymentStatus) => {
-    if (!firestore) return;
-    const eventDocRef = doc(firestore, 'events', eventId);
+  const updatePaymentStatus = (event: Event, paymentStatus: PaymentStatus) => {
+    if (!firestore || !financesRef) return;
+    const eventDocRef = doc(firestore, 'events', event.id);
     updateDocumentNonBlocking(eventDocRef, { paymentStatus });
+    
+    if (paymentStatus === 'Pago') {
+      const financialTransaction = {
+        type: 'Receita' as 'Receita' | 'Despesa',
+        description: `Pagamento do evento: ${event.title}`,
+        amount: event.payment,
+        date: format(new Date(), 'yyyy-MM-dd'),
+        eventId: event.id,
+      };
+      addDocumentNonBlocking(financesRef, financialTransaction);
+    }
   };
 
   return (
@@ -322,7 +336,7 @@ export default function EventsPage() {
                           <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>
                             Marcar como Concluído
                           </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updatePaymentStatus(event.id, 'Pago')}>
+                          <DropdownMenuItem onClick={() => updatePaymentStatus(event, 'Pago')}>
                             Marcar como Pago
                           </DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive" onClick={() => updateEventStatus(event.id, 'Cancelado')}>
