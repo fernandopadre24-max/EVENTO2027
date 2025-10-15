@@ -29,8 +29,8 @@ import {
 } from 'recharts';
 import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
 import { format, parseISO } from 'date-fns';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 import type { Event, FinancialTransaction, Client } from '@/lib/types';
 
 
@@ -45,14 +45,15 @@ const chartData = [
 
 export default function DashboardPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
 
-  const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
+  const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events } = useCollection<Event>(eventsRef);
 
-  const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
+  const financesRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: financialTransactions } = useCollection<FinancialTransaction>(financesRef);
   
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const clientsRef = useMemoFirebase(() => user ? query(collection(firestore, 'clients'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: clients } = useCollection<Client>(clientsRef);
 
 

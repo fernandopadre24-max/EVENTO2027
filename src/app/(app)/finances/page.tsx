@@ -43,12 +43,13 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 export default function FinancesPage() {
   const firestore = useFirestore();
-  const transactionsRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
+  const { user } = useUser();
+  const transactionsRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: transactions, isLoading } = useCollection<FinancialTransaction>(transactionsRef);
 
   const [open, setOpen] = useState(false);
@@ -70,8 +71,9 @@ export default function FinancesPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if(!transactionsRef) return;
-    addDocumentNonBlocking(transactionsRef, newTransaction);
+    if(!firestore || !user) return;
+    const transactionsCollectionRef = collection(firestore, 'finances');
+    addDocumentNonBlocking(transactionsCollectionRef, { ...newTransaction, userId: user.uid });
     setOpen(false);
     setNewTransaction({
       type: 'Receita',

@@ -4,6 +4,7 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
+  userId: string;
 }
 
 export interface Artist {
@@ -11,6 +12,7 @@ export interface Artist {
   name: string;
   genre: string;
   performanceDetails: string;
+  userId: string;
 }
 
 export type EventStatus = 'Pendente' | 'Confirmado' | 'Concluído' | 'Cancelado';
@@ -26,6 +28,7 @@ export interface Event {
   payment: number;
   status: EventStatus;
   paymentStatus: PaymentStatus;
+  userId: string;
 }
 
 export interface FinancialTransaction {
@@ -35,4 +38,5 @@ export interface FinancialTransaction {
   amount: number;
   date: string;
   eventId?: string;
+  userId: string;
 }

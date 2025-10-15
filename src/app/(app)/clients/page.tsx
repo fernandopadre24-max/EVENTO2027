@@ -49,12 +49,14 @@ import {
 
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
 
 export default function ClientsPage() {
   const firestore = useFirestore();
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const { user } = useUser();
+  
+  const clientsRef = useMemoFirebase(() => user ? query(collection(firestore, 'clients'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: clients, isLoading } = useCollection<Client>(clientsRef);
 
   const [isAddOpen, setAddOpen] = useState(false);
@@ -77,8 +79,9 @@ export default function ClientsPage() {
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!clientsRef) return;
-    addDocumentNonBlocking(clientsRef, newClient);
+    if (!firestore || !user) return;
+    const clientsCollectionRef = collection(firestore, 'clients');
+    addDocumentNonBlocking(clientsCollectionRef, { ...newClient, userId: user.uid });
     setAddOpen(false);
     setNewClient({ name: '', email: '', phone: '' });
   };

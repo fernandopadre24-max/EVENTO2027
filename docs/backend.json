@@ -17,12 +17,17 @@
         "phone": {
           "type": "string",
           "description": "Contact phone for the client."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this client."
         }
       },
       "required": [
         "name",
         "email",
-        "phone"
+        "phone",
+        "userId"
       ]
     },
     "Artist": {
@@ -41,12 +46,17 @@
         "performanceDetails": {
           "type": "string",
           "description": "Details about the artist's performance (e.g., genre, instruments)."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this artist."
         }
       },
       "required": [
         "name",
         "genre",
-        "performanceDetails"
+        "performanceDetails",
+        "userId"
       ]
     },
     "Event": {
@@ -97,6 +107,10 @@
             "Não Pago",
             "Pago"
           ]
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this event."
         }
       },
       "required": [
@@ -107,7 +121,8 @@
         "local",
         "payment",
         "status",
-        "paymentStatus"
+        "paymentStatus",
+        "userId"
       ]
     },
     "Finance": {
@@ -138,13 +153,18 @@
         "eventId": {
           "type": "string",
           "description": "Reference to Event."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this financial record."
         }
       },
       "required": [
         "description",
         "amount",
         "date",
-        "type"
+        "type",
+        "userId"
       ]
     }
   },

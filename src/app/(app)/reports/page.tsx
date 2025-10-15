@@ -27,8 +27,8 @@ import {
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 import type { FinancialTransaction, Event, Artist } from '@/lib/types';
 import { format, parseISO, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -38,14 +38,15 @@ const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3
 
 export default function ReportsPage() {
   const firestore = useFirestore();
+  const { user } = useUser();
 
-  const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
+  const financesRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: transactions, isLoading: isLoadingFinances } = useCollection<FinancialTransaction>(financesRef);
   
-  const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
+  const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events, isLoading: isLoadingEvents } = useCollection<Event>(eventsRef);
 
-  const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
+  const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
 
   const { totalIncome, totalExpense, netBalance, recentTransactions } = useMemo(() => {

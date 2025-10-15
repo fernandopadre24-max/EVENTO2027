@@ -45,8 +45,8 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useUser } from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -74,13 +74,15 @@ const initialNewEventState = {
 
 export default function EventsPage() {
   const firestore = useFirestore();
-  const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
+  const { user } = useUser();
+
+  const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events, isLoading: isLoadingEvents } = useCollection<Event>(eventsRef);
 
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const clientsRef = useMemoFirebase(() => user ? query(collection(firestore, 'clients'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsRef);
 
-  const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
+  const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
 
   const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
@@ -122,17 +124,19 @@ export default function EventsPage() {
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!eventsRef || !newEvent.clientId || newEvent.artistIds.length === 0) {
+    if (!firestore || !user || !newEvent.clientId || newEvent.artistIds.length === 0) {
       alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
+    const eventsCollectionRef = collection(firestore, 'events');
     const newEventData = {
       ...newEvent,
       date: format(newEvent.date, 'yyyy-MM-dd'),
       status: 'Pendente' as EventStatus,
       paymentStatus: 'Não Pago' as PaymentStatus,
+      userId: user.uid,
     };
-    addDocumentNonBlocking(eventsRef, newEventData);
+    addDocumentNonBlocking(eventsCollectionRef, newEventData);
     setAddOpen(false);
     setNewEvent(initialNewEventState);
   };
@@ -168,7 +172,7 @@ export default function EventsPage() {
   };
 
   const updatePaymentStatus = (event: Event, paymentStatus: PaymentStatus) => {
-    if (!firestore || !financesRef) return;
+    if (!firestore || !financesRef || !user) return;
     const eventDocRef = doc(firestore, 'events', event.id);
     updateDocumentNonBlocking(eventDocRef, { paymentStatus });
     
@@ -180,6 +184,7 @@ export default function EventsPage() {
         amount: event.payment,
         date: format(new Date(), 'yyyy-MM-dd'),
         eventId: event.id,
+        userId: user.uid,
       };
       addDocumentNonBlocking(financesRef, financialTransaction);
     }

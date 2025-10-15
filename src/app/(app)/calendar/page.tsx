@@ -8,19 +8,20 @@ import { Badge } from '@/components/ui/badge';
 import type { Event, Client } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
 
 
 export default function CalendarPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   
   const firestore = useFirestore();
+  const { user } = useUser();
 
-  const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
+  const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events } = useCollection<Event>(eventsRef);
   
-  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const clientsRef = useMemoFirebase(() => user ? query(collection(firestore, 'clients'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: clients } = useCollection<Client>(clientsRef);
 
   const eventsByDate = useMemo(() => events?.reduce((acc, event) => {

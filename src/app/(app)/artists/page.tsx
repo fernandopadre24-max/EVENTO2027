@@ -8,7 +8,6 @@ import {
   CardDescription,
   CardHeader,
   CardTitle,
-  CardFooter
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { MoreVertical, PlusCircle } from 'lucide-react';
@@ -44,13 +43,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
-import { collection, doc } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
+import { collection, doc, query, where } from 'firebase/firestore';
 
 
 export default function ArtistsPage() {
   const firestore = useFirestore();
-  const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
+  const { user } = useUser();
+  const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: artists, isLoading } = useCollection<Artist>(artistsRef);
   
   const [isAddOpen, setAddOpen] = useState(false);
@@ -73,8 +73,9 @@ export default function ArtistsPage() {
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!artistsRef) return;
-    addDocumentNonBlocking(artistsRef, newArtist);
+    if (!firestore || !user) return;
+    const artistsCollectionRef = collection(firestore, 'artists');
+    addDocumentNonBlocking(artistsCollectionRef, { ...newArtist, userId: user.uid });
     setAddOpen(false);
     setNewArtist({ name: '', genre: '', performanceDetails: '' });
   };
