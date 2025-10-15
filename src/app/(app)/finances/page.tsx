@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -26,7 +27,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { financialTransactions } from '@/lib/data';
+import { financialTransactions as initialTransactions } from '@/lib/data';
+import type { FinancialTransaction } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
@@ -44,13 +46,51 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function FinancesPage() {
-  const totalIncome = financialTransactions
-    .filter((t) => t.type === 'Receita')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalExpense = financialTransactions
-    .filter((t) => t.type === 'Despesa')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const netBalance = totalIncome - totalExpense;
+  const [transactions, setTransactions] = useState<FinancialTransaction[]>(initialTransactions);
+  const [open, setOpen] = useState(false);
+  const [newTransaction, setNewTransaction] = useState({
+    type: 'Receita' as 'Receita' | 'Despesa',
+    description: '',
+    amount: 0,
+    date: format(new Date(), 'yyyy-MM-dd')
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setNewTransaction(prev => ({ ...prev, [id]: id === 'amount' ? Number(value) : value }));
+  };
+
+  const handleSelectChange = (value: 'Receita' | 'Despesa') => {
+    setNewTransaction(prev => ({ ...prev, type: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const newTransactionData: FinancialTransaction = {
+      id: `trn-${Date.now()}`,
+      ...newTransaction
+    };
+    setTransactions(prev => [newTransactionData, ...prev]);
+    setOpen(false);
+    setNewTransaction({
+      type: 'Receita',
+      description: '',
+      amount: 0,
+      date: format(new Date(), 'yyyy-MM-dd')
+    });
+  };
+
+  const { totalIncome, totalExpense, netBalance } = useMemo(() => {
+    const totalIncome = transactions
+      .filter((t) => t.type === 'Receita')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const totalExpense = transactions
+      .filter((t) => t.type === 'Despesa')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const netBalance = totalIncome - totalExpense;
+    return { totalIncome, totalExpense, netBalance };
+  }, [transactions]);
+
 
   return (
     <div className="space-y-8">
@@ -58,7 +98,7 @@ export default function FinancesPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Finanças
         </h1>
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -72,43 +112,45 @@ export default function FinancesPage() {
                 Preencha os detalhes da nova transação.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="type" className="text-right">
-                  Tipo
-                </Label>
-                <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione o tipo" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="Receita">Receita</SelectItem>
-                    <SelectItem value="Despesa">Despesa</SelectItem>
-                  </SelectContent>
-                </Select>
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="type" className="text-right">
+                    Tipo
+                  </Label>
+                  <Select value={newTransaction.type} onValueChange={handleSelectChange}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Receita">Receita</SelectItem>
+                      <SelectItem value="Despesa">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Descrição
+                  </Label>
+                  <Input id="description" value={newTransaction.description} onChange={handleInputChange} placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="amount" className="text-right">
+                    Valor (R$)
+                  </Label>
+                  <Input id="amount" type="number" value={newTransaction.amount || ''} onChange={handleInputChange} placeholder="300" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="date" className="text-right">
+                    Data
+                  </Label>
+                  <Input id="date" type="date" value={newTransaction.date} onChange={handleInputChange} className="col-span-3" />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">
-                  Descrição
-                </Label>
-                <Input id="description" placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="amount" className="text-right">
-                  Valor (R$)
-                </Label>
-                <Input id="amount" type="number" placeholder="300" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="date" className="text-right">
-                  Data
-                </Label>
-                <Input id="date" type="date" className="col-span-3" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Salvar Transação</Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="submit">Salvar Transação</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
@@ -163,7 +205,7 @@ export default function FinancesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {financialTransactions.map((transaction) => (
+              {transactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>
                     <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>

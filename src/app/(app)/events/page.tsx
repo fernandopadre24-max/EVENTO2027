@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -26,8 +27,8 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { events, clients, artists } from '@/lib/data';
-import type { EventStatus, PaymentStatus } from '@/lib/types';
+import { events as initialEvents, clients, artists } from '@/lib/data';
+import type { Event, EventStatus, PaymentStatus } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
@@ -60,13 +61,64 @@ const paymentStatusColors: Record<PaymentStatus, string> = {
 };
 
 export default function EventsPage() {
+  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const [open, setOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState({
+    title: '',
+    clientId: '',
+    date: new Date(),
+    time: '',
+    artistIds: [] as string[],
+    payment: 0,
+  });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setNewEvent(prev => ({ ...prev, [id]: id === 'payment' ? Number(value) : value }));
+  };
+  
+  const handleSelectChange = (id: string) => (value: string) => {
+    setNewEvent(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleDateChange = (date: Date | undefined) => {
+    if(date) {
+      setNewEvent(prev => ({ ...prev, date }));
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const newEventData: Event = {
+      id: `evt-${Date.now()}`,
+      title: newEvent.title,
+      clientId: newEvent.clientId,
+      date: format(newEvent.date, 'yyyy-MM-dd'),
+      time: newEvent.time,
+      artistIds: newEvent.artistIds,
+      payment: newEvent.payment,
+      status: 'Pendente',
+      paymentStatus: 'Não Pago',
+    };
+    setEvents(prev => [newEventData, ...prev]);
+    setOpen(false);
+    setNewEvent({
+      title: '',
+      clientId: '',
+      date: new Date(),
+      time: '',
+      artistIds: [],
+      payment: 0,
+    });
+  };
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Eventos
         </h1>
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -80,85 +132,89 @@ export default function EventsPage() {
                 Preencha os detalhes do novo evento.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="title" className="text-right">
-                  Título
-                </Label>
-                <Input id="title" placeholder="Título do Evento" className="col-span-3" />
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="title" className="text-right">
+                    Título
+                  </Label>
+                  <Input id="title" value={newEvent.title} onChange={handleInputChange} placeholder="Título do Evento" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="clientId" className="text-right">
+                    Cliente
+                  </Label>
+                   <Select value={newEvent.clientId} onValueChange={handleSelectChange('clientId')}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {clients.map(client => (
+                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="date" className="text-right">
+                    Data
+                  </Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "col-span-3 justify-start text-left font-normal",
+                          !newEvent.date && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newEvent.date ? format(newEvent.date, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={newEvent.date}
+                        onSelect={handleDateChange}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="time" className="text-right">
+                    Hora
+                  </Label>
+                  <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="artistIds" className="text-right">
+                    Artistas
+                  </Label>
+                   <Select onValueChange={(value) => setNewEvent(p => ({...p, artistIds: [value]}))}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecione artistas" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {artists.map(artist => (
+                        <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="payment" className="text-right">
+                    Pagamento (R$)
+                  </Label>
+                  <Input id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} placeholder="2000" className="col-span-3" />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="client" className="text-right">
-                  Cliente
-                </Label>
-                 <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione um cliente" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {clients.map(client => (
-                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="date" className="text-right">
-                  Data
-                </Label>
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <Button
-                      variant={"outline"}
-                      className={cn(
-                        "col-span-3 justify-start text-left font-normal",
-                        !Date && "text-muted-foreground"
-                      )}
-                    >
-                      <CalendarIcon className="mr-2 h-4 w-4" />
-                      {Date ? format(new Date(), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                    </Button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-auto p-0">
-                    <Calendar
-                      mode="single"
-                      initialFocus
-                      locale={ptBR}
-                    />
-                  </PopoverContent>
-                </Popover>
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="time" className="text-right">
-                  Hora
-                </Label>
-                <Input id="time" type="time" className="col-span-3" />
-              </div>
-               <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="artists" className="text-right">
-                  Artistas
-                </Label>
-                 <Select>
-                  <SelectTrigger className="col-span-3">
-                    <SelectValue placeholder="Selecione artistas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {artists.map(artist => (
-                      <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="payment" className="text-right">
-                  Pagamento (R$)
-                </Label>
-                <Input id="payment" type="number" placeholder="2000" className="col-span-3" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Salvar Evento</Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="submit">Salvar Evento</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>

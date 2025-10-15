@@ -1,6 +1,7 @@
 
 'use client';
 
+import { useState } from 'react';
 import {
   Card,
   CardContent,
@@ -25,7 +26,8 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { clients } from '@/lib/data';
+import { clients as initialClients } from '@/lib/data';
+import type { Client } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -39,13 +41,37 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 export default function ClientsPage() {
+  const [clients, setClients] = useState<Client[]>(initialClients);
+  const [open, setOpen] = useState(false);
+  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '' });
+
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    setNewClient(prev => ({ ...prev, [id]: value }));
+  };
+
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    const newClientData: Client = {
+      id: `cli-${Date.now()}`,
+      name: newClient.name,
+      email: newClient.email,
+      phone: newClient.phone,
+      eventHistory: [],
+    };
+    setClients(prev => [newClientData, ...prev]);
+    setOpen(false);
+    setNewClient({ name: '', email: '', phone: '' });
+  };
+
+
   return (
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Clientes
         </h1>
-        <Dialog>
+        <Dialog open={open} onOpenChange={setOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -59,29 +85,31 @@ export default function ClientsPage() {
                 Preencha os detalhes do novo cliente aqui. Clique em salvar quando terminar.
               </DialogDescription>
             </DialogHeader>
-            <div className="grid gap-4 py-4">
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="name" className="text-right">
-                  Nome
-                </Label>
-                <Input id="name" placeholder="Nome do Cliente" className="col-span-3" />
+            <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Nome
+                  </Label>
+                  <Input id="name" value={newClient.name} onChange={handleInputChange} placeholder="Nome do Cliente" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input id="email" type="email" value={newClient.email} onChange={handleInputChange} placeholder="email@exemplo.com" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">
+                    Telefone
+                  </Label>
+                  <Input id="phone" value={newClient.phone} onChange={handleInputChange} placeholder="(99) 99999-9999" className="col-span-3" />
+                </div>
               </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="email" className="text-right">
-                  Email
-                </Label>
-                <Input id="email" type="email" placeholder="email@exemplo.com" className="col-span-3" />
-              </div>
-              <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="phone" className="text-right">
-                  Telefone
-                </Label>
-                <Input id="phone" placeholder="(99) 99999-9999" className="col-span-3" />
-              </div>
-            </div>
-            <DialogFooter>
-              <Button type="submit">Salvar</Button>
-            </DialogFooter>
+              <DialogFooter>
+                <Button type="submit">Salvar</Button>
+              </DialogFooter>
+            </form>
           </DialogContent>
         </Dialog>
       </div>
