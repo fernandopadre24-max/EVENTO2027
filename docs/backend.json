@@ -1,0 +1,233 @@
+{
+  "entities": {
+    "Client": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Client",
+      "type": "object",
+      "description": "Represents a client of the musical group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Client entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the client."
+        },
+        "contactInfo": {
+          "type": "string",
+          "description": "Contact information for the client (e.g., phone number, email)."
+        },
+        "eventIds": {
+          "type": "array",
+          "description": "References to Events. (Relationship: Client 1:N Event)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "contactInfo"
+      ]
+    },
+    "Artist": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Artist",
+      "type": "object",
+      "description": "Represents an artist in the musical group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Artist entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the artist."
+        },
+        "profile": {
+          "type": "string",
+          "description": "Profile details of the artist."
+        },
+        "performanceDetails": {
+          "type": "string",
+          "description": "Details about the artist's performance (e.g., genre, instruments)."
+        },
+        "eventIds": {
+          "type": "array",
+          "description": "References to Events. (Relationship: Artist 1:N Event)",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "profile",
+        "performanceDetails"
+      ]
+    },
+    "Event": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Event",
+      "type": "object",
+      "description": "Represents a scheduled event for the musical group.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Event entity."
+        },
+        "clientId": {
+          "type": "string",
+          "description": "Reference to Client. (Relationship: Client 1:N Event)"
+        },
+        "artistIds": {
+          "type": "array",
+          "description": "References to Artists. (Relationship: Artist 1:N Event)",
+          "items": {
+            "type": "string"
+          }
+        },
+        "dateTime": {
+          "type": "string",
+          "description": "Date and time of the event.",
+          "format": "date-time"
+        },
+        "financeId": {
+          "type": "string",
+          "description": "Reference to Finance. (Relationship: Finance 1:1 Event)"
+        }
+      },
+      "required": [
+        "id",
+        "clientId",
+        "artistIds",
+        "dateTime"
+      ]
+    },
+    "Finance": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Finance",
+      "type": "object",
+      "description": "Represents financial information related to events or other income/expenses.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Finance entity."
+        },
+        "description": {
+          "type": "string",
+          "description": "Description of the financial transaction."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the transaction (positive for income, negative for expense)."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the financial transaction.",
+          "format": "date-time"
+        },
+        "eventId": {
+          "type": "string",
+          "description": "Reference to Event. (Relationship: Finance 1:1 Event)"
+        }
+      },
+      "required": [
+        "id",
+        "description",
+        "amount",
+        "date"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/clients/{clientId}",
+        "definition": {
+          "entityName": "Client",
+          "schema": {
+            "$ref": "#/backend/entities/Client"
+          },
+          "description": "Stores client information.",
+          "params": [
+            {
+              "name": "clientId",
+              "description": "Unique identifier for the client."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/artists/{artistId}",
+        "definition": {
+          "entityName": "Artist",
+          "schema": {
+            "$ref": "#/backend/entities/Artist"
+          },
+          "description": "Stores artist information.",
+          "params": [
+            {
+              "name": "artistId",
+              "description": "Unique identifier for the artist."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/artists/{artistId}/events/{eventId}",
+        "definition": {
+          "entityName": "Event",
+          "schema": {
+            "$ref": "#/backend/entities/Event"
+          },
+          "description": "Stores event information, including the clientId, artistIds, and dateTime.  Includes denormalized 'artistId' for authorization independence.",
+          "params": [
+            {
+              "name": "artistId",
+              "description": "Unique identifier for the artist."
+            },
+            {
+              "name": "eventId",
+              "description": "Unique identifier for the event."
+            }
+          ]
+        }
+      },
+      {
+        "path": "/artists/{artistId}/events/{eventId}/finances/{financeId}",
+        "definition": {
+          "entityName": "Finance",
+          "schema": {
+            "$ref": "#/backend/entities/Finance"
+          },
+          "description": "Stores financial information related to an event. Includes denormalized 'artistId' and 'eventId' from parent documents for simpler authorization.",
+          "params": [
+            {
+              "name": "artistId",
+              "description": "Unique identifier for the artist."
+            },
+            {
+              "name": "eventId",
+              "description": "Unique identifier for the event."
+            },
+            {
+              "name": "financeId",
+              "description": "Unique identifier for the finance record."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "The Firestore structure is designed to manage data for the BandMate application, focusing on clients, artists, events, and finances. The structure prioritizes authorization independence and simplifies security rules by denormalizing authorization data and segregating data based on access requirements.\n\nClients and Artists are stored in root collections (`/clients` and `/artists`) for easy management. Events are structured as subcollections under each artist (`/artists/{artistId}/events/{eventId}`) to maintain a clear relationship and facilitate querying events associated with specific artists. Financial records related to each event are stored as subcollections (`/artists/{artistId}/events/{eventId}/finances/{financeId}`), ensuring data locality and simplifying event-specific financial queries.\n\n**Authorization Independence and Security:**\n\n*   Authorization Independence is achieved by storing the artist id in the event documents, avoiding the need for `get()` calls in security rules to check the artist.\n*   This structure enables secure `list` operations (QAPs) by structuring events as subcollections under artists. Security rules can easily filter events based on the artist ID and user roles.\n\n**Denormalization:** The structure denormalizes the `artistId` into event documents to improve security and querying efficiency. This way, reading the `eventId` implies that we already know which artist owns the event.\n\n**DBAC:** The application relies solely on `request.auth.uid` for authentication, avoiding custom claims.\n\n**Data Integrity:** The chosen structure enforces data integrity by maintaining explicit ownership and relationships between entities (e.g., an event belongs to a specific artist)."
+  }
+}

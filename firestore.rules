@@ -1,0 +1,138 @@
+/**
+ * @file Firebase Security Rules for BandMate Application
+ *
+ * @core_philosophy This ruleset enforces a strict ownership model for artists, events, and finances,
+ *  leveraging path-based authorization and data denormalization to ensure security and efficiency.
+ *  Clients are publicly readable but only modifiable by authenticated users.
+ *
+ * @data_structure
+ * - /clients/{clientId}: Stores client information. Publicly readable, owner-only writes.
+ * - /artists/{artistId}: Stores artist information. Owner-only access.
+ * - /artists/{artistId}/events/{eventId}: Stores event information. Owner-only access, inheriting artist ownership.
+ * - /artists/{artistId}/events/{eventId}/finances/{financeId}: Stores finance information related to events. Owner-only access, inheriting artist and event ownership.
+ *
+ * @key_security_decisions
+ * - Clients are publicly readable but only writable by authenticated users, with the `id` field in client documents matching the authenticated user's UID. This allows public access to client details while restricting modifications to authorized users.
+ * - Artists, events, and finances are strictly owner-controlled.
+ * - No user listing is allowed.
+ * - Data denormalization is used to simplify security rules and improve performance, avoiding costly `get()` calls.
+ * - Data integrity is enforced by validating relationships between entities and ensuring that critical fields like `artistId` and `eventId` cannot be modified.
+ *
+ * @denormalization_for_authorization
+ * - The `artistId` is denormalized into event documents to simplify authorization checks and avoid `get()` calls to the `/artists` collection.
+ * - Both `artistId` and `eventId` are denormalized into finance documents for similar reasons.
+ *
+ * @structural_segregation Data for artists, events, and finances is segregated into hierarchical subcollections under the `/artists/{artistId}` path, ensuring that only the owning artist can access their respective data. Clients are on the root level, since they are public.
+ */
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    /**
+     * @description Allows public read access to client data, but restricts write access to authenticated users, ensuring only authorized users can modify client information.
+     * @path /clients/{clientId}
+     * @allow get, list: if true;
+     * @allow create: if request.auth != null && request.resource.data.id == request.auth.uid;
+     * @allow update: if isSignedIn() && isExistingOwner(clientId);
+     * @allow delete: if isSignedIn() && isExistingOwner(clientId);
+     * @deny create: if request.auth == null; // Non-authenticated users can't create clients.
+     * @deny create: if request.resource.data.id != request.auth.uid; // Client ID must match the authenticated user's ID.
+     * @principle Allows public reads and owner-only writes to client data, using the client's ID for ownership validation.
+     */
+    match /clients/{clientId} {
+      allow get, list: if true;
+      allow create: if isSignedIn() && request.resource.data.id == request.auth.uid;
+      allow update: if isSignedIn() && isExistingOwner(clientId);
+      allow delete: if isSignedIn() && isExistingOwner(clientId);
+    }
+
+    /**
+     * @description Restricts access to artist data to the owner only, ensuring that only the authenticated user with a matching artist ID can read, create, update, or delete artist information.
+     * @path /artists/{artistId}
+     * @allow get, list: if isOwner(artistId);
+     * @allow create: if isOwner(artistId);
+     * @allow update: if isOwner(artistId) && resource != null && request.resource.data.id == resource.data.id;
+     * @allow delete: if isExistingOwner(artistId);
+     * @deny create: if !isOwner(artistId); // Only the artist can create their own document.
+     * @deny update: if !isOwner(artistId); // Only the artist can update their own document.
+     * @deny delete: if !isExistingOwner(artistId); // Only the artist can delete their own document.
+     * @principle Enforces strict document ownership, restricting all operations to the owner of the artist document.
+     */
+    match /artists/{artistId} {
+      allow get, list: if isOwner(artistId);
+      allow create: if isOwner(artistId);
+      allow update: if isOwner(artistId) && resource != null && request.resource.data.id == resource.data.id;
+      allow delete: if isExistingOwner(artistId);
+    }
+
+    /**
+     * @description Secures event data under a specific artist, ensuring that only the owning artist can manage their events. This rule allows the artist to create, read, update, and delete events associated with their ID.
+     * @path /artists/{artistId}/events/{eventId}
+     * @allow get, list: if isOwner(artistId);
+     * @allow create: if isOwner(artistId) && request.resource.data.artistIds[0] == artistId;
+     * @allow update: if isOwner(artistId) && resource != null && request.resource.data.artistIds[0] == artistId;
+     * @allow delete: if isExistingOwner(artistId);
+     * @deny create: if !isOwner(artistId); // Only the artist can create events under their ID.
+     * @deny create: if request.resource.data.artistIds[0] != artistId;
+     * @deny update: if !isOwner(artistId); // Only the artist can update events under their ID.
+     * @deny delete: if !isExistingOwner(artistId); // Only the artist can delete events under their ID.
+     * @principle Enforces strict ownership for events, linking them to a specific artist and restricting write access to the artist only.
+     */
+    match /artists/{artistId}/events/{eventId} {
+      allow get, list: if isOwner(artistId);
+      allow create: if isOwner(artistId) && request.resource.data.artistIds[0] == artistId;
+      allow update: if isOwner(artistId) && resource != null && request.resource.data.artistIds[0] == artistId;
+      allow delete: if isExistingOwner(artistId);
+    }
+
+    /**
+     * @description Protects financial data related to specific events, ensuring that only the artist who owns the event can manage the financial records.
+     * @path /artists/{artistId}/events/{eventId}/finances/{financeId}
+     * @allow get, list: if isOwner(artistId);
+     * @allow create: if isOwner(artistId) && request.resource.data.eventId == eventId;
+     * @allow update: if isOwner(artistId) && resource != null && request.resource.data.eventId == eventId;
+     * @allow delete: if isExistingOwner(artistId);
+     * @deny create: if !isOwner(artistId); // Only the artist can create finance records under their events.
+     * @deny update: if !isOwner(artistId); // Only the artist can update finance records under their events.
+     * @deny delete: if !isExistingOwner(artistId); // Only the artist can delete finance records under their events.
+     * @principle Enforces strict ownership for finances, tying them to specific events and artists, and restricting write access to the artist only.
+     */
+    match /artists/{artistId}/events/{eventId}/finances/{financeId} {
+      allow get, list: if isOwner(artistId);
+      allow create: if isOwner(artistId) && request.resource.data.eventId == eventId;
+      allow update: if isOwner(artistId) && resource != null && request.resource.data.eventId == eventId;
+      allow delete: if isExistingOwner(artistId);
+    }
+
+    // --- Helper functions ---
+
+    /**
+     * @description Checks if the user is signed in (authenticated).
+     * @return {boolean} True if the user is signed in, false otherwise.
+     */
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId.
+     * @param {string} userId - The user ID to compare against the authenticated user's UID.
+     * @return {boolean} True if the user is authenticated and their UID matches the provided userId, false otherwise.
+     * @example
+     *   // Allow access if the authenticated user's UID is 'user123'
+     *   allow read: if isOwner('user123');
+     */
+    function isOwner(userId) {
+      return request.auth != null && request.auth.uid == userId;
+    }
+
+    /**
+     * @description Checks if the authenticated user's UID matches the provided userId AND the resource exists.
+     * @param {string} userId - The user ID to compare against the authenticated user's UID.
+     * @return {boolean} True if the user is authenticated, their UID matches the provided userId, and the resource exists.
+     */
+    function isExistingOwner(userId) {
+      return isOwner(userId) && resource != null;
+    }
+  }
+}
