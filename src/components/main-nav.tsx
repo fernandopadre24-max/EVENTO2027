@@ -9,6 +9,7 @@ import {
   Home,
   Music,
   Users,
+  Settings,
 } from 'lucide-react';
 import {
   SidebarMenu,
@@ -24,6 +25,7 @@ const navItems = [
   { href: '/artists', label: 'Artistas', icon: Music },
   { href: '/finances', label: 'Finanças', icon: DollarSign },
   { href: '/reports', label: 'Relatórios', icon: BarChart2 },
+  { href: '/settings', label: 'Configurações', icon: Settings },
 ];
 
 export function MainNav() {
@@ -35,7 +37,7 @@ export function MainNav() {
         <SidebarMenuItem key={item.href}>
           <SidebarMenuButton
             asChild
-            isActive={pathname === item.href}
+            isActive={pathname.startsWith(item.href)}
             tooltip={item.label}
           >
             <Link href={item.href}>
