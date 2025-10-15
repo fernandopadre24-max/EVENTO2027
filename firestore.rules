@@ -1,87 +1,76 @@
 /**
- * @fileOverview Firestore Security Rules for the musical group app.
- *
- * Core Philosophy:
- * This ruleset adopts a public read, owner-write model for the 'artists' collection, 
- * and enforces strict owner-only access for the 'clients', 'events', and 'finances' collections.
- *
- * Data Structure:
- * - /artists/{artistId}: Publicly readable collection of artist profiles.  Each artist document should have an `ownerId` field.
- * - /clients/{clientId}: Private collection of client contact information.
- * - /events/{eventId}: Private collection of event schedules.
- * - /finances/{financeId}: Private collection of financial records.
- *
- * Key Security Decisions:
- * - Artists collection is publicly listable.
- * - Clients, events, and finances are restricted to owner-only access.
- *
- * Denormalization for Authorization:
- * The 'artists' documents must contain an `ownerId` field to control write access.
+ * @description This ruleset enforces a strict authorization model where only authenticated users can access data.
+ * All collections are readable by any authenticated user, but write access is forbidden.
+ * @dataStructure The database consists of top-level collections for clients, artists, events, and finances.
+ * @keySecurityDecisions
+ *   - All collections are publicly readable by signed-in users, supporting open data access.
+ *   - No write operations are allowed through the client; all data is considered read-only.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Allows anyone to read artist profiles, but only the owner to create, update, or delete.
-     * @path /artists/{artistId}
-     * @allow (get, list) Allows any user to read the artist profile.
-     * @allow (create) Allows a user to create an artist profile if the `ownerId` field matches their UID.
-     * @allow (update, delete) Allows the owner of the artist profile to update or delete it.
-     * @deny Any non-owner attempting to update or delete an artist profile.
-     * @principle Enforces document ownership for writes while allowing public reads.
-     */
-    match /artists/{artistId} {
-      allow get, list: if true;
-      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
-      allow update, delete: if isSignedIn() && request.resource.data.ownerId == resource.data.ownerId && request.auth.uid == resource.data.ownerId;
-    }
-
-    /**
-     * @description Only allows the owner to read, create, update, or delete client information.
+     * @description Grants read access to the 'clients' collection for any authenticated user.  Write access is denied.
      * @path /clients/{clientId}
-     * @allow (create) Allows a user to create their own client document if the client ID matches their UID.
-     * @allow (get, list, update, delete) Allows the owner of the client document to read, list, update, and delete it.
-     * @deny Any non-owner attempting to access or modify a client document.
-     * @principle Restricts access to a user's own client data.
+     * @allow (get, list) An authenticated user can retrieve or list client documents.
+     * @deny (create, update, delete) No user can create, update, or delete client documents.
+     * @principle Allows any signed-in user to read client information, but prevents any modification.
      */
     match /clients/{clientId} {
-      allow get, list: if isSignedIn() && request.auth.uid == clientId;
-      allow create: if isSignedIn() && request.auth.uid == clientId;
-      allow update: if isSignedIn() && request.auth.uid == clientId;
-      allow delete: if isSignedIn() && request.auth.uid == clientId;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Only allows the owner to read, create, update, or delete event information.
+     * @description Grants read access to the 'artists' collection for any authenticated user.  Write access is denied.
+     * @path /artists/{artistId}
+     * @allow (get, list) An authenticated user can retrieve or list artist documents.
+     * @deny (create, update, delete) No user can create, update, or delete artist documents.
+     * @principle Allows any signed-in user to read artist information, but prevents any modification.
+     */
+    match /artists/{artistId} {
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
+    }
+
+    /**
+     * @description Grants read access to the 'events' collection for any authenticated user.  Write access is denied.
      * @path /events/{eventId}
-     * @allow (create) Allows a user to create their own event document.
-     * @allow (get, list, update, delete) Allows the owner of the event document to read, update, and delete it.
-     * @deny Any non-owner attempting to access or modify an event document.
-     * @principle Restricts access to a user's own event data.
+     * @allow (get, list) An authenticated user can retrieve or list event documents.
+     * @deny (create, update, delete) No user can create, update, or delete event documents.
+     * @principle Allows any signed-in user to read event information, but prevents any modification.
      */
     match /events/{eventId} {
-      allow get, list: if isSignedIn() && request.auth.uid == eventId;
-      allow create: if isSignedIn() && request.auth.uid == eventId;
-      allow update: if isSignedIn() && request.auth.uid == eventId;
-      allow delete: if isSignedIn() && request.auth.uid == eventId;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
     /**
-     * @description Only allows the owner to read, create, update, or delete financial information.
+     * @description Grants read access to the 'finances' collection for any authenticated user.  Write access is denied.
      * @path /finances/{financeId}
-     * @allow (create) Allows a user to create their own finance document.
-     * @allow (get, list, update, delete) Allows the owner of the finance document to read, update, and delete it.
-     * @deny Any non-owner attempting to access or modify a finance document.
-     * @principle Restricts access to a user's own financial data.
+     * @allow (get, list) An authenticated user can retrieve or list finance documents.
+     * @deny (create, update, delete) No user can create, update, or delete finance documents.
+     * @principle Allows any signed-in user to read finance information, but prevents any modification.
      */
     match /finances/{financeId} {
-      allow get, list: if isSignedIn() && request.auth.uid == financeId;
-      allow create: if isSignedIn() && request.auth.uid == financeId;
-      allow update: if isSignedIn() && request.auth.uid == financeId;
-      allow delete: if isSignedIn() && request.auth.uid == financeId;
+      allow get: if isSignedIn();
+      allow list: if isSignedIn();
+      allow create: if false;
+      allow update: if false;
+      allow delete: if false;
     }
 
+    // Helper function to determine if a user is signed in.
     function isSignedIn() {
       return request.auth != null;
     }
