@@ -253,13 +253,13 @@ export default function EventsPage() {
                   <Label htmlFor="time" className="text-right">
                     Hora
                   </Label>
-                  <Input id="time" type="time" value={currentData.time} onChange={handleInputChange} className="col-span-3" />
+                  <Input id="time" type="time" value={currentData.time || ''} onChange={handleInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="local" className="text-right">
                     Local
                   </Label>
-                  <Input id="local" value={currentData.local} onChange={handleInputChange} placeholder="Local do evento" className="col-span-3" />
+                  <Input id="local" value={currentData.local || ''} onChange={handleInputChange} placeholder="Local do evento" className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-start gap-4 pt-2">
                   <Label htmlFor="artistIds" className="text-right pt-2">
@@ -399,6 +399,9 @@ export default function EventsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuItem onClick={() => openEditDialog(event)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')}>
+                            Marcar como Confirmado
+                          </DropdownMenuItem>
                           <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>
                             Marcar como Concluído
                           </DropdownMenuItem>
