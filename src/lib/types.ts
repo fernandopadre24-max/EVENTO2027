@@ -4,6 +4,8 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
+  responsavel: string;
+  local: string;
   userId: string;
 }
 

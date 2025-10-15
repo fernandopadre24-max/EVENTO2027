@@ -52,6 +52,8 @@ import { Label } from '@/components/ui/label';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 
+const initialNewClientState = { name: '', email: '', phone: '', responsavel: '', local: '' };
+
 export default function ClientsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -64,7 +66,7 @@ export default function ClientsPage() {
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [selectedClient, setSelectedClient] = useState<Client | null>(null);
 
-  const [newClient, setNewClient] = useState({ name: '', email: '', phone: '' });
+  const [newClient, setNewClient] = useState(initialNewClientState);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -83,7 +85,7 @@ export default function ClientsPage() {
     const clientsCollectionRef = collection(firestore, 'clients');
     addDocumentNonBlocking(clientsCollectionRef, { ...newClient, userId: user.uid });
     setAddOpen(false);
-    setNewClient({ name: '', email: '', phone: '' });
+    setNewClient(initialNewClientState);
   };
   
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -128,7 +130,7 @@ export default function ClientsPage() {
               Adicionar Cliente
             </Button>
           </DialogTrigger>
-          <DialogContent className="sm:max-w-[425px]">
+          <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>Adicionar Novo Cliente</DialogTitle>
               <DialogDescription>
@@ -142,6 +144,18 @@ export default function ClientsPage() {
                     Nome
                   </Label>
                   <Input id="name" value={newClient.name} onChange={handleInputChange} placeholder="Nome do Cliente" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="responsavel" className="text-right">
+                    Responsável
+                  </Label>
+                  <Input id="responsavel" value={newClient.responsavel} onChange={handleInputChange} placeholder="Nome do responsável" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="local" className="text-right">
+                    Local
+                  </Label>
+                  <Input id="local" value={newClient.local} onChange={handleInputChange} placeholder="Endereço do cliente" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="email" className="text-right">
@@ -165,7 +179,7 @@ export default function ClientsPage() {
       </div>
 
        <Dialog open={isEditOpen} onOpenChange={setEditOpen}>
-        <DialogContent className="sm:max-w-[425px]">
+        <DialogContent className="sm:max-w-[480px]">
             <DialogHeader>
               <DialogTitle>Editar Cliente</DialogTitle>
               <DialogDescription>
@@ -180,6 +194,18 @@ export default function ClientsPage() {
                     Nome
                   </Label>
                   <Input id="name" value={selectedClient.name} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="responsavel" className="text-right">
+                    Responsável
+                  </Label>
+                  <Input id="responsavel" value={selectedClient.responsavel} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="local" className="text-right">
+                    Local
+                  </Label>
+                  <Input id="local" value={selectedClient.local} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="email" className="text-right">
@@ -232,8 +258,9 @@ export default function ClientsPage() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Nome</TableHead>
-                  <TableHead className="hidden md:table-cell">Email</TableHead>
-                  <TableHead className="hidden md:table-cell">Telefone</TableHead>
+                  <TableHead className="hidden sm:table-cell">Responsável</TableHead>
+                  <TableHead className="hidden md:table-cell">Local</TableHead>
+                  <TableHead className="hidden lg:table-cell">Telefone</TableHead>
                   <TableHead>
                     <span className="sr-only">Ações</span>
                   </TableHead>
@@ -246,8 +273,9 @@ export default function ClientsPage() {
                       <div className="font-medium">{client.name}</div>
                       <div className="text-sm text-muted-foreground md:hidden">{client.email}</div>
                     </TableCell>
-                    <TableCell className="hidden md:table-cell">{client.email}</TableCell>
-                    <TableCell className="hidden md:table-cell">{client.phone}</TableCell>
+                    <TableCell className="hidden sm:table-cell">{client.responsavel}</TableCell>
+                    <TableCell className="hidden md:table-cell">{client.local}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{client.phone}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
