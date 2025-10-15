@@ -14,6 +14,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppTitleProvider, useAppTitle } from '@/context/app-title-provider';
+import { AppThemeProvider } from '@/context/app-theme-provider';
 
 const topLevelRoutes = [
   '/dashboard',
@@ -95,8 +96,10 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AppTitleProvider>
-      <AppLayoutContent>{children}</AppLayoutContent>
-    </AppTitleProvider>
+    <AppThemeProvider>
+      <AppTitleProvider>
+        <AppLayoutContent>{children}</AppLayoutContent>
+      </AppTitleProvider>
+    </AppThemeProvider>
   )
 }

@@ -5,17 +5,20 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
   BarChart2,
+  Calendar,
   DollarSign,
   Home,
   Music,
+  Settings,
   Users,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
 
+
 const navItems = [
   { href: '/dashboard', label: 'Painel', icon: Home },
-  { href: '/events', label: 'Eventos', icon: Users },
+  { href: '/events', label: 'Eventos', icon: Calendar },
   { href: '/clients', label: 'Clientes', icon: Users },
   { href: '/artists', label: 'Artistas', icon: Music },
   { href: '/finances', label: 'Finanças', icon: DollarSign },
@@ -32,12 +35,15 @@ export function MainNav() {
                 key={item.href}
                 asChild
                 variant="ghost"
-                size="icon"
-                className={cn("h-12 w-12 flex flex-col gap-1 text-muted-foreground", pathname.startsWith(item.href) && "text-primary bg-primary/10")}
+                size="sm"
+                className={cn(
+                    "flex-col h-14 w-14 gap-1 text-muted-foreground rounded-lg",
+                    pathname === item.href && "text-primary bg-primary/10"
+                )}
             >
                 <Link href={item.href}>
-                <item.icon className="h-5 w-5" />
-                <span className="text-xs">{item.label}</span>
+                    <item.icon className="h-5 w-5" />
+                    <span className="text-xs font-medium">{item.label}</span>
                 </Link>
             </Button>
         ))}

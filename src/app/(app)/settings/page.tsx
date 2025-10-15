@@ -10,17 +10,24 @@ import { Input } from '@/components/ui/input';
 import { useAppTitle } from '@/context/app-title-provider';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
+import { useAppTheme } from '@/context/app-theme-provider';
 
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
   const { title, setTitle } = useAppTitle();
+  const { backgroundColor, setBackgroundColor } = useAppTheme();
   const [localTitle, setLocalTitle] = useState(title);
+  const [localBgColor, setLocalBgColor] = useState(backgroundColor);
   const { toast } = useToast();
 
   useEffect(() => {
     setLocalTitle(title);
   }, [title]);
+
+  useEffect(() => {
+    setLocalBgColor(backgroundColor);
+  }, [backgroundColor]);
 
   const handleTitleSave = () => {
     setTitle(localTitle);
@@ -29,6 +36,14 @@ export default function SettingsPage() {
         description: 'O título do aplicativo foi atualizado.',
     });
   };
+
+  const handleThemeSave = () => {
+    setBackgroundColor(localBgColor);
+    toast({
+        title: 'Sucesso!',
+        description: 'A cor de fundo foi atualizada.',
+    });
+  }
 
   return (
     <div className="space-y-8">
@@ -53,7 +68,7 @@ export default function SettingsPage() {
               placeholder="Ex: Minha Banda"
             />
           </div>
-          <Button onClick={handleTitleSave}>Salvar</Button>
+          <Button onClick={handleTitleSave}>Salvar Título</Button>
         </CardContent>
       </Card>
 
@@ -61,10 +76,10 @@ export default function SettingsPage() {
         <CardHeader>
           <CardTitle>Aparência</CardTitle>
           <CardDescription>
-            Personalize a aparência do aplicativo. Alterne entre o modo claro e escuro.
+            Personalize a aparência do aplicativo.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-6">
           <div className="space-y-4">
             <Label>Tema</Label>
             <RadioGroup
@@ -101,6 +116,25 @@ export default function SettingsPage() {
               </div>
             </RadioGroup>
           </div>
+           <div className="space-y-2">
+            <Label htmlFor="bgColor">Cor de Fundo</Label>
+            <div className='flex items-center gap-2'>
+              <Input 
+                id="bgColor" 
+                type="color"
+                value={localBgColor}
+                onChange={(e) => setLocalBgColor(e.target.value)}
+                className="p-1 h-10 w-14"
+              />
+              <Input
+                value={localBgColor}
+                onChange={(e) => setLocalBgColor(e.target.value)}
+                placeholder="#ffffff"
+              />
+            </div>
+            
+          </div>
+          <Button onClick={handleThemeSave}>Salvar Aparência</Button>
         </CardContent>
       </Card>
       
