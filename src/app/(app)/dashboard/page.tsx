@@ -28,20 +28,12 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, getMonth } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Event, FinancialTransaction, Client } from '@/lib/types';
 
-
-const chartData = [
-  { month: 'Jan', income: 4000, outcome: 2400 },
-  { month: 'Fev', income: 3000, outcome: 1398 },
-  { month: 'Mar', income: 5000, outcome: 7800 },
-  { month: 'Abr', income: 2780, outcome: 3908 },
-  { month: 'Mai', income: 1890, outcome: 4800 },
-  { month: 'Jun', income: 2390, outcome: 3800 },
-];
 
 export default function DashboardPage() {
   const firestore = useFirestore();
@@ -70,6 +62,29 @@ export default function DashboardPage() {
   const upcomingEvents = useMemo(() => events?.filter(
     (e) => new Date(e.date) >= new Date() && e.status !== 'Cancelado'
   ).slice(0, 5) || [], [events]);
+
+  const monthlyChartData = useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const data = Array.from({ length: 12 }, (_, i) => ({
+      month: format(new Date(currentYear, i), 'LLL', { locale: ptBR }),
+      income: 0,
+      outcome: 0,
+    }));
+
+    financialTransactions?.forEach(transaction => {
+      const transactionDate = parseISO(transaction.date);
+      if (transactionDate.getFullYear() === currentYear) {
+        const monthIndex = getMonth(transactionDate);
+        if (transaction.type === 'Receita') {
+          data[monthIndex].income += transaction.amount;
+        } else if (transaction.type === 'Despesa') {
+          data[monthIndex].outcome += transaction.amount;
+        }
+      }
+    });
+
+    return data;
+  }, [financialTransactions]);
 
   return (
     <div className="space-y-8">
@@ -118,7 +133,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
+              <BarChart data={monthlyChartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
                 <XAxis
                   dataKey="month"
@@ -132,7 +147,7 @@ export default function DashboardPage() {
                   fontSize={12}
                   tickLine={false}
                   axisLine={false}
-                  tickFormatter={(value) => `R$${value}`}
+                  tickFormatter={(value) => `R$${value/1000}k`}
                 />
                 <Tooltip
                   cursor={{ fill: 'hsl(var(--muted))' }}
