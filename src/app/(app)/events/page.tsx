@@ -45,8 +45,8 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
 
@@ -127,6 +127,18 @@ export default function EventsPage() {
       artistIds: [],
       payment: 0,
     });
+  };
+
+  const updateEventStatus = (eventId: string, status: EventStatus) => {
+    if (!firestore) return;
+    const eventDocRef = doc(firestore, 'events', eventId);
+    updateDocumentNonBlocking(eventDocRef, { status });
+  };
+
+  const updatePaymentStatus = (eventId: string, paymentStatus: PaymentStatus) => {
+    if (!firestore) return;
+    const eventDocRef = doc(firestore, 'events', eventId);
+    updateDocumentNonBlocking(eventDocRef, { paymentStatus });
   };
 
   return (
@@ -307,9 +319,13 @@ export default function EventsPage() {
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
                           <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem>Marcar como Concluído</DropdownMenuItem>
-                          <DropdownMenuItem>Marcar como Pago</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">
+                          <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>
+                            Marcar como Concluído
+                          </DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => updatePaymentStatus(event.id, 'Pago')}>
+                            Marcar como Pago
+                          </DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => updateEventStatus(event.id, 'Cancelado')}>
                             Cancelar Evento
                           </DropdownMenuItem>
                         </DropdownMenuContent>
