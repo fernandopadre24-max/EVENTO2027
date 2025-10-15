@@ -2,7 +2,6 @@
 'use client';
 
 import { useState } from 'react';
-import Image from 'next/image';
 import {
   Card,
   CardContent,
@@ -75,12 +74,7 @@ export default function ArtistsPage() {
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!artistsRef) return;
-    const newArtistData = {
-      ...newArtist,
-      profilePictureUrl: 'https://picsum.photos/seed/newartist/400/400',
-      profilePictureHint: 'new artist',
-    };
-    addDocumentNonBlocking(artistsRef, newArtistData);
+    addDocumentNonBlocking(artistsRef, newArtist);
     setAddOpen(false);
     setNewArtist({ name: '', genre: '', performanceDetails: '' });
   };
@@ -240,19 +234,8 @@ export default function ArtistsPage() {
               </DropdownMenu>
             </CardHeader>
             <CardContent className="flex-grow">
-              <div className="relative aspect-square">
-                <Image
-                  src={artist.profilePictureUrl}
-                  alt={artist.name}
-                  fill
-                  className="object-cover rounded-md"
-                  data-ai-hint={artist.profilePictureHint}
-                />
-              </div>
-            </CardContent>
-            <CardFooter>
               <Badge variant="secondary">{artist.genre}</Badge>
-            </CardFooter>
+            </CardContent>
           </Card>
         ))}
       </div>

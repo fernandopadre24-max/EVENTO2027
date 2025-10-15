@@ -41,14 +41,6 @@
         "performanceDetails": {
           "type": "string",
           "description": "Details about the artist's performance (e.g., genre, instruments)."
-        },
-        "profilePictureUrl": {
-          "type": "string",
-          "description": "URL for the artist's profile picture."
-        },
-        "profilePictureHint": {
-          "type": "string",
-          "description": "Hint for AI image generation."
         }
       },
       "required": [

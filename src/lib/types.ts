@@ -10,8 +10,6 @@ export interface Artist {
   id: string;
   name: string;
   genre: string;
-  profilePictureUrl: string;
-  profilePictureHint: string;
   performanceDetails: string;
 }
 
