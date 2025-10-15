@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -87,11 +87,29 @@ export default function EventsPage() {
 
   const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
 
-
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [newEvent, setNewEvent] = useState(initialNewEventState);
   const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all');
+  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatus | 'all'>('all');
+
+  const filteredEvents = useMemo(() => {
+    return events
+      ?.filter(event => {
+        const client = clients?.find(c => c.id === event.clientId);
+        const searchLower = searchTerm.toLowerCase();
+        const clientMatch = client?.name.toLowerCase().includes(searchLower);
+        const localMatch = event.local.toLowerCase().includes(searchLower);
+        const statusMatch = statusFilter === 'all' || event.status === statusFilter;
+        const paymentStatusMatch = paymentStatusFilter === 'all' || event.paymentStatus === paymentStatusFilter;
+
+        return (clientMatch || localMatch) && statusMatch && paymentStatusMatch;
+      })
+      .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()) || [];
+  }, [events, clients, searchTerm, statusFilter, paymentStatusFilter]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -345,6 +363,45 @@ export default function EventsPage() {
             {renderForm(true)}
         </DialogContent>
        </Dialog>
+      
+      <div className="space-y-4">
+        <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+            <div className="relative w-full md:max-w-sm">
+                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                <Input
+                type="search"
+                placeholder="Buscar por cliente ou local..."
+                className="pl-8"
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                />
+            </div>
+            <div className="flex gap-4">
+                <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as EventStatus | 'all')}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filtrar por Status" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os Status</SelectItem>
+                        <SelectItem value="Pendente">Pendente</SelectItem>
+                        <SelectItem value="Confirmado">Confirmado</SelectItem>
+                        <SelectItem value="Concluído">Concluído</SelectItem>
+                        <SelectItem value="Cancelado">Cancelado</SelectItem>
+                    </SelectContent>
+                </Select>
+                <Select value={paymentStatusFilter} onValueChange={(value) => setPaymentStatusFilter(value as PaymentStatus | 'all')}>
+                    <SelectTrigger className="w-full sm:w-[180px]">
+                        <SelectValue placeholder="Filtrar por Pagamento" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        <SelectItem value="all">Todos os Pagamentos</SelectItem>
+                        <SelectItem value="Pago">Pago</SelectItem>
+                        <SelectItem value="Não Pago">Não Pago</SelectItem>
+                    </SelectContent>
+                </Select>
+            </div>
+        </div>
+      </div>
 
       <Card>
         <CardHeader>
@@ -372,7 +429,7 @@ export default function EventsPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {events?.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event) => {
+                {filteredEvents.map((event) => {
                   const client = clients?.find(c => c.id === event.clientId);
                   const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
                   return (
