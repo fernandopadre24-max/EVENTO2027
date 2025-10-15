@@ -13,6 +13,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { AppTitleProvider, useAppTitle } from '@/context/app-title-provider';
 
 const topLevelRoutes = [
   '/dashboard',
@@ -26,11 +27,11 @@ const topLevelRoutes = [
   '/settings'
 ];
 
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
+function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
+  const { title } = useAppTitle();
 
   useEffect(() => {
     // If loading is finished and there's no user, redirect to login
@@ -53,7 +54,6 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   const isTopLevel = topLevelRoutes.includes(pathname);
 
-
   // If user is loaded and present, render the app layout
   return (
     <div className="flex flex-col h-screen">
@@ -67,7 +67,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/dashboard" className={cn("flex items-center gap-2", !isTopLevel && "hidden sm:flex")}>
                 <BandMateLogo className="w-8 h-8 text-primary" />
                 <span className="text-xl font-bold font-headline hidden sm:inline-block">
-                    BandMate
+                    {title}
                 </span>
             </Link>
           </div>
@@ -91,4 +91,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </nav>
     </div>
   );
+}
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
+  return (
+    <AppTitleProvider>
+      <AppLayoutContent>{children}</AppLayoutContent>
+    </AppTitleProvider>
+  )
 }

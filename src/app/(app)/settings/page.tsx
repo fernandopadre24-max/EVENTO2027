@@ -6,15 +6,56 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
+import { Input } from '@/components/ui/input';
+import { useAppTitle } from '@/context/app-title-provider';
+import { useState, useEffect } from 'react';
+import { useToast } from '@/hooks/use-toast';
+
 
 export default function SettingsPage() {
   const { theme, setTheme } = useTheme();
+  const { title, setTitle } = useAppTitle();
+  const [localTitle, setLocalTitle] = useState(title);
+  const { toast } = useToast();
+
+  useEffect(() => {
+    setLocalTitle(title);
+  }, [title]);
+
+  const handleTitleSave = () => {
+    setTitle(localTitle);
+    toast({
+        title: 'Sucesso!',
+        description: 'O título do aplicativo foi atualizado.',
+    });
+  };
 
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight font-headline">
         Configurações
       </h1>
+
+      <Card className="max-w-2xl">
+        <CardHeader>
+          <CardTitle>Geral</CardTitle>
+          <CardDescription>
+            Personalize as configurações gerais do aplicativo.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <Label htmlFor="appName">Título do Aplicativo</Label>
+            <Input 
+              id="appName" 
+              value={localTitle} 
+              onChange={(e) => setLocalTitle(e.target.value)}
+              placeholder="Ex: Minha Banda"
+            />
+          </div>
+          <Button onClick={handleTitleSave}>Salvar</Button>
+        </CardContent>
+      </Card>
 
       <Card className="max-w-2xl">
         <CardHeader>
