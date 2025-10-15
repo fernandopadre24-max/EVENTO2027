@@ -5,6 +5,10 @@ import React, { createContext, useContext, useState, useEffect, ReactNode } from
 
 const APP_BG_COLOR_KEY = 'bandmate_app_bg_color';
 
+export const DEFAULT_BG_COLOR_LIGHT = '#f0f7f7';
+export const DEFAULT_BG_COLOR_DARK = '#1a202c';
+
+
 // Function to convert hex to HSL string format "H S% L%"
 const hexToHslString = (hex: string): string | null => {
   if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) {
@@ -56,19 +60,15 @@ const getInitialBackgroundColor = (): string => {
       if (storedColor) {
         return storedColor;
       }
-      // Fallback to CSS variable if nothing in localStorage
-      const rootStyle = getComputedStyle(document.documentElement);
-      // We need to parse HSL from the CSS variable to a hex for the input
-      const bgHsl = rootStyle.getPropertyValue('--background-raw').trim();
-       if(bgHsl) {
-         const [h, s, l] = bgHsl.split(' ').map(val => parseInt(val.replace('%', '')));
-         return hslToHex(h,s,l);
-       }
     } catch (error) {
-       console.warn("Could not read theme from localStorage or CSS vars", error);
+       console.warn("Could not read theme from localStorage", error);
     }
   }
-  return '#f0f7f7'; // Default light theme background hex
+  // Check system theme preference for initial default
+  if (typeof window !== 'undefined' && window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+    return DEFAULT_BG_COLOR_DARK;
+  }
+  return DEFAULT_BG_COLOR_LIGHT; 
 };
 
 const hslToHex = (h: number, s: number, l: number): string => {
@@ -115,8 +115,15 @@ export function AppThemeProvider({ children }: { children: ReactNode }) {
 
   const setBackgroundColor = (newColor: string) => {
     try {
-      localStorage.setItem(APP_BG_COLOR_KEY, newColor);
-      setBackgroundColorState(newColor);
+      if(newColor === '') {
+        localStorage.removeItem(APP_BG_COLOR_KEY);
+        // Re-evaluate default based on current theme
+        const isDarkMode = document.documentElement.classList.contains('dark');
+        setBackgroundColorState(isDarkMode ? DEFAULT_BG_COLOR_DARK : DEFAULT_BG_COLOR_LIGHT);
+      } else {
+        localStorage.setItem(APP_BG_COLOR_KEY, newColor);
+        setBackgroundColorState(newColor);
+      }
     } catch (error) {
       console.warn("Could not save app background color to localStorage:", error);
     }

@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 
 const APP_TITLE_KEY = 'bandmate_app_title';
-const DEFAULT_TITLE = 'BandMate';
+export const DEFAULT_TITLE = 'BandMate';
 
 interface AppTitleContextType {
   title: string;
@@ -29,8 +29,13 @@ export function AppTitleProvider({ children }: { children: ReactNode }) {
 
   const setTitle = (newTitle: string) => {
     try {
-      localStorage.setItem(APP_TITLE_KEY, newTitle);
-      setTitleState(newTitle);
+      if(newTitle === '') {
+        localStorage.removeItem(APP_TITLE_KEY);
+        setTitleState(DEFAULT_TITLE);
+      } else {
+        localStorage.setItem(APP_TITLE_KEY, newTitle);
+        setTitleState(newTitle);
+      }
     } catch (error) {
       console.warn("Could not save app title to localStorage:", error);
     }

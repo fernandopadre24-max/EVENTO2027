@@ -7,14 +7,14 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Label } from '@/components/ui/label';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Input } from '@/components/ui/input';
-import { useAppTitle } from '@/context/app-title-provider';
+import { useAppTitle, DEFAULT_TITLE } from '@/context/app-title-provider';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
-import { useAppTheme } from '@/context/app-theme-provider';
+import { useAppTheme, DEFAULT_BG_COLOR_LIGHT, DEFAULT_BG_COLOR_DARK } from '@/context/app-theme-provider';
 
 
 export default function SettingsPage() {
-  const { theme, setTheme } = useTheme();
+  const { theme, setTheme, resolvedTheme } = useTheme();
   const { title, setTitle } = useAppTitle();
   const { backgroundColor, setBackgroundColor } = useAppTheme();
   const [localTitle, setLocalTitle] = useState(title);
@@ -37,6 +37,15 @@ export default function SettingsPage() {
     });
   };
 
+  const handleRestoreTitle = () => {
+    setLocalTitle(DEFAULT_TITLE);
+    setTitle(''); // Pass empty string to signal reset
+    toast({
+        title: 'Sucesso!',
+        description: 'O título do aplicativo foi restaurado para o padrão.',
+    });
+  };
+
   const handleThemeSave = () => {
     setBackgroundColor(localBgColor);
     toast({
@@ -44,6 +53,17 @@ export default function SettingsPage() {
         description: 'A cor de fundo foi atualizada.',
     });
   }
+
+  const handleRestoreTheme = () => {
+    const defaultColor = resolvedTheme === 'dark' ? DEFAULT_BG_COLOR_DARK : DEFAULT_BG_COLOR_LIGHT;
+    setLocalBgColor(defaultColor);
+    setBackgroundColor(''); // Pass empty string to signal reset
+     toast({
+        title: 'Sucesso!',
+        description: 'A cor de fundo foi restaurada para o padrão do tema.',
+    });
+  }
+
 
   return (
     <div className="space-y-8">
@@ -68,7 +88,10 @@ export default function SettingsPage() {
               placeholder="Ex: Minha Banda"
             />
           </div>
-          <Button onClick={handleTitleSave}>Salvar Título</Button>
+          <div className="flex gap-2">
+            <Button onClick={handleTitleSave}>Salvar Título</Button>
+            <Button variant="ghost" onClick={handleRestoreTitle}>Restaurar Padrão</Button>
+          </div>
         </CardContent>
       </Card>
 
@@ -134,7 +157,10 @@ export default function SettingsPage() {
             </div>
             
           </div>
-          <Button onClick={handleThemeSave}>Salvar Aparência</Button>
+          <div className="flex gap-2">
+            <Button onClick={handleThemeSave}>Salvar Aparência</Button>
+            <Button variant="ghost" onClick={handleRestoreTheme}>Restaurar Padrão</Button>
+          </div>
         </CardContent>
       </Card>
       
