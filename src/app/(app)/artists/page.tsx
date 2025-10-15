@@ -1,3 +1,6 @@
+
+'use client';
+
 import Image from 'next/image';
 import {
   Card,
@@ -18,6 +21,18 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import { artists } from '@/lib/data';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Textarea } from '@/components/ui/textarea';
 
 export default function ArtistsPage() {
   return (
@@ -26,10 +41,45 @@ export default function ArtistsPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Artistas
         </h1>
-        <Button>
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Adicionar Novo Artista
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Adicionar Novo Artista
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Adicionar Novo Artista</DialogTitle>
+              <DialogDescription>
+                Preencha os detalhes do novo artista aqui. Clique em salvar quando terminar.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nome
+                </Label>
+                <Input id="name" defaultValue="Novo Artista" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="genre" className="text-right">
+                  Gênero
+                </Label>
+                <Input id="genre" defaultValue="Rock" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="performanceDetails" className="text-right">
+                  Detalhes
+                </Label>
+                <Textarea id="performanceDetails" placeholder="Detalhes da performance" className="col-span-3" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Salvar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {artists.map((artist) => (

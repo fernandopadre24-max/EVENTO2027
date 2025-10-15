@@ -1,3 +1,6 @@
+
+'use client';
+
 import {
   Card,
   CardContent,
@@ -28,6 +31,21 @@ import type { EventStatus, PaymentStatus } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
+import { CalendarIcon } from 'lucide-react';
+import { Calendar } from '@/components/ui/calendar';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statusColors: Record<EventStatus, string> = {
   Pendente: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
@@ -48,10 +66,101 @@ export default function EventsPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Eventos
         </h1>
-        <Button>
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Adicionar Novo Evento
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Adicionar Novo Evento
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Adicionar Novo Evento</DialogTitle>
+              <DialogDescription>
+                Preencha os detalhes do novo evento.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title" className="text-right">
+                  Título
+                </Label>
+                <Input id="title" placeholder="Título do Evento" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="client" className="text-right">
+                  Cliente
+                </Label>
+                 <Select>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione um cliente" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {clients.map(client => (
+                      <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="date" className="text-right">
+                  Data
+                </Label>
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <Button
+                      variant={"outline"}
+                      className={cn(
+                        "col-span-3 justify-start text-left font-normal",
+                        !Date && "text-muted-foreground"
+                      )}
+                    >
+                      <CalendarIcon className="mr-2 h-4 w-4" />
+                      {Date ? format(new Date(), "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                    </Button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-auto p-0">
+                    <Calendar
+                      mode="single"
+                      initialFocus
+                      locale={ptBR}
+                    />
+                  </PopoverContent>
+                </Popover>
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="time" className="text-right">
+                  Hora
+                </Label>
+                <Input id="time" type="time" className="col-span-3" />
+              </div>
+               <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="artists" className="text-right">
+                  Artistas
+                </Label>
+                 <Select>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione artistas" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {artists.map(artist => (
+                      <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="payment" className="text-right">
+                  Pagamento (R$)
+                </Label>
+                <Input id="payment" type="number" placeholder="2000" className="col-span-3" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Salvar Evento</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       <Card>
         <CardHeader>

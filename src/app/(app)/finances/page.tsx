@@ -1,3 +1,6 @@
+
+'use client';
+
 import {
   Card,
   CardContent,
@@ -27,6 +30,18 @@ import { financialTransactions } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 export default function FinancesPage() {
   const totalIncome = financialTransactions
@@ -43,10 +58,59 @@ export default function FinancesPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Finanças
         </h1>
-        <Button>
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Adicionar Transação
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Adicionar Transação
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Adicionar Nova Transação</DialogTitle>
+              <DialogDescription>
+                Preencha os detalhes da nova transação.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="type" className="text-right">
+                  Tipo
+                </Label>
+                <Select>
+                  <SelectTrigger className="col-span-3">
+                    <SelectValue placeholder="Selecione o tipo" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="Receita">Receita</SelectItem>
+                    <SelectItem value="Despesa">Despesa</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">
+                  Descrição
+                </Label>
+                <Input id="description" placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="amount" className="text-right">
+                  Valor (R$)
+                </Label>
+                <Input id="amount" type="number" placeholder="300" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="date" className="text-right">
+                  Data
+                </Label>
+                <Input id="date" type="date" className="col-span-3" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Salvar Transação</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       
       <div className="grid gap-6 md:grid-cols-3">

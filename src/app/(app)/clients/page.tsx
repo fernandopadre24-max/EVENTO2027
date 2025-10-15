@@ -1,3 +1,6 @@
+
+'use client';
+
 import {
   Card,
   CardContent,
@@ -23,6 +26,17 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { clients } from '@/lib/data';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  DialogFooter,
+} from '@/components/ui/dialog';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
 
 export default function ClientsPage() {
   return (
@@ -31,10 +45,45 @@ export default function ClientsPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Clientes
         </h1>
-        <Button>
-          <PlusCircle className="w-4 h-4 mr-2" />
-          Adicionar Novo Cliente
-        </Button>
+        <Dialog>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Adicionar Novo Cliente
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Adicionar Novo Cliente</DialogTitle>
+              <DialogDescription>
+                Preencha os detalhes do novo cliente aqui. Clique em salvar quando terminar.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="grid gap-4 py-4">
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="name" className="text-right">
+                  Nome
+                </Label>
+                <Input id="name" placeholder="Nome do Cliente" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="email" className="text-right">
+                  Email
+                </Label>
+                <Input id="email" type="email" placeholder="email@exemplo.com" className="col-span-3" />
+              </div>
+              <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="phone" className="text-right">
+                  Telefone
+                </Label>
+                <Input id="phone" placeholder="(99) 99999-9999" className="col-span-3" />
+              </div>
+            </div>
+            <DialogFooter>
+              <Button type="submit">Salvar</Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
       </div>
       <Card>
         <CardHeader>
