@@ -17,11 +17,22 @@ import {
   Cell,
   Legend,
 } from 'recharts';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from '@/components/ui/table';
+import { Badge } from '@/components/ui/badge';
+import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
 import { collection } from 'firebase/firestore';
 import type { FinancialTransaction, Event, Artist } from '@/lib/types';
 import { format, parseISO, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
 
@@ -36,6 +47,27 @@ export default function ReportsPage() {
 
   const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
+
+  const { totalIncome, totalExpense, netBalance, recentTransactions } = useMemo(() => {
+    if (!transactions) return { totalIncome: 0, totalExpense: 0, netBalance: 0, recentTransactions: [] };
+
+    const income = transactions
+      .filter(t => t.type === 'Receita')
+      .reduce((sum, t) => sum + t.amount, 0);
+    const expense = transactions
+      .filter(t => t.type === 'Despesa')
+      .reduce((sum, t) => sum + t.amount, 0);
+
+    const sortedTransactions = [...transactions].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+
+    return {
+      totalIncome: income,
+      totalExpense: expense,
+      netBalance: income - expense,
+      recentTransactions: sortedTransactions.slice(0, 10),
+    };
+  }, [transactions]);
+
 
   const monthlyData = useMemo(() => {
     if (!transactions) return [];
@@ -115,6 +147,38 @@ export default function ReportsPage() {
 
       {!isLoading && (
         <>
+           <div className="grid gap-6 md:grid-cols-3">
+            <Card>
+              <CardHeader>
+                <CardTitle>Receita Total</CardTitle>
+                <CardDescription>Soma de todas as receitas.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-green-600">R${totalIncome.toLocaleString('pt-BR')}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Despesa Total</CardTitle>
+                 <CardDescription>Soma de todas as despesas.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle>Saldo Líquido</CardTitle>
+                <CardDescription>Receitas menos despesas.</CardDescription>
+              </CardHeader>
+              <CardContent>
+                <p className={`text-3xl font-bold ${netBalance >= 0 ? 'text-foreground' : 'text-red-600'}`}>
+                  R${netBalance.toLocaleString('pt-BR')}
+                </p>
+              </CardContent>
+            </Card>
+          </div>
+
           <div className="grid gap-6 md:grid-cols-2">
             <Card>
               <CardHeader>
@@ -169,6 +233,44 @@ export default function ReportsPage() {
                         <Bar dataKey="events" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Eventos" />
                     </BarChart>
                 </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Transações Recentes</CardTitle>
+              <CardDescription>
+                As 10 transações financeiras mais recentes.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tipo</TableHead>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead>Data</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {recentTransactions.map((transaction) => (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                          {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
+                          {transaction.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-medium">{transaction.description}</TableCell>
+                      <TableCell>{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                        {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
             </CardContent>
           </Card>
         </>
