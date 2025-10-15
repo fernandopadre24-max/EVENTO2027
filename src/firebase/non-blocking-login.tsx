@@ -6,6 +6,8 @@ import {
   createUserWithEmailAndPassword,
   signInWithEmailAndPassword,
   UserCredential,
+  GoogleAuthProvider,
+  signInWithPopup
 } from 'firebase/auth';
 
 /** Initiate anonymous sign-in (non-blocking). */
@@ -31,3 +33,12 @@ export function initiateEmailSignIn(authInstance: Auth, email: string, password:
     alert("Falha no login. Verifique seu e-mail e senha.");
   });
 }
+
+/** Initiate Google Sign-In (non-blocking). */
+export function initiateGoogleSignIn(authInstance: Auth): void {
+    const provider = new GoogleAuthProvider();
+    signInWithPopup(authInstance, provider).catch((error) => {
+      console.error("Google sign-in failed:", error);
+      alert("Falha no login com o Google.");
+    });
+  }
