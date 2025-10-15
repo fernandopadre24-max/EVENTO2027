@@ -185,19 +185,26 @@ export default function EventsPage() {
     }
   };
 
+  const newEventDate = useMemo(() => {
+    if (!newEvent.date) return undefined;
+    return newEvent.date;
+  }, [newEvent.date]);
+  
+  const editingEventDate = useMemo(() => {
+      if (!editingEvent?.date) return undefined;
+      return typeof editingEvent.date === 'string' ? parseISO(editingEvent.date) : editingEvent.date;
+  }, [editingEvent?.date]);
+
+
   const renderForm = (isEditing: boolean) => {
     const currentData = isEditing ? editingEvent : newEvent;
-    const handleSumbit = isEditing ? handleEditSubmit : handleAddSubmit;
+    const handleSubmit = isEditing ? handleEditSubmit : handleAddSubmit;
+    const currentDate = isEditing ? editingEventDate : newEventDate;
 
     if (!currentData) return null;
 
-    const currentDate = useMemo(() => {
-        if (!currentData.date) return undefined;
-        return typeof currentData.date === 'string' ? parseISO(currentData.date) : currentData.date;
-    }, [currentData.date]);
-
     return (
-        <form onSubmit={handleSumbit}>
+        <form onSubmit={handleSubmit}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="clientId" className="text-right">
@@ -224,7 +231,7 @@ export default function EventsPage() {
                         variant={"outline"}
                         className={cn(
                           "col-span-3 justify-start text-left font-normal",
-                          !currentData.date && "text-muted-foreground"
+                          !currentDate && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
