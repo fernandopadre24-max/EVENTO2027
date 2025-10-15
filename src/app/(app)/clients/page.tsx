@@ -122,7 +122,7 @@ export default function ClientsPage() {
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Novo Cliente
+              Adicionar Cliente
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">
@@ -224,44 +224,49 @@ export default function ClientsPage() {
         </CardHeader>
         <CardContent>
           {isLoading && <p>Carregando clientes...</p>}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Nome</TableHead>
-                <TableHead>Email</TableHead>
-                <TableHead>Telefone</TableHead>
-                <TableHead>
-                  <span className="sr-only">Ações</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {clients?.map((client) => (
-                <TableRow key={client.id}>
-                  <TableCell className="font-medium">{client.name}</TableCell>
-                  <TableCell>{client.email}</TableCell>
-                  <TableCell>{client.phone}</TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="w-4 h-4" />
-                          <span className="sr-only">Alternar menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem onClick={() => openEditDialog(client)}>Editar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(client)}>
-                          Excluir
-                        </DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Nome</TableHead>
+                  <TableHead className="hidden md:table-cell">Email</TableHead>
+                  <TableHead className="hidden md:table-cell">Telefone</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Ações</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {clients?.map((client) => (
+                  <TableRow key={client.id}>
+                    <TableCell>
+                      <div className="font-medium">{client.name}</div>
+                      <div className="text-sm text-muted-foreground md:hidden">{client.email}</div>
+                    </TableCell>
+                    <TableCell className="hidden md:table-cell">{client.email}</TableCell>
+                    <TableCell className="hidden md:table-cell">{client.phone}</TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="w-4 h-4" />
+                            <span className="sr-only">Alternar menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem onClick={() => openEditDialog(client)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(client)}>
+                            Excluir
+                          </DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

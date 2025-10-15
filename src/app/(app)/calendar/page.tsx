@@ -41,28 +41,30 @@ export default function CalendarPage() {
       <h1 className="text-3xl font-bold tracking-tight font-headline">
         Calendário de Eventos
       </h1>
-      <div className="grid gap-8 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardContent className="p-1 md:p-4">
-            <Calendar
-              mode="single"
-              selected={date}
-              onSelect={setDate}
-              className="p-0 [&_td]:p-0"
-              classNames={{
-                day: "h-14 w-full text-base",
-                head_cell: "text-muted-foreground rounded-md w-full",
-              }}
-              modifiers={{
-                event: eventDays
-              }}
-              modifiersClassNames={{
-                event: 'rdp-day_event'
-              }}
-              locale={ptBR}
-            />
-          </CardContent>
-        </Card>
+      <div className="grid gap-8 lg:grid-cols-1 xl:grid-cols-3">
+        <div className="xl:col-span-2">
+            <Card>
+            <CardContent className="p-1 md:p-4">
+                <Calendar
+                mode="single"
+                selected={date}
+                onSelect={setDate}
+                className="p-0 [&_td]:p-0 w-full"
+                classNames={{
+                    day: "h-14 w-full text-base",
+                    head_cell: "text-muted-foreground rounded-md w-full",
+                }}
+                modifiers={{
+                    event: eventDays
+                }}
+                modifiersClassNames={{
+                    event: 'rdp-day_event'
+                }}
+                locale={ptBR}
+                />
+            </CardContent>
+            </Card>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Eventos para {date ? format(date, 'dd MMMM', { locale: ptBR }) : 'dia selecionado'}</CardTitle>

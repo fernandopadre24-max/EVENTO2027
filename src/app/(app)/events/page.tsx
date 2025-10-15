@@ -314,7 +314,7 @@ export default function EventsPage() {
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Novo Evento
+              Adicionar Evento
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
@@ -350,75 +350,82 @@ export default function EventsPage() {
         </CardHeader>
         <CardContent>
           {(isLoadingEvents || isLoadingClients || isLoadingArtists) && <p>Carregando eventos...</p>}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Cliente</TableHead>
-                <TableHead>Data e Hora</TableHead>
-                <TableHead>Local</TableHead>
-                <TableHead>Artistas</TableHead>
-                <TableHead>Pagamento</TableHead>
-                <TableHead>Status</TableHead>
-                <TableHead>Status do Pagamento</TableHead>
-                <TableHead>
-                  <span className="sr-only">Ações</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {events?.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event) => {
-                const client = clients?.find(c => c.id === event.clientId);
-                const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
-                return (
-                  <TableRow key={event.id}>
-                    <TableCell className="font-medium">{client?.name}</TableCell>
-                    <TableCell>
-                      {format(parseISO(event.date), 'dd MMM, yyyy', { locale: ptBR })} às {event.time}
-                    </TableCell>
-                    <TableCell>{event.local}</TableCell>
-                    <TableCell>{eventArtists?.map(a => a.name).join(', ')}</TableCell>
-                    <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn('font-semibold', statusColors[event.status])}>
-                        {event.status}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className={cn('font-semibold', paymentStatusColors[event.paymentStatus])}>
-                        {event.paymentStatus}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="w-4 h-4" />
-                            <span className="sr-only">Alternar menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => openEditDialog(event)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')}>
-                            Marcar como Confirmado
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>
-                            Marcar como Concluído
-                          </DropdownMenuItem>
-                          <DropdownMenuItem onClick={() => updatePaymentStatus(event, 'Pago')}>
-                            Marcar como Pago
-                          </DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => updateEventStatus(event.id, 'Cancelado')}>
-                            Cancelar Evento
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
+           <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Cliente</TableHead>
+                  <TableHead className="hidden sm:table-cell">Data e Hora</TableHead>
+                  <TableHead className="hidden md:table-cell">Local</TableHead>
+                  <TableHead className="hidden lg:table-cell">Artistas</TableHead>
+                  <TableHead className="hidden sm:table-cell">Pagamento</TableHead>
+                  <TableHead>Status</TableHead>
+                  <TableHead className="hidden lg:table-cell">Pagamento</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Ações</span>
+                  </TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {events?.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event) => {
+                  const client = clients?.find(c => c.id === event.clientId);
+                  const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
+                  return (
+                    <TableRow key={event.id}>
+                      <TableCell>
+                        <div className="font-medium">{client?.name}</div>
+                        <div className="text-sm text-muted-foreground sm:hidden">
+                            {format(parseISO(event.date), 'dd/MM/yy')} às {event.time}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">
+                        {format(parseISO(event.date), 'dd MMM, yyyy', { locale: ptBR })} às {event.time}
+                      </TableCell>
+                      <TableCell className="hidden md:table-cell">{event.local}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{eventArtists?.map(a => a.name).join(', ')}</TableCell>
+                      <TableCell className="hidden sm:table-cell">R${event.payment.toLocaleString('pt-BR')}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn('font-semibold', statusColors[event.status])}>
+                          {event.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="hidden lg:table-cell">
+                        <Badge variant="outline" className={cn('font-semibold', paymentStatusColors[event.paymentStatus])}>
+                          {event.paymentStatus}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                              <MoreHorizontal className="w-4 h-4" />
+                              <span className="sr-only">Alternar menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openEditDialog(event)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')}>
+                              Marcar como Confirmado
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>
+                              Marcar como Concluído
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updatePaymentStatus(event, 'Pago')}>
+                              Marcar como Pago
+                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => updateEventStatus(event.id, 'Cancelado')}>
+                              Cancelar Evento
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
+              </TableBody>
+            </Table>
+            </div>
         </CardContent>
       </Card>
     </div>

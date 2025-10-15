@@ -1,3 +1,4 @@
+
 "use client";
 
 import { useState } from 'react';
@@ -53,13 +54,13 @@ export function Calculator() {
           <span className="sr-only">Abrir Calculadora</span>
         </Button>
       </DialogTrigger>
-      <DialogContent className="sm:max-w-xs">
+      <DialogContent className="sm:max-w-xs w-full max-w-[calc(100vw-2rem)]">
         <DialogHeader>
           <DialogTitle>Calculadora</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-col items-end justify-end h-20 p-4 border rounded-lg bg-muted">
-            <div className="text-sm text-muted-foreground">{input}</div>
+            <div className="text-sm text-muted-foreground break-all">{input}</div>
             <div className="text-3xl font-bold">{result || (input.slice(-1) === '=' ? '' : input) || '0'}</div>
           </div>
           <div className="grid grid-cols-4 gap-2">
@@ -71,7 +72,7 @@ export function Calculator() {
                   'C' === btn ? 'destructive' :
                   '=' === btn ? 'default' : 'outline'
                 }
-                className={`text-xl font-bold h-14 ${btn === '0' ? 'col-span-2' : ''} ${btn === ',' ? 'col-auto' : ''}`}
+                className={`text-xl font-bold h-14 ${btn === '0' ? 'col-span-2' : ''}`}
               >
                 {btn}
               </Button>

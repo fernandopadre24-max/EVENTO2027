@@ -124,7 +124,7 @@ export default function ArtistsPage() {
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Novo Artista
+              Adicionar Artista
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-[425px]">

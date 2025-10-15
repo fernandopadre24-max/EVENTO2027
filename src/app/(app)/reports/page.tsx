@@ -179,7 +179,7 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <div className="grid gap-6 md:grid-cols-2">
+          <div className="grid gap-6 lg:grid-cols-2">
             <Card>
               <CardHeader>
                 <CardTitle>Desempenho Mensal</CardTitle>
@@ -244,12 +244,13 @@ export default function ReportsPage() {
               </CardDescription>
             </CardHeader>
             <CardContent>
+             <div className="overflow-x-auto">
               <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>Tipo</TableHead>
                     <TableHead>Descrição</TableHead>
-                    <TableHead>Data</TableHead>
+                    <TableHead className="hidden sm:table-cell">Data</TableHead>
                     <TableHead className="text-right">Valor</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -262,8 +263,13 @@ export default function ReportsPage() {
                           {transaction.type}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-medium">{transaction.description}</TableCell>
-                      <TableCell>{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell>
+                        <div className="font-medium">{transaction.description}</div>
+                        <div className="text-sm text-muted-foreground sm:hidden">
+                            {format(parseISO(transaction.date), 'dd/MM/yy', { locale: ptBR })}
+                        </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
                       <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
                         {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
                       </TableCell>
@@ -271,6 +277,7 @@ export default function ReportsPage() {
                   ))}
                 </TableBody>
               </Table>
+              </div>
             </CardContent>
           </Card>
         </>
@@ -278,4 +285,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-

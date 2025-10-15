@@ -194,51 +194,58 @@ export default function FinancesPage() {
         </CardHeader>
         <CardContent>
           {isLoading && <p>Carregando transações...</p>}
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead>Tipo</TableHead>
-                <TableHead>Descrição</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead className="text-right">Valor</TableHead>
-                <TableHead>
-                  <span className="sr-only">Ações</span>
-                </TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {transactions?.map((transaction) => (
-                <TableRow key={transaction.id}>
-                  <TableCell>
-                    <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
-                      {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
-                      {transaction.type}
-                    </Badge>
-                  </TableCell>
-                  <TableCell className="font-medium">{transaction.description}</TableCell>
-                  <TableCell>{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
-                  <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
-                    {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
-                  </TableCell>
-                  <TableCell>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button aria-haspopup="true" size="icon" variant="ghost">
-                          <MoreHorizontal className="w-4 h-4" />
-                          <span className="sr-only">Alternar menu</span>
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                        <DropdownMenuItem>Editar</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
-                      </DropdownMenuContent>
-                    </DropdownMenu>
-                  </TableCell>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Tipo</TableHead>
+                  <TableHead>Descrição</TableHead>
+                  <TableHead className="hidden sm:table-cell">Data</TableHead>
+                  <TableHead className="text-right">Valor</TableHead>
+                  <TableHead>
+                    <span className="sr-only">Ações</span>
+                  </TableHead>
                 </TableRow>
-              ))}
-            </TableBody>
-          </Table>
+              </TableHeader>
+              <TableBody>
+                {transactions?.map((transaction) => (
+                  <TableRow key={transaction.id}>
+                    <TableCell>
+                      <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                        {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
+                        {transaction.type}
+                      </Badge>
+                    </TableCell>
+                    <TableCell>
+                        <div className="font-medium">{transaction.description}</div>
+                        <div className="text-sm text-muted-foreground sm:hidden">
+                            {format(parseISO(transaction.date), 'dd/MM/yy', { locale: ptBR })}
+                        </div>
+                    </TableCell>
+                    <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                    <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                      {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
+                    </TableCell>
+                    <TableCell>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <MoreHorizontal className="w-4 h-4" />
+                            <span className="sr-only">Alternar menu</span>
+                          </Button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent align="end">
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
     </div>

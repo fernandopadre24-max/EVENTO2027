@@ -109,7 +109,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
-      <div className="grid gap-6 lg:grid-cols-5">
+      <div className="grid gap-6 lg:grid-cols-5 lg:grid-flow-row-dense">
         <Card className="lg:col-span-3">
           <CardHeader>
             <CardTitle>Visão Geral Financeira</CardTitle>
@@ -154,25 +154,27 @@ export default function DashboardPage() {
             <CardDescription>Seus próximos 5 eventos agendados.</CardDescription>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Data</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {upcomingEvents.map((event) => {
-                  const client = clients?.find(c => c.id === event.clientId);
-                  return (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-medium">{client?.name || 'N/A'}</TableCell>
-                      <TableCell>{format(parseISO(event.date), 'dd/MM')}</TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            <div className="overflow-x-auto">
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Cliente</TableHead>
+                    <TableHead>Data</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {upcomingEvents.map((event) => {
+                    const client = clients?.find(c => c.id === event.clientId);
+                    return (
+                      <TableRow key={event.id}>
+                        <TableCell className="font-medium">{client?.name || 'N/A'}</TableCell>
+                        <TableCell>{format(parseISO(event.date), 'dd/MM')}</TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            </div>
           </CardContent>
         </Card>
       </div>
