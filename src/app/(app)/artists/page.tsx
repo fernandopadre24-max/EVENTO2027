@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -31,11 +31,22 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
+
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
-import { collection } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking } from '@/firebase';
+import { collection, doc } from 'firebase/firestore';
 
 
 export default function ArtistsPage() {
@@ -43,15 +54,25 @@ export default function ArtistsPage() {
   const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
   const { data: artists, isLoading } = useCollection<Artist>(artistsRef);
   
-  const [open, setOpen] = useState(false);
+  const [isAddOpen, setAddOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
+
   const [newArtist, setNewArtist] = useState({ name: '', genre: '', performanceDetails: '' });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
     setNewArtist(prev => ({ ...prev, [id]: value }));
   };
+  
+  const handleEditInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+    const { id, value } = e.target;
+    setSelectedArtist(prev => prev ? ({ ...prev, [id]: value }) : null);
+  };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+
+  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!artistsRef) return;
     const newArtistData = {
@@ -60,9 +81,37 @@ export default function ArtistsPage() {
       profilePictureHint: 'new artist',
     };
     addDocumentNonBlocking(artistsRef, newArtistData);
-    setOpen(false);
+    setAddOpen(false);
     setNewArtist({ name: '', genre: '', performanceDetails: '' });
   };
+  
+  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!firestore || !selectedArtist) return;
+    const artistDocRef = doc(firestore, 'artists', selectedArtist.id);
+    const { id, ...artistData } = selectedArtist;
+    updateDocumentNonBlocking(artistDocRef, artistData);
+    setEditOpen(false);
+    setSelectedArtist(null);
+  }
+  
+  const openEditDialog = (artist: Artist) => {
+    setSelectedArtist(artist);
+    setEditOpen(true);
+  }
+  
+  const openDeleteAlert = (artist: Artist) => {
+    setSelectedArtist(artist);
+    setDeleteAlertOpen(true);
+  }
+
+  const handleDeleteArtist = () => {
+    if (!firestore || !selectedArtist) return;
+    const artistDocRef = doc(firestore, 'artists', selectedArtist.id);
+    deleteDocumentNonBlocking(artistDocRef);
+    setDeleteAlertOpen(false);
+    setSelectedArtist(null);
+  }
 
 
   return (
@@ -71,7 +120,7 @@ export default function ArtistsPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Artistas
         </h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -85,7 +134,7 @@ export default function ArtistsPage() {
                 Preencha os detalhes do novo artista aqui. Clique em salvar quando terminar.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleAddSubmit}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="name" className="text-right">
@@ -113,6 +162,61 @@ export default function ArtistsPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+       <Dialog open={isEditOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Artista</DialogTitle>
+              <DialogDescription>
+                Atualize os detalhes do artista. Clique em salvar para confirmar.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedArtist && (
+            <form onSubmit={handleEditSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="name" className="text-right">
+                    Nome
+                  </Label>
+                  <Input id="name" value={selectedArtist.name} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="genre" className="text-right">
+                    Gênero
+                  </Label>
+                  <Input id="genre" value={selectedArtist.genre} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="performanceDetails" className="text-right">
+                    Detalhes
+                  </Label>
+                  <Textarea id="performanceDetails" value={selectedArtist.performanceDetails} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Salvar Alterações</Button>
+              </DialogFooter>
+            </form>
+            )}
+        </DialogContent>
+       </Dialog>
+       
+       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente o artista
+                e removerá seus dados de nossos servidores.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteArtist}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+
        {isLoading && <p>Carregando artistas...</p>}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {artists?.map((artist) => (
@@ -130,8 +234,8 @@ export default function ArtistsPage() {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
                   <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                  <DropdownMenuItem>Editar</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => openEditDialog(artist)}>Editar</DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(artist)}>Excluir</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>
