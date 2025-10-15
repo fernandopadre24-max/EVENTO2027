@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -26,7 +26,6 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import { clients as initialClients } from '@/lib/data';
 import type { Client } from '@/lib/types';
 import {
   Dialog,
@@ -39,9 +38,14 @@ import {
 } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export default function ClientsPage() {
-  const [clients, setClients] = useState<Client[]>(initialClients);
+  const firestore = useFirestore();
+  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const { data: clients, isLoading } = useCollection<Client>(clientsRef);
+
   const [open, setOpen] = useState(false);
   const [newClient, setNewClient] = useState({ name: '', email: '', phone: '' });
 
@@ -52,14 +56,8 @@ export default function ClientsPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newClientData: Client = {
-      id: `cli-${Date.now()}`,
-      name: newClient.name,
-      email: newClient.email,
-      phone: newClient.phone,
-      eventHistory: [],
-    };
-    setClients(prev => [newClientData, ...prev]);
+    if (!clientsRef) return;
+    addDocumentNonBlocking(clientsRef, newClient);
     setOpen(false);
     setNewClient({ name: '', email: '', phone: '' });
   };
@@ -121,25 +119,24 @@ export default function ClientsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isLoading && <p>Carregando clientes...</p>}
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
                 <TableHead>Telefone</TableHead>
-                <TableHead>Eventos</TableHead>
                 <TableHead>
                   <span className="sr-only">Ações</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {clients.map((client) => (
+              {clients?.map((client) => (
                 <TableRow key={client.id}>
                   <TableCell className="font-medium">{client.name}</TableCell>
                   <TableCell>{client.email}</TableCell>
                   <TableCell>{client.phone}</TableCell>
-                  <TableCell>{client.eventHistory.length}</TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>

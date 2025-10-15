@@ -1,5 +1,7 @@
+
 'use client';
 
+import { useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -15,7 +17,6 @@ import {
   TableHeader,
   TableRow,
 } from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import {
   BarChart,
   CartesianGrid,
@@ -27,8 +28,11 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
-import { events, financialTransactions, clients } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+import type { Event, FinancialTransaction, Client } from '@/lib/types';
+
 
 const chartData = [
   { month: 'Jan', income: 4000, outcome: 2400 },
@@ -40,17 +44,31 @@ const chartData = [
 ];
 
 export default function DashboardPage() {
-  const totalIncome = financialTransactions
-    .filter((t) => t.type === 'Receita')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const totalOutcome = financialTransactions
-    .filter((t) => t.type === 'Despesa')
-    .reduce((sum, t) => sum + t.amount, 0);
-  const netProfit = totalIncome - totalOutcome;
+  const firestore = useFirestore();
 
-  const upcomingEvents = events.filter(
+  const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
+  const { data: events } = useCollection<Event>(eventsRef);
+
+  const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
+  const { data: financialTransactions } = useCollection<FinancialTransaction>(financesRef);
+  
+  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const { data: clients } = useCollection<Client>(clientsRef);
+
+
+  const { totalIncome, totalOutcome, netProfit } = useMemo(() => {
+    const income = financialTransactions
+    ?.filter((t) => t.type === 'Receita')
+    .reduce((sum, t) => sum + t.amount, 0) || 0;
+    const outcome = financialTransactions
+    ?.filter((t) => t.type === 'Despesa')
+    .reduce((sum, t) => sum + t.amount, 0) || 0;
+    return { totalIncome: income, totalOutcome: outcome, netProfit: income - outcome };
+  }, [financialTransactions]);
+
+  const upcomingEvents = useMemo(() => events?.filter(
     (e) => new Date(e.date) >= new Date() && e.status !== 'Cancelado'
-  ).slice(0, 5);
+  ).slice(0, 5) || [], [events]);
 
   return (
     <div className="space-y-8">
@@ -146,7 +164,7 @@ export default function DashboardPage() {
               </TableHeader>
               <TableBody>
                 {upcomingEvents.map((event) => {
-                  const client = clients.find(c => c.id === event.clientId);
+                  const client = clients?.find(c => c.id === event.clientId);
                   return (
                     <TableRow key={event.id}>
                       <TableCell className="font-medium">{event.title}</TableCell>

@@ -3,7 +3,6 @@ export interface Client {
   name: string;
   email: string;
   phone: string;
-  eventHistory: string[];
 }
 
 export interface Artist {

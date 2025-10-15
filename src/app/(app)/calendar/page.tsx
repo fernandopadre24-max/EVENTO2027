@@ -1,25 +1,36 @@
+
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { events, clients } from '@/lib/data';
-import type { Event } from '@/lib/types';
+import type { Event, Client } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection } from 'firebase/firestore';
+
 
 export default function CalendarPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
+  
+  const firestore = useFirestore();
 
-  const eventsByDate = events.reduce((acc, event) => {
+  const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
+  const { data: events } = useCollection<Event>(eventsRef);
+  
+  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const { data: clients } = useCollection<Client>(clientsRef);
+
+  const eventsByDate = useMemo(() => events?.reduce((acc, event) => {
     const eventDate = format(parseISO(event.date), 'yyyy-MM-dd');
     if (!acc[eventDate]) {
       acc[eventDate] = [];
     }
     acc[eventDate].push(event);
     return acc;
-  }, {} as Record<string, Event[]>);
+  }, {} as Record<string, Event[]>) || {}, [events]);
 
   const selectedDayEvents = date ? eventsByDate[format(date, 'yyyy-MM-dd')] || [] : [];
   
@@ -61,7 +72,7 @@ export default function CalendarPage() {
             {selectedDayEvents.length > 0 ? (
               <ul className="space-y-4">
                 {selectedDayEvents.map(event => {
-                  const client = clients.find(c => c.id === event.clientId);
+                  const client = clients?.find(c => c.id === event.clientId);
                   return (
                     <li key={event.id} className="p-4 rounded-lg bg-muted">
                       <p className="font-bold">{event.title}</p>

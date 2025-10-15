@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import Image from 'next/image';
 import {
   Card,
@@ -21,7 +21,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { artists as initialArtists } from '@/lib/data';
 import type { Artist } from '@/lib/types';
 import {
   Dialog,
@@ -35,9 +34,15 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+
 
 export default function ArtistsPage() {
-  const [artists, setArtists] = useState<Artist[]>(initialArtists);
+  const firestore = useFirestore();
+  const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
+  const { data: artists, isLoading } = useCollection<Artist>(artistsRef);
+  
   const [open, setOpen] = useState(false);
   const [newArtist, setNewArtist] = useState({ name: '', genre: '', performanceDetails: '' });
 
@@ -48,15 +53,13 @@ export default function ArtistsPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newArtistData: Artist = {
-      id: `art-${Date.now()}`,
-      name: newArtist.name,
-      genre: newArtist.genre,
-      performanceDetails: newArtist.performanceDetails,
+    if (!artistsRef) return;
+    const newArtistData = {
+      ...newArtist,
       profilePictureUrl: 'https://picsum.photos/seed/newartist/400/400',
       profilePictureHint: 'new artist',
     };
-    setArtists(prev => [newArtistData, ...prev]);
+    addDocumentNonBlocking(artistsRef, newArtistData);
     setOpen(false);
     setNewArtist({ name: '', genre: '', performanceDetails: '' });
   };
@@ -110,8 +113,9 @@ export default function ArtistsPage() {
           </DialogContent>
         </Dialog>
       </div>
+       {isLoading && <p>Carregando artistas...</p>}
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-        {artists.map((artist) => (
+        {artists?.map((artist) => (
           <Card key={artist.id} className="flex flex-col">
             <CardHeader className="flex flex-row items-start justify-between">
               <div>

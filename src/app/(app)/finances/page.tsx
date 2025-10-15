@@ -27,7 +27,6 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { financialTransactions as initialTransactions } from '@/lib/data';
 import type { FinancialTransaction } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
@@ -44,9 +43,14 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
 
 export default function FinancesPage() {
-  const [transactions, setTransactions] = useState<FinancialTransaction[]>(initialTransactions);
+  const firestore = useFirestore();
+  const transactionsRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
+  const { data: transactions, isLoading } = useCollection<FinancialTransaction>(transactionsRef);
+
   const [open, setOpen] = useState(false);
   const [newTransaction, setNewTransaction] = useState({
     type: 'Receita' as 'Receita' | 'Despesa',
@@ -66,11 +70,8 @@ export default function FinancesPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newTransactionData: FinancialTransaction = {
-      id: `trn-${Date.now()}`,
-      ...newTransaction
-    };
-    setTransactions(prev => [newTransactionData, ...prev]);
+    if(!transactionsRef) return;
+    addDocumentNonBlocking(transactionsRef, newTransaction);
     setOpen(false);
     setNewTransaction({
       type: 'Receita',
@@ -82,11 +83,11 @@ export default function FinancesPage() {
 
   const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     const totalIncome = transactions
-      .filter((t) => t.type === 'Receita')
-      .reduce((sum, t) => sum + t.amount, 0);
+      ?.filter((t) => t.type === 'Receita')
+      .reduce((sum, t) => sum + t.amount, 0) || 0;
     const totalExpense = transactions
-      .filter((t) => t.type === 'Despesa')
-      .reduce((sum, t) => sum + t.amount, 0);
+      ?.filter((t) => t.type === 'Despesa')
+      .reduce((sum, t) => sum + t.amount, 0) || 0;
     const netBalance = totalIncome - totalExpense;
     return { totalIncome, totalExpense, netBalance };
   }, [transactions]);
@@ -192,6 +193,7 @@ export default function FinancesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {isLoading && <p>Carregando transações...</p>}
           <Table>
             <TableHeader>
               <TableRow>
@@ -205,7 +207,7 @@ export default function FinancesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {transactions.map((transaction) => (
+              {transactions?.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>
                     <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>

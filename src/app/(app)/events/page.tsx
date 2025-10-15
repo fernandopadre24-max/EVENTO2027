@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -27,8 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import { events as initialEvents, clients, artists } from '@/lib/data';
-import type { Event, EventStatus, PaymentStatus } from '@/lib/types';
+import type { Event, EventStatus, PaymentStatus, Client, Artist } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
@@ -47,6 +46,9 @@ import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover
 import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
+import { collection } from 'firebase/firestore';
+
 
 const statusColors: Record<EventStatus, string> = {
   Pendente: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
@@ -61,7 +63,16 @@ const paymentStatusColors: Record<PaymentStatus, string> = {
 };
 
 export default function EventsPage() {
-  const [events, setEvents] = useState<Event[]>(initialEvents);
+  const firestore = useFirestore();
+  const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
+  const { data: events, isLoading: isLoadingEvents } = useCollection<Event>(eventsRef);
+
+  const clientsRef = useMemoFirebase(() => collection(firestore, 'clients'), [firestore]);
+  const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsRef);
+
+  const artistsRef = useMemoFirebase(() => collection(firestore, 'artists'), [firestore]);
+  const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
+
   const [open, setOpen] = useState(false);
   const [newEvent, setNewEvent] = useState({
     title: '',
@@ -89,18 +100,14 @@ export default function EventsPage() {
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const newEventData: Event = {
-      id: `evt-${Date.now()}`,
-      title: newEvent.title,
-      clientId: newEvent.clientId,
+    if (!eventsRef) return;
+    const newEventData = {
+      ...newEvent,
       date: format(newEvent.date, 'yyyy-MM-dd'),
-      time: newEvent.time,
-      artistIds: newEvent.artistIds,
-      payment: newEvent.payment,
-      status: 'Pendente',
-      paymentStatus: 'Não Pago',
+      status: 'Pendente' as EventStatus,
+      paymentStatus: 'Não Pago' as PaymentStatus,
     };
-    setEvents(prev => [newEventData, ...prev]);
+    addDocumentNonBlocking(eventsRef, newEventData);
     setOpen(false);
     setNewEvent({
       title: '',
@@ -149,7 +156,7 @@ export default function EventsPage() {
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
                     <SelectContent>
-                      {clients.map(client => (
+                      {clients?.map(client => (
                         <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -198,7 +205,7 @@ export default function EventsPage() {
                       <SelectValue placeholder="Selecione artistas" />
                     </SelectTrigger>
                     <SelectContent>
-                      {artists.map(artist => (
+                      {artists?.map(artist => (
                         <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
                       ))}
                     </SelectContent>
@@ -226,6 +233,7 @@ export default function EventsPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
+          {(isLoadingEvents || isLoadingClients || isLoadingArtists) && <p>Carregando eventos...</p>}
           <Table>
             <TableHeader>
               <TableRow>
@@ -242,9 +250,9 @@ export default function EventsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {events.map((event) => {
-                const client = clients.find(c => c.id === event.clientId);
-                const eventArtists = artists.filter(a => event.artistIds.includes(a.id));
+              {events?.map((event) => {
+                const client = clients?.find(c => c.id === event.clientId);
+                const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
                 return (
                   <TableRow key={event.id}>
                     <TableCell className="font-medium">{event.title}</TableCell>
@@ -252,7 +260,7 @@ export default function EventsPage() {
                     <TableCell>
                       {format(parseISO(event.date), 'dd MMM, yyyy', { locale: ptBR })} às {event.time}
                     </TableCell>
-                    <TableCell>{eventArtists.map(a => a.name).join(', ')}</TableCell>
+                    <TableCell>{eventArtists?.map(a => a.name).join(', ')}</TableCell>
                     <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn('font-semibold', statusColors[event.status])}>
