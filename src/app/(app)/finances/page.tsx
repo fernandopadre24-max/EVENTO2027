@@ -26,13 +26,14 @@ import { Badge } from '@/components/ui/badge';
 import { financialTransactions } from '@/lib/data';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { ptBR } from 'date-fns/locale';
 
 export default function FinancesPage() {
   const totalIncome = financialTransactions
-    .filter((t) => t.type === 'Income')
+    .filter((t) => t.type === 'Receita')
     .reduce((sum, t) => sum + t.amount, 0);
   const totalExpense = financialTransactions
-    .filter((t) => t.type === 'Expense')
+    .filter((t) => t.type === 'Despesa')
     .reduce((sum, t) => sum + t.amount, 0);
   const netBalance = totalIncome - totalExpense;
 
@@ -40,38 +41,38 @@ export default function FinancesPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Finances
+          Finanças
         </h1>
         <Button>
           <PlusCircle className="w-4 h-4 mr-2" />
-          Add Transaction
+          Adicionar Transação
         </Button>
       </div>
       
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader>
-            <CardTitle>Total Income</CardTitle>
+            <CardTitle>Receita Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-green-600">${totalIncome.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-green-600">R${totalIncome.toLocaleString('pt-BR')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Total Expense</CardTitle>
+            <CardTitle>Despesa Total</CardTitle>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold text-red-600">${totalExpense.toLocaleString()}</p>
+            <p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p>
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Net Balance</CardTitle>
+            <CardTitle>Saldo Líquido</CardTitle>
           </CardHeader>
           <CardContent>
             <p className={`text-3xl font-bold ${netBalance >= 0 ? 'text-foreground' : 'text-red-600'}`}>
-              ${netBalance.toLocaleString()}
+              R${netBalance.toLocaleString('pt-BR')}
             </p>
           </CardContent>
         </Card>
@@ -79,21 +80,21 @@ export default function FinancesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Transaction History</CardTitle>
+          <CardTitle>Histórico de Transações</CardTitle>
           <CardDescription>
-            A detailed list of all income and expenses.
+            Uma lista detalhada de todas as receitas e despesas.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Type</TableHead>
-                <TableHead>Description</TableHead>
-                <TableHead>Date</TableHead>
-                <TableHead className="text-right">Amount</TableHead>
+                <TableHead>Tipo</TableHead>
+                <TableHead>Descrição</TableHead>
+                <TableHead>Data</TableHead>
+                <TableHead className="text-right">Valor</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Ações</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -101,28 +102,28 @@ export default function FinancesPage() {
               {financialTransactions.map((transaction) => (
                 <TableRow key={transaction.id}>
                   <TableCell>
-                    <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Income' ? 'text-green-600' : 'text-red-600')}>
-                      {transaction.type === 'Income' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
+                    <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                      {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
                       {transaction.type}
                     </Badge>
                   </TableCell>
                   <TableCell className="font-medium">{transaction.description}</TableCell>
-                  <TableCell>{format(parseISO(transaction.date), 'MMM dd, yyyy')}</TableCell>
-                  <TableCell className={cn('text-right font-semibold', transaction.type === 'Income' ? 'text-green-600' : 'text-red-600')}>
-                    {transaction.type === 'Income' ? '+' : '-'}${transaction.amount.toLocaleString()}
+                  <TableCell>{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                  <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                    {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button aria-haspopup="true" size="icon" variant="ghost">
                           <MoreHorizontal className="w-4 h-4" />
-                          <span className="sr-only">Toggle menu</span>
+                          <span className="sr-only">Alternar menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
-                        <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuItem>Editar</DropdownMenuItem>
+                        <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>
                   </TableCell>

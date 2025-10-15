@@ -15,8 +15,8 @@ export interface Artist {
   performanceDetails: string;
 }
 
-export type EventStatus = 'Pending' | 'Confirmed' | 'Completed' | 'Cancelled';
-export type PaymentStatus = 'Unpaid' | 'Paid';
+export type EventStatus = 'Pendente' | 'Confirmado' | 'Concluído' | 'Cancelado';
+export type PaymentStatus = 'Não Pago' | 'Pago';
 
 export interface Event {
   id: string;
@@ -32,7 +32,7 @@ export interface Event {
 
 export interface FinancialTransaction {
   id: string;
-  type: 'Income' | 'Expense';
+  type: 'Receita' | 'Despesa';
   description: string;
   amount: number;
   date: string;

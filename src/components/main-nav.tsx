@@ -17,13 +17,13 @@ import {
 } from '@/components/ui/sidebar';
 
 const navItems = [
-  { href: '/dashboard', label: 'Dashboard', icon: Home },
-  { href: '/events', label: 'Events', icon: Calendar },
-  { href: '/calendar', label: 'Calendar View', icon: Calendar },
-  { href: '/clients', label: 'Clients', icon: Users },
-  { href: '/artists', label: 'Artists', icon: Music },
-  { href: '/finances', label: 'Finances', icon: DollarSign },
-  { href: '/reports', label: 'Reports', icon: BarChart2 },
+  { href: '/dashboard', label: 'Painel', icon: Home },
+  { href: '/events', label: 'Eventos', icon: Calendar },
+  { href: '/calendar', label: 'Calendário', icon: Calendar },
+  { href: '/clients', label: 'Clientes', icon: Users },
+  { href: '/artists', label: 'Artistas', icon: Music },
+  { href: '/finances', label: 'Finanças', icon: DollarSign },
+  { href: '/reports', label: 'Relatórios', icon: BarChart2 },
 ];
 
 export function MainNav() {

@@ -24,11 +24,11 @@ export default function ArtistsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Artists
+          Artistas
         </h1>
         <Button>
           <PlusCircle className="w-4 h-4 mr-2" />
-          Add New Artist
+          Adicionar Novo Artista
         </Button>
       </div>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -46,9 +46,9 @@ export default function ArtistsPage() {
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                  <DropdownMenuItem>Edit</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive">Delete</DropdownMenuItem>
+                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                  <DropdownMenuItem>Editar</DropdownMenuItem>
+                  <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
             </CardHeader>

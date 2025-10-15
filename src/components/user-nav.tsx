@@ -21,7 +21,7 @@ export function UserNav() {
             <AvatarFallback>BM</AvatarFallback>
           </Avatar>
           <div className="flex flex-col space-y-1 items-start">
-             <p className="text-sm font-medium leading-none">Manager</p>
+             <p className="text-sm font-medium leading-none">Gerente</p>
              <p className="text-xs leading-none text-muted-foreground">admin@bandmate.com</p>
           </div>
         </Button>
@@ -29,7 +29,7 @@ export function UserNav() {
       <DropdownMenuContent className="w-56" align="end" forceMount>
         <DropdownMenuLabel className="font-normal">
           <div className="flex flex-col space-y-1">
-            <p className="text-sm font-medium leading-none">Manager</p>
+            <p className="text-sm font-medium leading-none">Gerente</p>
             <p className="text-xs leading-none text-muted-foreground">
               admin@bandmate.com
             </p>
@@ -39,21 +39,21 @@ export function UserNav() {
         <DropdownMenuGroup>
           <DropdownMenuItem>
             <User className="mr-2 h-4 w-4" />
-            <span>Profile</span>
+            <span>Perfil</span>
           </DropdownMenuItem>
           <DropdownMenuItem>
             <CreditCard className="mr-2 h-4 w-4" />
-            <span>Billing</span>
+            <span>Faturamento</span>
           </DropdownMenuItem>
           <DropdownMenuItem>
             <Settings className="mr-2 h-4 w-4" />
-            <span>Settings</span>
+            <span>Configurações</span>
           </DropdownMenuItem>
         </DropdownMenuGroup>
         <DropdownMenuSeparator />
         <DropdownMenuItem>
           <LogOut className="mr-2 h-4 w-4" />
-          <span>Log out</span>
+          <span>Sair</span>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>

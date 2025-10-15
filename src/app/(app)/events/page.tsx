@@ -27,17 +27,18 @@ import { events, clients, artists } from '@/lib/data';
 import type { EventStatus, PaymentStatus } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
+import { ptBR } from 'date-fns/locale';
 
 const statusColors: Record<EventStatus, string> = {
-  Pending: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
-  Confirmed: 'bg-blue-400/20 text-blue-600 border-blue-400/30',
-  Completed: 'bg-green-400/20 text-green-600 border-green-400/30',
-  Cancelled: 'bg-red-400/20 text-red-600 border-red-400/30',
+  Pendente: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
+  Confirmado: 'bg-blue-400/20 text-blue-600 border-blue-400/30',
+  Concluído: 'bg-green-400/20 text-green-600 border-green-400/30',
+  Cancelado: 'bg-red-400/20 text-red-600 border-red-400/30',
 };
 
 const paymentStatusColors: Record<PaymentStatus, string> = {
-  Paid: 'bg-green-400/20 text-green-600 border-green-400/30',
-  Unpaid: 'bg-gray-400/20 text-gray-600 border-gray-400/30',
+  Pago: 'bg-green-400/20 text-green-600 border-green-400/30',
+  'Não Pago': 'bg-gray-400/20 text-gray-600 border-gray-400/30',
 };
 
 export default function EventsPage() {
@@ -45,33 +46,33 @@ export default function EventsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Events
+          Eventos
         </h1>
         <Button>
           <PlusCircle className="w-4 h-4 mr-2" />
-          Add New Event
+          Adicionar Novo Evento
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Event Schedule</CardTitle>
+          <CardTitle>Agenda de Eventos</CardTitle>
           <CardDescription>
-            A list of all your scheduled events.
+            Uma lista de todos os seus eventos agendados.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Title</TableHead>
-                <TableHead>Client</TableHead>
-                <TableHead>Date & Time</TableHead>
-                <TableHead>Artists</TableHead>
-                <TableHead>Payment</TableHead>
+                <TableHead>Título</TableHead>
+                <TableHead>Cliente</TableHead>
+                <TableHead>Data e Hora</TableHead>
+                <TableHead>Artistas</TableHead>
+                <TableHead>Pagamento</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Payment Status</TableHead>
+                <TableHead>Status do Pagamento</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Ações</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -84,10 +85,10 @@ export default function EventsPage() {
                     <TableCell className="font-medium">{event.title}</TableCell>
                     <TableCell>{client?.name}</TableCell>
                     <TableCell>
-                      {format(parseISO(event.date), 'MMM dd, yyyy')} at {event.time}
+                      {format(parseISO(event.date), 'dd MMM, yyyy', { locale: ptBR })} às {event.time}
                     </TableCell>
                     <TableCell>{eventArtists.map(a => a.name).join(', ')}</TableCell>
-                    <TableCell>${event.payment.toLocaleString()}</TableCell>
+                    <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
                     <TableCell>
                       <Badge variant="outline" className={cn('font-semibold', statusColors[event.status])}>
                         {event.status}
@@ -103,16 +104,16 @@ export default function EventsPage() {
                         <DropdownMenuTrigger asChild>
                           <Button aria-haspopup="true" size="icon" variant="ghost">
                             <MoreHorizontal className="w-4 h-4" />
-                            <span className="sr-only">Toggle menu</span>
+                            <span className="sr-only">Alternar menu</span>
                           </Button>
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                          <DropdownMenuItem>Edit</DropdownMenuItem>
-                          <DropdownMenuItem>Mark as Completed</DropdownMenuItem>
-                          <DropdownMenuItem>Mark as Paid</DropdownMenuItem>
+                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                          <DropdownMenuItem>Editar</DropdownMenuItem>
+                          <DropdownMenuItem>Marcar como Concluído</DropdownMenuItem>
+                          <DropdownMenuItem>Marcar como Pago</DropdownMenuItem>
                           <DropdownMenuItem className="text-destructive">
-                            Cancel Event
+                            Cancelar Evento
                           </DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>

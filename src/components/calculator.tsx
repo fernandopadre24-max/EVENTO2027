@@ -18,11 +18,11 @@ export function Calculator() {
   const handleButtonClick = (value: string) => {
     if (value === '=') {
       try {
-        // Using eval is generally unsafe, but acceptable for this simple, non-networked calculator.
-        const evalResult = eval(input.replace(/%/g, '/100'));
-        setResult(String(evalResult));
+        // Usar eval é geralmente inseguro, mas aceitável para esta calculadora simples e sem rede.
+        const evalResult = eval(input.replace(/%/g, '/100').replace(/,/g, '.'));
+        setResult(String(evalResult).replace(/\./g, ','));
       } catch (error) {
-        setResult('Error');
+        setResult('Erro');
       }
     } else if (value === 'C') {
       setInput('');
@@ -42,7 +42,7 @@ export function Calculator() {
     '7', '8', '9', '*',
     '4', '5', '6', '-',
     '1', '2', '3', '+',
-    '0', '.', '=',
+    '0', ',', '=',
   ];
 
   return (
@@ -50,12 +50,12 @@ export function Calculator() {
       <DialogTrigger asChild>
         <Button variant="outline" size="icon">
           <CalculatorIcon className="h-5 w-5" />
-          <span className="sr-only">Open Calculator</span>
+          <span className="sr-only">Abrir Calculadora</span>
         </Button>
       </DialogTrigger>
       <DialogContent className="sm:max-w-xs">
         <DialogHeader>
-          <DialogTitle>Calculator</DialogTitle>
+          <DialogTitle>Calculadora</DialogTitle>
         </DialogHeader>
         <div className="space-y-4">
           <div className="flex flex-col items-end justify-end h-20 p-4 border rounded-lg bg-muted">
@@ -71,7 +71,7 @@ export function Calculator() {
                   'C' === btn ? 'destructive' :
                   '=' === btn ? 'default' : 'outline'
                 }
-                className={`text-xl font-bold h-14 ${btn === '0' ? 'col-span-2' : ''}`}
+                className={`text-xl font-bold h-14 ${btn === '0' ? 'col-span-2' : ''} ${btn === ',' ? 'col-auto' : ''}`}
               >
                 {btn}
               </Button>

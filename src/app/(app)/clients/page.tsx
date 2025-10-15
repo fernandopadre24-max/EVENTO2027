@@ -29,30 +29,30 @@ export default function ClientsPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Clients
+          Clientes
         </h1>
         <Button>
           <PlusCircle className="w-4 h-4 mr-2" />
-          Add New Client
+          Adicionar Novo Cliente
         </Button>
       </div>
       <Card>
         <CardHeader>
-          <CardTitle>Client List</CardTitle>
+          <CardTitle>Lista de Clientes</CardTitle>
           <CardDescription>
-            Manage your clients and view their event history.
+            Gerencie seus clientes e veja o histórico de eventos deles.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Name</TableHead>
+                <TableHead>Nome</TableHead>
                 <TableHead>Email</TableHead>
-                <TableHead>Phone</TableHead>
-                <TableHead>Events</TableHead>
+                <TableHead>Telefone</TableHead>
+                <TableHead>Eventos</TableHead>
                 <TableHead>
-                  <span className="sr-only">Actions</span>
+                  <span className="sr-only">Ações</span>
                 </TableHead>
               </TableRow>
             </TableHeader>
@@ -68,14 +68,14 @@ export default function ClientsPage() {
                       <DropdownMenuTrigger asChild>
                         <Button aria-haspopup="true" size="icon" variant="ghost">
                           <MoreHorizontal className="w-4 h-4" />
-                          <span className="sr-only">Toggle menu</span>
+                          <span className="sr-only">Alternar menu</span>
                         </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuItem>Edit</DropdownMenuItem>
+                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                        <DropdownMenuItem>Editar</DropdownMenuItem>
                         <DropdownMenuItem className="text-destructive">
-                          Delete
+                          Excluir
                         </DropdownMenuItem>
                       </DropdownMenuContent>
                     </DropdownMenu>

@@ -7,6 +7,7 @@ import { Badge } from '@/components/ui/badge';
 import { events, clients } from '@/lib/data';
 import type { Event } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 export default function CalendarPage() {
   const [date, setDate] = useState<Date | undefined>(new Date());
@@ -27,7 +28,7 @@ export default function CalendarPage() {
   return (
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight font-headline">
-        Event Calendar
+        Calendário de Eventos
       </h1>
       <div className="grid gap-8 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -47,13 +48,14 @@ export default function CalendarPage() {
               modifiersClassNames={{
                 event: 'rdp-day_event'
               }}
+              locale={ptBR}
             />
           </CardContent>
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Events for {date ? format(date, 'MMMM dd') : 'selected day'}</CardTitle>
-            <CardDescription>Click a day on the calendar to see events.</CardDescription>
+            <CardTitle>Eventos para {date ? format(date, 'dd MMMM', { locale: ptBR }) : 'dia selecionado'}</CardTitle>
+            <CardDescription>Clique em um dia no calendário para ver os eventos.</CardDescription>
           </CardHeader>
           <CardContent>
             {selectedDayEvents.length > 0 ? (
@@ -63,10 +65,10 @@ export default function CalendarPage() {
                   return (
                     <li key={event.id} className="p-4 rounded-lg bg-muted">
                       <p className="font-bold">{event.title}</p>
-                      <p className="text-sm text-muted-foreground">Client: {client?.name}</p>
+                      <p className="text-sm text-muted-foreground">Cliente: {client?.name}</p>
                       <div className="flex items-center justify-between mt-2">
                         <Badge variant="secondary">{event.time}</Badge>
-                        <span className="text-sm font-semibold">${event.payment.toLocaleString()}</span>
+                        <span className="text-sm font-semibold">R${event.payment.toLocaleString('pt-BR')}</span>
                       </div>
                     </li>
                   );
@@ -74,7 +76,7 @@ export default function CalendarPage() {
               </ul>
             ) : (
               <div className="flex flex-col items-center justify-center h-48 text-center border-2 border-dashed rounded-lg">
-                <p className="text-sm text-muted-foreground">No events for this day.</p>
+                <p className="text-sm text-muted-foreground">Nenhum evento para este dia.</p>
               </div>
             )}
           </CardContent>
