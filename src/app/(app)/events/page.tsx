@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -43,11 +43,12 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
-import { CalendarIcon } from 'lucide-react';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking } from '@/firebase';
 import { collection } from 'firebase/firestore';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { Checkbox } from '@/components/ui/checkbox';
 
 
 const statusColors: Record<EventStatus, string> = {
@@ -96,6 +97,15 @@ export default function EventsPage() {
     if(date) {
       setNewEvent(prev => ({ ...prev, date }));
     }
+  };
+
+  const handleArtistSelection = (artistId: string) => {
+    setNewEvent(prev => {
+      const newArtistIds = prev.artistIds.includes(artistId)
+        ? prev.artistIds.filter(id => id !== artistId)
+        : [...prev.artistIds, artistId];
+      return { ...prev, artistIds: newArtistIds };
+    });
   };
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -196,20 +206,34 @@ export default function EventsPage() {
                   </Label>
                   <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="col-span-3" />
                 </div>
-                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="artistIds" className="text-right">
+                 <div className="grid grid-cols-4 items-start gap-4 pt-2">
+                  <Label htmlFor="artistIds" className="text-right pt-2">
                     Artistas
                   </Label>
-                   <Select onValueChange={(value) => setNewEvent(p => ({...p, artistIds: [value]}))}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecione artistas" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {artists?.map(artist => (
-                        <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+                  <Collapsible className="col-span-3">
+                    <CollapsibleTrigger asChild>
+                      <Button variant="outline" className="w-full flex justify-between">
+                        <span>
+                          {newEvent.artistIds.length > 0 ? `${newEvent.artistIds.length} selecionado(s)`: "Selecione artistas"}
+                        </span>
+                        <ChevronDown className="h-4 w-4" />
+                      </Button>
+                    </CollapsibleTrigger>
+                    <CollapsibleContent className="p-2 mt-2 border rounded-md">
+                      <div className="flex flex-col gap-2">
+                        {artists?.map(artist => (
+                          <div key={artist.id} className="flex items-center gap-2">
+                            <Checkbox 
+                              id={`artist-${artist.id}`} 
+                              checked={newEvent.artistIds.includes(artist.id)}
+                              onCheckedChange={() => handleArtistSelection(artist.id)}
+                            />
+                            <Label htmlFor={`artist-${artist.id}`}>{artist.name}</Label>
+                          </div>
+                        ))}
+                      </div>
+                    </CollapsibleContent>
+                  </Collapsible>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="payment" className="text-right">
