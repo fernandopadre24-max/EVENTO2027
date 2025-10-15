@@ -193,31 +193,31 @@ export default function ClientsPage() {
                   <Label htmlFor="name" className="text-right">
                     Nome
                   </Label>
-                  <Input id="name" value={selectedClient.name} onChange={handleEditInputChange} className="col-span-3" />
+                  <Input id="name" value={selectedClient.name || ''} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="responsavel" className="text-right">
                     Responsável
                   </Label>
-                  <Input id="responsavel" value={selectedClient.responsavel} onChange={handleEditInputChange} className="col-span-3" />
+                  <Input id="responsavel" value={selectedClient.responsavel || ''} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="local" className="text-right">
                     Local
                   </Label>
-                  <Input id="local" value={selectedClient.local} onChange={handleEditInputChange} className="col-span-3" />
+                  <Input id="local" value={selectedClient.local || ''} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="email" className="text-right">
                     Email
                   </Label>
-                  <Input id="email" type="email" value={selectedClient.email} onChange={handleEditInputChange} className="col-span-3" />
+                  <Input id="email" type="email" value={selectedClient.email || ''} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="phone" className="text-right">
                     Telefone
                   </Label>
-                  <Input id="phone" value={selectedClient.phone} onChange={handleEditInputChange} className="col-span-3" />
+                  <Input id="phone" value={selectedClient.phone || ''} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
