@@ -63,6 +63,15 @@ const paymentStatusColors: Record<PaymentStatus, string> = {
   'Não Pago': 'bg-gray-400/20 text-gray-600 border-gray-400/30',
 };
 
+const initialNewEventState = {
+  clientId: '',
+  date: new Date(),
+  time: '',
+  local: '',
+  artistIds: [] as string[],
+  payment: 0,
+};
+
 export default function EventsPage() {
   const firestore = useFirestore();
   const eventsRef = useMemoFirebase(() => collection(firestore, 'events'), [firestore]);
@@ -77,43 +86,43 @@ export default function EventsPage() {
   const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
 
 
-  const [open, setOpen] = useState(false);
-  const [newEvent, setNewEvent] = useState({
-    clientId: '',
-    date: new Date(),
-    time: '',
-    artistIds: [] as string[],
-    payment: 0,
-  });
+  const [isAddOpen, setAddOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [newEvent, setNewEvent] = useState(initialNewEventState);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setNewEvent(prev => ({ ...prev, [id]: id === 'payment' ? Number(value) : value }));
+    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
+    targetState(prev => ({ ...prev!, [id]: id === 'payment' ? Number(value) : value }));
   };
   
   const handleSelectChange = (id: string) => (value: string) => {
-    setNewEvent(prev => ({ ...prev, [id]: value }));
+    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
+    targetState(prev => ({ ...prev!, [id]: value }));
   };
 
   const handleDateChange = (date: Date | undefined) => {
     if(date) {
-      setNewEvent(prev => ({ ...prev, date }));
+      const targetState = isEditOpen ? setEditingEvent : setNewEvent;
+      targetState(prev => ({ ...prev!, date: isEditOpen ? format(date, 'yyyy-MM-dd') : date }));
     }
   };
 
   const handleArtistSelection = (artistId: string) => {
-    setNewEvent(prev => {
-      const newArtistIds = prev.artistIds.includes(artistId)
-        ? prev.artistIds.filter(id => id !== artistId)
-        : [...prev.artistIds, artistId];
-      return { ...prev, artistIds: newArtistIds };
+    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
+    targetState(prev => {
+      const currentArtistIds = prev!.artistIds || [];
+      const newArtistIds = currentArtistIds.includes(artistId)
+        ? currentArtistIds.filter(id => id !== artistId)
+        : [...currentArtistIds, artistId];
+      return { ...prev!, artistIds: newArtistIds };
     });
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!eventsRef || !newEvent.clientId || newEvent.artistIds.length === 0) {
-      // Basic validation
       alert('Por favor, preencha todos os campos obrigatórios.');
       return;
     }
@@ -124,14 +133,32 @@ export default function EventsPage() {
       paymentStatus: 'Não Pago' as PaymentStatus,
     };
     addDocumentNonBlocking(eventsRef, newEventData);
-    setOpen(false);
-    setNewEvent({
-      clientId: '',
-      date: new Date(),
-      time: '',
-      artistIds: [],
-      payment: 0,
-    });
+    setAddOpen(false);
+    setNewEvent(initialNewEventState);
+  };
+  
+  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!firestore || !editingEvent) return;
+
+    const eventDocRef = doc(firestore, 'events', editingEvent.id);
+    const { id, ...eventData } = editingEvent;
+    
+    const dataToUpdate = {
+        ...eventData,
+        date: typeof editingEvent.date === 'string' ? editingEvent.date : format(editingEvent.date, 'yyyy-MM-dd'),
+    };
+
+    updateDocumentNonBlocking(eventDocRef, dataToUpdate);
+    setEditOpen(false);
+    setEditingEvent(null);
+  };
+
+
+  const openEditDialog = (event: Event) => {
+    const eventDate = typeof event.date === 'string' ? parseISO(event.date) : event.date;
+    setEditingEvent({ ...event, date: format(eventDate, 'yyyy-MM-dd') });
+    setEditOpen(true);
   };
 
   const updateEventStatus = (eventId: string, status: EventStatus) => {
@@ -145,7 +172,7 @@ export default function EventsPage() {
     const eventDocRef = doc(firestore, 'events', event.id);
     updateDocumentNonBlocking(eventDocRef, { paymentStatus });
     
-    if (paymentStatus === 'Pago') {
+    if (paymentStatus === 'Pago' && event.paymentStatus !== 'Pago') {
       const client = clients?.find(c => c.id === event.clientId);
       const financialTransaction = {
         type: 'Receita' as 'Receita' | 'Despesa',
@@ -158,33 +185,25 @@ export default function EventsPage() {
     }
   };
 
-  return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Eventos
-        </h1>
-        <Dialog open={open} onOpenChange={setOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Novo Evento
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Adicionar Novo Evento</DialogTitle>
-              <DialogDescription>
-                Preencha os detalhes do novo evento.
-              </DialogDescription>
-            </DialogHeader>
-            <form onSubmit={handleSubmit}>
+  const renderForm = (isEditing: boolean) => {
+    const currentData = isEditing ? editingEvent : newEvent;
+    const handleSumbit = isEditing ? handleEditSubmit : handleAddSubmit;
+
+    if (!currentData) return null;
+
+    const currentDate = useMemo(() => {
+        if (!currentData.date) return undefined;
+        return typeof currentData.date === 'string' ? parseISO(currentData.date) : currentData.date;
+    }, [currentData.date]);
+
+    return (
+        <form onSubmit={handleSumbit}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="clientId" className="text-right">
                     Cliente
                   </Label>
-                   <Select value={newEvent.clientId} onValueChange={handleSelectChange('clientId')}>
+                   <Select value={currentData.clientId} onValueChange={handleSelectChange('clientId')}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
@@ -205,17 +224,17 @@ export default function EventsPage() {
                         variant={"outline"}
                         className={cn(
                           "col-span-3 justify-start text-left font-normal",
-                          !newEvent.date && "text-muted-foreground"
+                          !currentData.date && "text-muted-foreground"
                         )}
                       >
                         <CalendarIcon className="mr-2 h-4 w-4" />
-                        {newEvent.date ? format(newEvent.date, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                        {currentDate ? format(currentDate, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
                       </Button>
                     </PopoverTrigger>
                     <PopoverContent className="w-auto p-0">
                       <Calendar
                         mode="single"
-                        selected={newEvent.date}
+                        selected={currentDate}
                         onSelect={handleDateChange}
                         initialFocus
                         locale={ptBR}
@@ -227,7 +246,13 @@ export default function EventsPage() {
                   <Label htmlFor="time" className="text-right">
                     Hora
                   </Label>
-                  <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="col-span-3" />
+                  <Input id="time" type="time" value={currentData.time} onChange={handleInputChange} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="local" className="text-right">
+                    Local
+                  </Label>
+                  <Input id="local" value={currentData.local} onChange={handleInputChange} placeholder="Local do evento" className="col-span-3" />
                 </div>
                  <div className="grid grid-cols-4 items-start gap-4 pt-2">
                   <Label htmlFor="artistIds" className="text-right pt-2">
@@ -237,7 +262,7 @@ export default function EventsPage() {
                     <CollapsibleTrigger asChild>
                       <Button variant="outline" className="w-full flex justify-between">
                         <span>
-                          {newEvent.artistIds.length > 0 ? `${newEvent.artistIds.length} selecionado(s)`: "Selecione artistas"}
+                          {currentData.artistIds.length > 0 ? `${currentData.artistIds.length} selecionado(s)`: "Selecione artistas"}
                         </span>
                         <ChevronDown className="h-4 w-4" />
                       </Button>
@@ -247,11 +272,11 @@ export default function EventsPage() {
                         {artists?.map(artist => (
                           <div key={artist.id} className="flex items-center gap-2">
                             <Checkbox 
-                              id={`artist-${artist.id}`} 
-                              checked={newEvent.artistIds.includes(artist.id)}
+                              id={`artist-${artist.id}-${isEditing ? 'edit' : 'add'}`}
+                              checked={currentData.artistIds.includes(artist.id)}
                               onCheckedChange={() => handleArtistSelection(artist.id)}
                             />
-                            <Label htmlFor={`artist-${artist.id}`}>{artist.name}</Label>
+                            <Label htmlFor={`artist-${artist.id}-${isEditing ? 'edit' : 'add'}`}>{artist.name}</Label>
                           </div>
                         ))}
                       </div>
@@ -262,16 +287,53 @@ export default function EventsPage() {
                   <Label htmlFor="payment" className="text-right">
                     Pagamento (R$)
                   </Label>
-                  <Input id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} placeholder="2000" className="col-span-3" />
+                  <Input id="payment" type="number" value={currentData.payment || ''} onChange={handleInputChange} placeholder="2000" className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
-                <Button type="submit">Salvar Evento</Button>
+                <Button type="submit">Salvar</Button>
               </DialogFooter>
-            </form>
+        </form>
+    );
+  }
+
+  return (
+    <div className="space-y-8">
+      <div className="flex items-center justify-between">
+        <h1 className="text-3xl font-bold tracking-tight font-headline">
+          Eventos
+        </h1>
+        <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
+          <DialogTrigger asChild>
+            <Button>
+              <PlusCircle className="w-4 h-4 mr-2" />
+              Adicionar Novo Evento
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+              <DialogTitle>Adicionar Novo Evento</DialogTitle>
+              <DialogDescription>
+                Preencha os detalhes do novo evento.
+              </DialogDescription>
+            </DialogHeader>
+            {renderForm(false)}
           </DialogContent>
         </Dialog>
       </div>
+
+       <Dialog open={isEditOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-lg">
+            <DialogHeader>
+                <DialogTitle>Editar Evento</DialogTitle>
+                <DialogDescription>
+                    Atualize os detalhes do evento.
+                </DialogDescription>
+            </DialogHeader>
+            {renderForm(true)}
+        </DialogContent>
+       </Dialog>
+
       <Card>
         <CardHeader>
           <CardTitle>Agenda de Eventos</CardTitle>
@@ -286,6 +348,7 @@ export default function EventsPage() {
               <TableRow>
                 <TableHead>Cliente</TableHead>
                 <TableHead>Data e Hora</TableHead>
+                <TableHead>Local</TableHead>
                 <TableHead>Artistas</TableHead>
                 <TableHead>Pagamento</TableHead>
                 <TableHead>Status</TableHead>
@@ -296,7 +359,7 @@ export default function EventsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {events?.map((event) => {
+              {events?.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((event) => {
                 const client = clients?.find(c => c.id === event.clientId);
                 const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
                 return (
@@ -305,6 +368,7 @@ export default function EventsPage() {
                     <TableCell>
                       {format(parseISO(event.date), 'dd MMM, yyyy', { locale: ptBR })} às {event.time}
                     </TableCell>
+                    <TableCell>{event.local}</TableCell>
                     <TableCell>{eventArtists?.map(a => a.name).join(', ')}</TableCell>
                     <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
                     <TableCell>
@@ -327,7 +391,7 @@ export default function EventsPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditDialog(event)}>Editar</DropdownMenuItem>
                           <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>
                             Marcar como Concluído
                           </DropdownMenuItem>

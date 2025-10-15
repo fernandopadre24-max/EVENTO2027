@@ -82,6 +82,10 @@
           "type": "string",
           "description": "Time of the event."
         },
+        "local": {
+          "type": "string",
+          "description": "Location of the event."
+        },
         "payment": {
           "type": "number",
           "description": "Payment for the event."
@@ -108,6 +112,7 @@
         "artistIds",
         "date",
         "time",
+        "local",
         "payment",
         "status",
         "paymentStatus"

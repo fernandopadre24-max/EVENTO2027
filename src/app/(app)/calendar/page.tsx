@@ -75,7 +75,8 @@ export default function CalendarPage() {
                   const client = clients?.find(c => c.id === event.clientId);
                   return (
                     <li key={event.id} className="p-4 rounded-lg bg-muted">
-                      <p className="font-bold text-sm text-muted-foreground">Cliente: {client?.name}</p>
+                      <p className="font-semibold">{client?.name}</p>
+                      <p className="text-sm text-muted-foreground">{event.local}</p>
                       <div className="flex items-center justify-between mt-2">
                         <Badge variant="secondary">{event.time}</Badge>
                         <span className="text-sm font-semibold">R${event.payment.toLocaleString('pt-BR')}</span>

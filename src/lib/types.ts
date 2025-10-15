@@ -22,6 +22,7 @@ export interface Event {
   id: string;
   date: string;
   time: string;
+  local: string;
   clientId: string;
   artistIds: string[];
   payment: number;
