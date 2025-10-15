@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -28,7 +28,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import type { Event, EventStatus, PaymentStatus, Client, Artist } from '@/lib/types';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -95,21 +95,30 @@ export default function EventsPage() {
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all');
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatus | 'all'>('all');
+  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>();
+  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>();
 
   const filteredEvents = useMemo(() => {
     return events
       ?.filter(event => {
         const client = clients?.find(c => c.id === event.clientId);
         const searchLower = searchTerm.toLowerCase();
+
         const clientMatch = client?.name.toLowerCase().includes(searchLower);
         const localMatch = event.local.toLowerCase().includes(searchLower);
+        
         const statusMatch = statusFilter === 'all' || event.status === statusFilter;
         const paymentStatusMatch = paymentStatusFilter === 'all' || event.paymentStatus === paymentStatusFilter;
 
-        return (clientMatch || localMatch) && statusMatch && paymentStatusMatch;
+        const eventDate = parseISO(event.date);
+        const dateMatch =
+          (!startDateFilter || eventDate >= startOfDay(startDateFilter)) &&
+          (!endDateFilter || eventDate <= endOfDay(endDateFilter));
+
+        return (clientMatch || localMatch) && statusMatch && paymentStatusMatch && dateMatch;
       })
       .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()) || [];
-  }, [events, clients, searchTerm, statusFilter, paymentStatusFilter]);
+  }, [events, clients, searchTerm, statusFilter, paymentStatusFilter, startDateFilter, endDateFilter]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -138,6 +147,14 @@ export default function EventsPage() {
         : [...currentArtistIds, artistId];
       return { ...prev!, artistIds: newArtistIds };
     });
+  };
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setPaymentStatusFilter('all');
+    setStartDateFilter(undefined);
+    setEndDateFilter(undefined);
   };
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -376,7 +393,7 @@ export default function EventsPage() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 />
             </div>
-            <div className="flex gap-4">
+            <div className="flex flex-col sm:flex-row gap-4">
                 <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as EventStatus | 'all')}>
                     <SelectTrigger className="w-full sm:w-[180px]">
                         <SelectValue placeholder="Filtrar por Status" />
@@ -400,6 +417,42 @@ export default function EventsPage() {
                     </SelectContent>
                 </Select>
             </div>
+        </div>
+        <div className="flex flex-col sm:flex-row gap-4 items-center">
+            <div className="flex w-full sm:w-auto gap-4">
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        variant={"outline"}
+                        className={cn("w-full justify-start text-left font-normal", !startDateFilter && "text-muted-foreground")}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {startDateFilter ? format(startDateFilter, "dd/MM/yy") : <span>De</span>}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={startDateFilter} onSelect={setStartDateFilter} initialFocus locale={ptBR}/>
+                    </PopoverContent>
+                </Popover>
+                <Popover>
+                    <PopoverTrigger asChild>
+                    <Button
+                        variant={"outline"}
+                        className={cn("w-full justify-start text-left font-normal", !endDateFilter && "text-muted-foreground")}
+                    >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {endDateFilter ? format(endDateFilter, "dd/MM/yy") : <span>Até</span>}
+                    </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                    <Calendar mode="single" selected={endDateFilter} onSelect={setEndDateFilter} initialFocus locale={ptBR}/>
+                    </PopoverContent>
+                </Popover>
+            </div>
+            <Button variant="ghost" onClick={clearFilters} className="w-full sm:w-auto">
+                <X className="mr-2 h-4 w-4" />
+                Limpar Filtros
+            </Button>
         </div>
       </div>
 
