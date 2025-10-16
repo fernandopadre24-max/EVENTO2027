@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, PlusCircle, Instagram } from 'lucide-react';
+import { MoreVertical, PlusCircle, Instagram, Phone, Mail } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,7 +58,7 @@ export default function ArtistsPage() {
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
 
-  const [newArtist, setNewArtist] = useState({ name: '', genre: '', performanceDetails: '', instagram: '' });
+  const [newArtist, setNewArtist] = useState({ name: '', genre: '', performanceDetails: '', instagram: '', phone: '', email: '' });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -77,7 +77,7 @@ export default function ArtistsPage() {
     const artistsCollectionRef = collection(firestore, 'artists');
     addDocumentNonBlocking(artistsCollectionRef, { ...newArtist, userId: user.uid });
     setAddOpen(false);
-    setNewArtist({ name: '', genre: '', performanceDetails: '', instagram: '' });
+    setNewArtist({ name: '', genre: '', performanceDetails: '', instagram: '', phone: '', email: '' });
   };
   
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -150,6 +150,18 @@ export default function ArtistsPage() {
                   <Textarea id="performanceDetails" value={newArtist.performanceDetails} onChange={handleInputChange} placeholder="Detalhes da performance" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">
+                    Telefone
+                  </Label>
+                  <Input id="phone" value={newArtist.phone} onChange={handleInputChange} placeholder="(99) 99999-9999" className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input id="email" type="email" value={newArtist.email} onChange={handleInputChange} placeholder="artista@email.com" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="instagram" className="text-right">
                     Instagram
                   </Label>
@@ -193,6 +205,18 @@ export default function ArtistsPage() {
                   </Label>
                   <Textarea id="performanceDetails" value={selectedArtist.performanceDetails} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="phone" className="text-right">
+                    Telefone
+                  </Label>
+                  <Input id="phone" value={selectedArtist.phone || ''} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
+                 <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="email" className="text-right">
+                    Email
+                  </Label>
+                  <Input id="email" type="email" value={selectedArtist.email || ''} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="instagram" className="text-right">
                     Instagram
@@ -228,37 +252,53 @@ export default function ArtistsPage() {
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
         {artists?.map((artist) => (
           <Card key={artist.id} className="flex flex-col">
-            <CardHeader className="flex flex-row items-start justify-between">
-              <div>
-                <CardTitle>{artist.name}</CardTitle>
-                <CardDescription>{artist.performanceDetails}</CardDescription>
-                {artist.instagram && (
-                  <a
-                    href={`https://instagram.com/${artist.instagram.replace('@', '')}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 mt-2 text-sm text-muted-foreground hover:text-primary"
-                  >
-                    <Instagram className="w-4 h-4" />
-                    {artist.instagram}
-                  </a>
-                )}
+            <CardHeader className="flex-grow">
+              <div className="flex items-start justify-between">
+                <div className="flex-1">
+                  <CardTitle>{artist.name}</CardTitle>
+                  <CardDescription>{artist.performanceDetails}</CardDescription>
+                </div>
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button size="icon" variant="ghost" className="shrink-0">
+                      <MoreVertical className="w-4 h-4" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end">
+                    <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                    <DropdownMenuItem onClick={() => openEditDialog(artist)}>Editar</DropdownMenuItem>
+                    <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(artist)}>Excluir</DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
               </div>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost">
-                    <MoreVertical className="w-4 h-4" />
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end">
-                  <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                  <DropdownMenuItem onClick={() => openEditDialog(artist)}>Editar</DropdownMenuItem>
-                  <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(artist)}>Excluir</DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
             </CardHeader>
-            <CardContent className="flex-grow">
+            <CardContent>
               <Badge variant="secondary">{artist.genre}</Badge>
+              <div className="mt-4 space-y-2 text-sm text-muted-foreground">
+                {artist.phone && (
+                  <div className="flex items-center gap-2">
+                    <Phone className="w-4 h-4" />
+                    <span>{artist.phone}</span>
+                  </div>
+                )}
+                {artist.email && (
+                  <div className="flex items-center gap-2">
+                    <Mail className="w-4 h-4" />
+                    <span>{artist.email}</span>
+                  </div>
+                )}
+                {artist.instagram && (
+                    <a
+                      href={`https://instagram.com/${artist.instagram.replace('@', '')}`}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="flex items-center gap-2 hover:text-primary"
+                    >
+                      <Instagram className="w-4 h-4" />
+                      {artist.instagram}
+                    </a>
+                  )}
+              </div>
             </CardContent>
           </Card>
         ))}

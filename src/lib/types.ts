@@ -16,6 +16,8 @@ export interface Artist {
   genre: string;
   performanceDetails: string;
   instagram?: string;
+  phone?: string;
+  email?: string;
   userId: string;
 }
 

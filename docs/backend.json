@@ -65,6 +65,14 @@
           "type": "string",
           "description": "Instagram handle of the artist."
         },
+        "phone": {
+          "type": "string",
+          "description": "Contact phone for the artist."
+        },
+        "email": {
+          "type": "string",
+          "description": "Contact email for the artist."
+        },
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this artist."
