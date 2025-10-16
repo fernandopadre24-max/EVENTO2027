@@ -24,6 +24,7 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuLabel,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
@@ -40,12 +41,22 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
@@ -97,6 +108,10 @@ export default function EventsPage() {
   const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatus | 'all'>('all');
   const [startDateFilter, setStartDateFilter] = useState<Date | undefined>();
   const [endDateFilter, setEndDateFilter] = useState<Date | undefined>();
+  
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
+
 
   const filteredEvents = useMemo(() => {
     return events
@@ -223,6 +238,19 @@ export default function EventsPage() {
       };
       addDocumentNonBlocking(financesRef, financialTransaction);
     }
+  };
+
+  const openDeleteAlert = (event: Event) => {
+    setEventToDelete(event);
+    setDeleteAlertOpen(true);
+  };
+
+  const handleDeleteEvent = () => {
+    if (!firestore || !eventToDelete) return;
+    const eventDocRef = doc(firestore, 'events', eventToDelete.id);
+    deleteDocumentNonBlocking(eventDocRef);
+    setDeleteAlertOpen(false);
+    setEventToDelete(null);
   };
 
   const newEventDate = useMemo(() => {
@@ -380,6 +408,22 @@ export default function EventsPage() {
             {renderForm(true)}
         </DialogContent>
        </Dialog>
+       
+       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente o evento
+                e removerá seus dados de nossos servidores.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteEvent}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       
       <div className="space-y-4">
         <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
@@ -529,8 +573,12 @@ export default function EventsPage() {
                             <DropdownMenuItem onClick={() => updatePaymentStatus(event, 'Pago')}>
                               Marcar como Pago
                             </DropdownMenuItem>
-                            <DropdownMenuItem className="text-destructive" onClick={() => updateEventStatus(event.id, 'Cancelado')}>
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Cancelado')}>
                               Cancelar Evento
+                            </DropdownMenuItem>
+                             <DropdownMenuSeparator />
+                            <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(event)}>
+                                Excluir
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -546,3 +594,4 @@ export default function EventsPage() {
     </div>
   );
 }
+
