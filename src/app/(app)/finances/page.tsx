@@ -191,7 +191,6 @@ export default function FinancesPage() {
                         <SelectValue placeholder="Selecione um artista (opcional)" />
                       </SelectTrigger>
                       <SelectContent>
-                        <SelectItem value="">Nenhum</SelectItem>
                         {artists?.map(artist => (
                           <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
                         ))}
@@ -380,3 +379,5 @@ export default function FinancesPage() {
     </div>
   );
 }
+
+    
