@@ -188,7 +188,13 @@ export default function EventsPage() {
     };
     addDocumentNonBlocking(eventsCollectionRef, newEventData);
     setAddOpen(false);
-    setNewEvent(initialNewEventState);
+    // Reset only client, date, and local, keeping the rest for the next entry
+    setNewEvent(prev => ({
+      ...prev,
+      clientId: '',
+      date: new Date(),
+      local: '',
+    }));
   };
   
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
