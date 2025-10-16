@@ -15,6 +15,7 @@ export interface Artist {
   name: string;
   genre: string;
   performanceDetails: string;
+  instagram?: string;
   userId: string;
 }
 

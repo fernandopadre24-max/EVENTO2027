@@ -61,6 +61,10 @@
           "type": "string",
           "description": "Details about the artist's performance (e.g., genre, instruments)."
         },
+        "instagram": {
+          "type": "string",
+          "description": "Instagram handle of the artist."
+        },
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this artist."

@@ -10,7 +10,7 @@ import {
   CardTitle,
 } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { MoreVertical, PlusCircle } from 'lucide-react';
+import { MoreVertical, PlusCircle, Instagram } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,7 +58,7 @@ export default function ArtistsPage() {
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [selectedArtist, setSelectedArtist] = useState<Artist | null>(null);
 
-  const [newArtist, setNewArtist] = useState({ name: '', genre: '', performanceDetails: '' });
+  const [newArtist, setNewArtist] = useState({ name: '', genre: '', performanceDetails: '', instagram: '' });
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -77,7 +77,7 @@ export default function ArtistsPage() {
     const artistsCollectionRef = collection(firestore, 'artists');
     addDocumentNonBlocking(artistsCollectionRef, { ...newArtist, userId: user.uid });
     setAddOpen(false);
-    setNewArtist({ name: '', genre: '', performanceDetails: '' });
+    setNewArtist({ name: '', genre: '', performanceDetails: '', instagram: '' });
   };
   
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -149,6 +149,12 @@ export default function ArtistsPage() {
                   </Label>
                   <Textarea id="performanceDetails" value={newArtist.performanceDetails} onChange={handleInputChange} placeholder="Detalhes da performance" className="col-span-3" />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="instagram" className="text-right">
+                    Instagram
+                  </Label>
+                  <Input id="instagram" value={newArtist.instagram} onChange={handleInputChange} placeholder="@artista" className="col-span-3" />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Salvar</Button>
@@ -187,6 +193,12 @@ export default function ArtistsPage() {
                   </Label>
                   <Textarea id="performanceDetails" value={selectedArtist.performanceDetails} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="instagram" className="text-right">
+                    Instagram
+                  </Label>
+                  <Input id="instagram" value={selectedArtist.instagram || ''} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Salvar Alterações</Button>
@@ -220,6 +232,17 @@ export default function ArtistsPage() {
               <div>
                 <CardTitle>{artist.name}</CardTitle>
                 <CardDescription>{artist.performanceDetails}</CardDescription>
+                {artist.instagram && (
+                  <a
+                    href={`https://instagram.com/${artist.instagram.replace('@', '')}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 mt-2 text-sm text-muted-foreground hover:text-primary"
+                  >
+                    <Instagram className="w-4 h-4" />
+                    {artist.instagram}
+                  </a>
+                )}
               </div>
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
