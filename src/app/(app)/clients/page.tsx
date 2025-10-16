@@ -52,7 +52,7 @@ import { Label } from '@/components/ui/label';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 
-const initialNewClientState = { name: '', email: '', phone: '', responsavel: '', local: '' };
+const initialNewClientState = { name: '', email: '', phone: '', responsavel: '', local: '', instagram: '' };
 
 export default function ClientsPage() {
   const firestore = useFirestore();
@@ -169,6 +169,12 @@ export default function ClientsPage() {
                   </Label>
                   <Input id="phone" value={newClient.phone} onChange={handleInputChange} placeholder="(99) 99999-9999" className="col-span-3" />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="instagram" className="text-right">
+                    Instagram
+                  </Label>
+                  <Input id="instagram" value={newClient.instagram} onChange={handleInputChange} placeholder="@cliente" className="col-span-3" />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Salvar</Button>
@@ -219,6 +225,12 @@ export default function ClientsPage() {
                   </Label>
                   <Input id="phone" value={selectedClient.phone || ''} onChange={handleEditInputChange} className="col-span-3" />
                 </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="instagram" className="text-right">
+                    Instagram
+                  </Label>
+                  <Input id="instagram" value={selectedClient.instagram || ''} onChange={handleEditInputChange} className="col-span-3" />
+                </div>
               </div>
               <DialogFooter>
                 <Button type="submit">Salvar Alterações</Button>
@@ -261,6 +273,7 @@ export default function ClientsPage() {
                   <TableHead className="hidden sm:table-cell">Responsável</TableHead>
                   <TableHead className="hidden md:table-cell">Local</TableHead>
                   <TableHead className="hidden lg:table-cell">Telefone</TableHead>
+                  <TableHead className="hidden lg:table-cell">Instagram</TableHead>
                   <TableHead>
                     <span className="sr-only">Ações</span>
                   </TableHead>
@@ -276,6 +289,7 @@ export default function ClientsPage() {
                     <TableCell className="hidden sm:table-cell">{client.responsavel}</TableCell>
                     <TableCell className="hidden md:table-cell">{client.local}</TableCell>
                     <TableCell className="hidden lg:table-cell">{client.phone}</TableCell>
+                    <TableCell className="hidden lg:table-cell">{client.instagram}</TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>

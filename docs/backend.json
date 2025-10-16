@@ -26,6 +26,10 @@
           "type": "string",
           "description": "Location/address of the client."
         },
+        "instagram": {
+          "type": "string",
+          "description": "Instagram handle of the client."
+        },
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this client."

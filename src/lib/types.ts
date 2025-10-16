@@ -6,6 +6,7 @@ export interface Client {
   phone: string;
   responsavel: string;
   local: string;
+  instagram?: string;
   userId: string;
 }
 
