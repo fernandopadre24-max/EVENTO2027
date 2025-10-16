@@ -142,7 +142,7 @@ export default function ProfilePage() {
       reader.onload = (e) => {
         const dataUrl = e.target?.result as string;
         if (dataUrl) {
-            uploadProfilePicture(dataUrl);
+          uploadProfilePicture(dataUrl);
         }
       };
       reader.readAsDataURL(file);
