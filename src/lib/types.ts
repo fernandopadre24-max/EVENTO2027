@@ -42,5 +42,6 @@ export interface FinancialTransaction {
   amount: number;
   date: string;
   eventId?: string;
+  artistId?: string;
   userId: string;
 }

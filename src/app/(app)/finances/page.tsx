@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import type { FinancialTransaction } from '@/lib/types';
+import type { FinancialTransaction, Artist } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
@@ -60,14 +60,19 @@ const initialTransactionState = {
   type: 'Receita' as 'Receita' | 'Despesa',
   description: '',
   amount: 0,
-  date: format(new Date(), 'yyyy-MM-dd')
+  date: format(new Date(), 'yyyy-MM-dd'),
+  artistId: '',
 };
 
 export default function FinancesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  
   const transactionsRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
-  const { data: transactions, isLoading } = useCollection<FinancialTransaction>(transactionsRef);
+  const { data: transactions, isLoading: isLoadingTransactions } = useCollection<FinancialTransaction>(transactionsRef);
+
+  const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
+  const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
 
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
@@ -75,6 +80,8 @@ export default function FinancesPage() {
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
 
   const [newTransaction, setNewTransaction] = useState(initialTransactionState);
+  
+  const isLoading = isLoadingTransactions || isLoadingArtists;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -82,9 +89,9 @@ export default function FinancesPage() {
     targetState(prev => ({ ...prev!, [id]: id === 'amount' ? Number(value) : value }));
   };
 
-  const handleSelectChange = (value: 'Receita' | 'Despesa') => {
+  const handleSelectChange = (id: string) => (value: string) => {
     const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => ({ ...prev!, type: value }));
+    targetState(prev => ({ ...prev!, [id]: value }));
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -98,7 +105,11 @@ export default function FinancesPage() {
     e.preventDefault();
     if(!firestore || !user) return;
     const transactionsCollectionRef = collection(firestore, 'finances');
-    addDocumentNonBlocking(transactionsCollectionRef, { ...newTransaction, userId: user.uid });
+    const dataToAdd = { ...newTransaction, userId: user.uid };
+    if (dataToAdd.type !== 'Despesa') {
+      delete dataToAdd.artistId;
+    }
+    addDocumentNonBlocking(transactionsCollectionRef, dataToAdd);
     setAddOpen(false);
     setNewTransaction(initialTransactionState);
   };
@@ -108,6 +119,9 @@ export default function FinancesPage() {
     if (!firestore || !selectedTransaction) return;
     const transactionDocRef = doc(firestore, 'finances', selectedTransaction.id);
     const { id, ...transactionData } = selectedTransaction;
+     if (transactionData.type !== 'Despesa') {
+      transactionData.artistId = undefined;
+    }
     updateDocumentNonBlocking(transactionDocRef, transactionData);
     setEditOpen(false);
     setSelectedTransaction(null);
@@ -143,6 +157,74 @@ export default function FinancesPage() {
     return { totalIncome, totalExpense, netBalance };
   }, [transactions]);
 
+  const renderForm = (isEditing: boolean) => {
+      const currentData = isEditing ? selectedTransaction : newTransaction;
+      const handleSubmit = isEditing ? handleEditSubmit : handleAddSubmit;
+
+      if (!currentData) return null;
+
+      return (
+        <form onSubmit={handleSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="type" className="text-right">
+                    Tipo
+                  </Label>
+                  <Select value={currentData.type} onValueChange={handleSelectChange('type') as (value: 'Receita' | 'Despesa') => void}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Receita">Receita</SelectItem>
+                      <SelectItem value="Despesa">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                
+                {currentData.type === 'Despesa' && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="artistId" className="text-right">
+                      Artista
+                    </Label>
+                    <Select value={currentData.artistId} onValueChange={handleSelectChange('artistId')}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Selecione um artista (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="">Nenhum</SelectItem>
+                        {artists?.map(artist => (
+                          <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                )}
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Descrição
+                  </Label>
+                  <Input id="description" value={currentData.description} onChange={handleInputChange} placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="amount" className="text-right">
+                    Valor (R$)
+                  </Label>
+                  <Input id="amount" type="number" value={currentData.amount || ''} onChange={handleInputChange} placeholder="300" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="date" className="text-right">
+                    Data
+                  </Label>
+                  <Input id="date" type="date" value={currentData.date} onChange={handleDateChange} className="col-span-3" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Salvar Transação</Button>
+              </DialogFooter>
+            </form>
+      )
+  }
 
   return (
     <div className="space-y-8">
@@ -164,45 +246,7 @@ export default function FinancesPage() {
                 Preencha os detalhes da nova transação.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleAddSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="type" className="text-right">
-                    Tipo
-                  </Label>
-                  <Select value={newTransaction.type} onValueChange={handleSelectChange}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Receita">Receita</SelectItem>
-                      <SelectItem value="Despesa">Despesa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
-                    Descrição
-                  </Label>
-                  <Input id="description" value={newTransaction.description} onChange={handleInputChange} placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="amount" className="text-right">
-                    Valor (R$)
-                  </Label>
-                  <Input id="amount" type="number" value={newTransaction.amount || ''} onChange={handleInputChange} placeholder="300" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="date" className="text-right">
-                    Data
-                  </Label>
-                  <Input id="date" type="date" value={newTransaction.date} onChange={handleDateChange} className="col-span-3" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Salvar Transação</Button>
-              </DialogFooter>
-            </form>
+            {renderForm(false)}
           </DialogContent>
         </Dialog>
       </div>
@@ -215,47 +259,7 @@ export default function FinancesPage() {
                 Atualize os detalhes da transação.
               </DialogDescription>
             </DialogHeader>
-            {selectedTransaction && (
-            <form onSubmit={handleEditSubmit}>
-              <div className="grid gap-4 py-4">
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="type" className="text-right">
-                    Tipo
-                  </Label>
-                  <Select value={selectedTransaction.type} onValueChange={handleSelectChange}>
-                    <SelectTrigger className="col-span-3">
-                      <SelectValue placeholder="Selecione o tipo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="Receita">Receita</SelectItem>
-                      <SelectItem value="Despesa">Despesa</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="description" className="text-right">
-                    Descrição
-                  </Label>
-                  <Input id="description" value={selectedTransaction.description} onChange={handleInputChange} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="amount" className="text-right">
-                    Valor (R$)
-                  </Label>
-                  <Input id="amount" type="number" value={selectedTransaction.amount || ''} onChange={handleInputChange} className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="date" className="text-right">
-                    Data
-                  </Label>
-                  <Input id="date" type="date" value={selectedTransaction.date} onChange={handleDateChange} className="col-span-3" />
-                </div>
-              </div>
-              <DialogFooter>
-                <Button type="submit">Salvar Alterações</Button>
-              </DialogFooter>
-            </form>
-            )}
+            {renderForm(true)}
         </DialogContent>
        </Dialog>
       
@@ -326,41 +330,48 @@ export default function FinancesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {transactions?.map((transaction) => (
-                  <TableRow key={transaction.id}>
-                    <TableCell>
-                      <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
-                        {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
-                        {transaction.type}
-                      </Badge>
-                    </TableCell>
-                    <TableCell>
-                        <div className="font-medium">{transaction.description}</div>
-                        <div className="text-sm text-muted-foreground sm:hidden">
-                            {format(parseISO(transaction.date), 'dd/MM/yy', { locale: ptBR })}
-                        </div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
-                    <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
-                      {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
-                    </TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="w-4 h-4" />
-                            <span className="sr-only">Alternar menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => openEditDialog(transaction)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(transaction)}>Excluir</DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {transactions?.map((transaction) => {
+                  const artist = artists?.find(a => a.id === transaction.artistId);
+                  const description = artist 
+                    ? `Pagamento: ${artist.name}`
+                    : transaction.description;
+
+                  return (
+                    <TableRow key={transaction.id}>
+                      <TableCell>
+                        <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                          {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
+                          {transaction.type}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                          <div className="font-medium">{description}</div>
+                          <div className="text-sm text-muted-foreground sm:hidden">
+                              {format(parseISO(transaction.date), 'dd/MM/yy', { locale: ptBR })}
+                          </div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                        {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                              <MoreHorizontal className="w-4 h-4" />
+                              <span className="sr-only">Alternar menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openEditDialog(transaction)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(transaction)}>Excluir</DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           </div>

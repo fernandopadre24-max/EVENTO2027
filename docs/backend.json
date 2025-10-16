@@ -172,6 +172,10 @@
           "type": "string",
           "description": "Reference to Event."
         },
+        "artistId": {
+          "type": "string",
+          "description": "Reference to an Artist if the transaction is an expense/payment to them."
+        },
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this financial record."
