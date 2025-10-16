@@ -173,7 +173,7 @@ export default function ClientsPage() {
                   <Label htmlFor="instagram" className="text-right">
                     Instagram
                   </Label>
-                  <Input id="instagram" value={newClient.instagram} onChange={handleInputChange} placeholder="@cliente" className="col-span-3" />
+                  <Input id="instagram" value={newClient.instagram || ''} onChange={handleInputChange} placeholder="@cliente" className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
@@ -289,7 +289,18 @@ export default function ClientsPage() {
                     <TableCell className="hidden sm:table-cell">{client.responsavel}</TableCell>
                     <TableCell className="hidden md:table-cell">{client.local}</TableCell>
                     <TableCell className="hidden lg:table-cell">{client.phone}</TableCell>
-                    <TableCell className="hidden lg:table-cell">{client.instagram}</TableCell>
+                    <TableCell className="hidden lg:table-cell">
+                      {client.instagram ? (
+                        <a
+                          href={`https://instagram.com/${client.instagram.replace('@', '')}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="text-primary hover:underline"
+                        >
+                          {client.instagram}
+                        </a>
+                      ) : null}
+                    </TableCell>
                     <TableCell>
                       <DropdownMenu>
                         <DropdownMenuTrigger asChild>
