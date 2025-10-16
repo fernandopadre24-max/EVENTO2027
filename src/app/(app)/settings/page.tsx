@@ -11,14 +11,20 @@ import { useAppTitle, DEFAULT_TITLE } from '@/context/app-title-provider';
 import { useState, useEffect } from 'react';
 import { useToast } from '@/hooks/use-toast';
 import { useAppTheme, DEFAULT_BG_COLOR_LIGHT, DEFAULT_BG_COLOR_DARK } from '@/context/app-theme-provider';
+import { useAppFontSize } from '@/context/app-font-size-provider';
+import { Slider } from '@/components/ui/slider';
 
 
 export default function SettingsPage() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { title, setTitle } = useAppTitle();
   const { backgroundColor, setBackgroundColor } = useAppTheme();
+  const { fontSize, setFontSize } = useAppFontSize();
+
   const [localTitle, setLocalTitle] = useState(title);
   const [localBgColor, setLocalBgColor] = useState(backgroundColor);
+  const [localFontSize, setLocalFontSize] = useState(fontSize);
+
   const { toast } = useToast();
 
   useEffect(() => {
@@ -28,6 +34,10 @@ export default function SettingsPage() {
   useEffect(() => {
     setLocalBgColor(backgroundColor);
   }, [backgroundColor]);
+  
+  useEffect(() => {
+    setLocalFontSize(fontSize);
+  }, [fontSize]);
 
   const handleTitleSave = () => {
     setTitle(localTitle);
@@ -61,6 +71,22 @@ export default function SettingsPage() {
      toast({
         title: 'Sucesso!',
         description: 'A cor de fundo foi restaurada para o padrão do tema.',
+    });
+  }
+  
+  const handleFontSizeSave = () => {
+    setFontSize(localFontSize);
+    toast({
+        title: 'Sucesso!',
+        description: 'O tamanho da fonte foi atualizado.',
+    });
+  }
+
+  const handleRestoreFontSize = () => {
+    setFontSize(100); // Reset to default 100%
+     toast({
+        title: 'Sucesso!',
+        description: 'O tamanho da fonte foi restaurado para o padrão.',
     });
   }
 
@@ -160,6 +186,21 @@ export default function SettingsPage() {
           <div className="flex gap-2">
             <Button onClick={handleThemeSave}>Salvar Aparência</Button>
             <Button variant="ghost" onClick={handleRestoreTheme}>Restaurar Padrão</Button>
+          </div>
+           <div className="space-y-4">
+            <Label htmlFor="fontSize">Tamanho da Fonte ({localFontSize}%)</Label>
+            <Slider
+                id="fontSize"
+                min={80}
+                max={120}
+                step={5}
+                value={[localFontSize]}
+                onValueChange={(value) => setLocalFontSize(value[0])}
+            />
+          </div>
+          <div className="flex gap-2">
+            <Button onClick={handleFontSizeSave}>Salvar Fonte</Button>
+            <Button variant="ghost" onClick={handleRestoreFontSize}>Restaurar Padrão</Button>
           </div>
         </CardContent>
       </Card>

@@ -1,8 +1,10 @@
+
 import type { Metadata } from 'next';
 import { ThemeProvider } from '@/components/theme-provider';
 import { Toaster } from '@/components/ui/toaster';
 import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
+import { AppFontSizeProvider } from '@/context/app-font-size-provider';
 
 export const metadata: Metadata = {
   title: 'BandMate',
@@ -31,9 +33,11 @@ export default function RootLayout({
           enableSystem
           disableTransitionOnChange
         >
-          <FirebaseClientProvider>
-            {children}
-          </FirebaseClientProvider>
+          <AppFontSizeProvider>
+            <FirebaseClientProvider>
+              {children}
+            </FirebaseClientProvider>
+          </AppFontSizeProvider>
           <Toaster />
         </ThemeProvider>
       </body>
