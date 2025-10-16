@@ -40,11 +40,28 @@ import {
   DialogTrigger,
   DialogFooter,
 } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog"
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, useUser } from '@/firebase';
-import { collection, query, where } from 'firebase/firestore';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
+import { collection, query, where, doc } from 'firebase/firestore';
+
+const initialTransactionState = {
+  type: 'Receita' as 'Receita' | 'Despesa',
+  description: '',
+  amount: 0,
+  date: format(new Date(), 'yyyy-MM-dd')
+};
 
 export default function FinancesPage() {
   const firestore = useFirestore();
@@ -52,36 +69,68 @@ export default function FinancesPage() {
   const transactionsRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: transactions, isLoading } = useCollection<FinancialTransaction>(transactionsRef);
 
-  const [open, setOpen] = useState(false);
-  const [newTransaction, setNewTransaction] = useState({
-    type: 'Receita' as 'Receita' | 'Despesa',
-    description: '',
-    amount: 0,
-    date: format(new Date(), 'yyyy-MM-dd')
-  });
+  const [isAddOpen, setAddOpen] = useState(false);
+  const [isEditOpen, setEditOpen] = useState(false);
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
+
+  const [newTransaction, setNewTransaction] = useState(initialTransactionState);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setNewTransaction(prev => ({ ...prev, [id]: id === 'amount' ? Number(value) : value }));
+    const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
+    targetState(prev => ({ ...prev!, [id]: id === 'amount' ? Number(value) : value }));
   };
 
   const handleSelectChange = (value: 'Receita' | 'Despesa') => {
-    setNewTransaction(prev => ({ ...prev, type: value }));
+    const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
+    targetState(prev => ({ ...prev!, type: value }));
   };
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { id, value } = e.target;
+    const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
+    targetState(prev => ({ ...prev!, [id]: value }));
+  };
+
+
+  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if(!firestore || !user) return;
     const transactionsCollectionRef = collection(firestore, 'finances');
     addDocumentNonBlocking(transactionsCollectionRef, { ...newTransaction, userId: user.uid });
-    setOpen(false);
-    setNewTransaction({
-      type: 'Receita',
-      description: '',
-      amount: 0,
-      date: format(new Date(), 'yyyy-MM-dd')
-    });
+    setAddOpen(false);
+    setNewTransaction(initialTransactionState);
   };
+  
+  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (!firestore || !selectedTransaction) return;
+    const transactionDocRef = doc(firestore, 'finances', selectedTransaction.id);
+    const { id, ...transactionData } = selectedTransaction;
+    updateDocumentNonBlocking(transactionDocRef, transactionData);
+    setEditOpen(false);
+    setSelectedTransaction(null);
+  }
+  
+  const handleDeleteTransaction = () => {
+    if (!firestore || !selectedTransaction) return;
+    const transactionDocRef = doc(firestore, 'finances', selectedTransaction.id);
+    deleteDocumentNonBlocking(transactionDocRef);
+    setDeleteAlertOpen(false);
+    setSelectedTransaction(null);
+  }
+
+  const openEditDialog = (transaction: FinancialTransaction) => {
+    setSelectedTransaction(transaction);
+    setEditOpen(true);
+  }
+
+  const openDeleteAlert = (transaction: FinancialTransaction) => {
+    setSelectedTransaction(transaction);
+    setDeleteAlertOpen(true);
+  }
+
 
   const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     const totalIncome = transactions
@@ -101,7 +150,7 @@ export default function FinancesPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Finanças
         </h1>
-        <Dialog open={open} onOpenChange={setOpen}>
+        <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
@@ -115,7 +164,7 @@ export default function FinancesPage() {
                 Preencha os detalhes da nova transação.
               </DialogDescription>
             </DialogHeader>
-            <form onSubmit={handleSubmit}>
+            <form onSubmit={handleAddSubmit}>
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="type" className="text-right">
@@ -147,7 +196,7 @@ export default function FinancesPage() {
                   <Label htmlFor="date" className="text-right">
                     Data
                   </Label>
-                  <Input id="date" type="date" value={newTransaction.date} onChange={handleInputChange} className="col-span-3" />
+                  <Input id="date" type="date" value={newTransaction.date} onChange={handleDateChange} className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
@@ -157,6 +206,73 @@ export default function FinancesPage() {
           </DialogContent>
         </Dialog>
       </div>
+
+       <Dialog open={isEditOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle>Editar Transação</DialogTitle>
+              <DialogDescription>
+                Atualize os detalhes da transação.
+              </DialogDescription>
+            </DialogHeader>
+            {selectedTransaction && (
+            <form onSubmit={handleEditSubmit}>
+              <div className="grid gap-4 py-4">
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="type" className="text-right">
+                    Tipo
+                  </Label>
+                  <Select value={selectedTransaction.type} onValueChange={handleSelectChange}>
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Selecione o tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Receita">Receita</SelectItem>
+                      <SelectItem value="Despesa">Despesa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Descrição
+                  </Label>
+                  <Input id="description" value={selectedTransaction.description} onChange={handleInputChange} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="amount" className="text-right">
+                    Valor (R$)
+                  </Label>
+                  <Input id="amount" type="number" value={selectedTransaction.amount || ''} onChange={handleInputChange} className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="date" className="text-right">
+                    Data
+                  </Label>
+                  <Input id="date" type="date" value={selectedTransaction.date} onChange={handleDateChange} className="col-span-3" />
+                </div>
+              </div>
+              <DialogFooter>
+                <Button type="submit">Salvar Alterações</Button>
+              </DialogFooter>
+            </form>
+            )}
+        </DialogContent>
+       </Dialog>
+      
+       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente a transação.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={handleDeleteTransaction}>Excluir</AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
       
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
@@ -238,8 +354,8 @@ export default function FinancesPage() {
                         </DropdownMenuTrigger>
                         <DropdownMenuContent align="end">
                           <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive">Excluir</DropdownMenuItem>
+                          <DropdownMenuItem onClick={() => openEditDialog(transaction)}>Editar</DropdownMenuItem>
+                          <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(transaction)}>Excluir</DropdownMenuItem>
                         </DropdownMenuContent>
                       </DropdownMenu>
                     </TableCell>
