@@ -78,7 +78,7 @@ export default function PurchasesPage() {
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
 
-  const [newPurchase, setNewPurchase] = useState(initialNewPurchaseState);
+  const [newPurchase, setNewPurchase] = useState<Omit<Purchase, 'id' | 'userId'>>(initialNewPurchaseState);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -312,5 +312,8 @@ export default function PurchasesPage() {
       </Card>
     </div>
   );
+
+    
+}
 
     
