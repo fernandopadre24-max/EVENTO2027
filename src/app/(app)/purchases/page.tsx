@@ -113,7 +113,7 @@ export default function PurchasesPage() {
     const purchasesCollectionRef = collection(firestore, 'purchases');
     
     let dataToAdd: any = { ...newPurchase, userId: user.uid };
-    if (newPurchase.installments <= 1) {
+    if (!dataToAdd.installments || dataToAdd.installments < 1) {
         dataToAdd.installments = 1;
     }
 
@@ -128,7 +128,7 @@ export default function PurchasesPage() {
     const purchaseDocRef = doc(firestore, 'purchases', selectedPurchase.id);
     const { id, ...purchaseData } = selectedPurchase;
 
-     if (purchaseData.installments <= 1) {
+     if (!purchaseData.installments || purchaseData.installments < 1) {
         purchaseData.installments = 1;
     }
 
@@ -142,35 +142,43 @@ export default function PurchasesPage() {
 
     const purchaseToDeleteId = purchaseToDelete.id;
     const photoUrlToDelete = purchaseToDelete.photoUrl;
-    
-    // First, delete the photo from storage if it exists
-    if (photoUrlToDelete) {
-      try {
-        const photoRef = ref(storage, photoUrlToDelete);
-        await deleteObject(photoRef);
-      } catch (error: any) {
-        // Ignore "object not found" errors, but log others
-        if (error.code !== 'storage/object-not-found') {
-          console.error("Error deleting photo from storage:", error);
-          toast({
-            variant: "destructive",
-            title: "Erro ao deletar foto",
-            description: "Não foi possível remover a imagem associada a esta compra.",
-          });
-          setDeleteAlertOpen(false);
-          setPurchaseToDelete(null);
-          return;
+
+    try {
+        // First, delete the photo from storage if it exists
+        if (photoUrlToDelete) {
+            const photoRef = ref(storage, photoUrlToDelete);
+            await deleteObject(photoRef);
         }
-      }
+
+        // Then, delete the Firestore document
+        const purchaseDocRef = doc(firestore, 'purchases', purchaseToDeleteId);
+        await deleteDocumentNonBlocking(purchaseDocRef);
+
+        toast({
+            title: "Sucesso!",
+            description: "A compra foi excluída permanentemente.",
+        });
+
+    } catch (error: any) {
+        // Ignore "object not found" errors for the photo, but log others
+        if (error.code !== 'storage/object-not-found') {
+            console.error("Error during purchase deletion:", error);
+            toast({
+                variant: "destructive",
+                title: "Erro ao Excluir",
+                description: "Não foi possível remover a compra. Tente novamente.",
+            });
+        } else {
+            // If the photo was not found, the document might still have been deleted.
+            // Or maybe the doc was deleted but not the photo. We proceed assuming the doc is gone.
+             const purchaseDocRef = doc(firestore, 'purchases', purchaseToDeleteId);
+             await deleteDocumentNonBlocking(purchaseDocRef);
+        }
+    } finally {
+        setDeleteAlertOpen(false);
+        setPurchaseToDelete(null);
     }
-
-    // Then, delete the Firestore document
-    const purchaseDocRef = doc(firestore, 'purchases', purchaseToDeleteId);
-    deleteDocumentNonBlocking(purchaseDocRef);
-
-    setDeleteAlertOpen(false);
-    setPurchaseToDelete(null);
-  }
+}
 
   const openEditDialog = (purchase: Purchase) => {
     setSelectedPurchase(purchase);
