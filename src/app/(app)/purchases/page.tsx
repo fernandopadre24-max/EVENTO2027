@@ -280,7 +280,7 @@ export default function PurchasesPage() {
                   <TableHead>Descrição</TableHead>
                   <TableHead className="hidden sm:table-cell">Data</TableHead>
                   <TableHead className="hidden md:table-cell">Pagamento</TableHead>
-                  <TableHead className="hidden lg:table-cell">Detalhes</TableHead>
+                  <TableHead className="hidden md:table-cell">Detalhes</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>
                     <span className="sr-only">Ações</span>
@@ -300,7 +300,7 @@ export default function PurchasesPage() {
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                       <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>
-                      <TableCell className="hidden lg:table-cell">
+                      <TableCell className="hidden md:table-cell">
                         {purchase.details && (
                           <TooltipProvider>
                             <Tooltip>
