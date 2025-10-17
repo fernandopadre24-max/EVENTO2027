@@ -106,7 +106,7 @@ export default function FinancesPage() {
     if(!firestore || !user) return;
     const transactionsCollectionRef = collection(firestore, 'finances');
     const dataToAdd: Partial<FinancialTransaction> = { ...newTransaction, userId: user.uid };
-    if (dataToAdd.type !== 'Despesa') {
+    if (dataToAdd.type !== 'Despesa' || !dataToAdd.artistId) {
       delete dataToAdd.artistId;
     }
     addDocumentNonBlocking(transactionsCollectionRef, dataToAdd);
@@ -119,7 +119,7 @@ export default function FinancesPage() {
     if (!firestore || !selectedTransaction) return;
     const transactionDocRef = doc(firestore, 'finances', selectedTransaction.id);
     const { id, ...transactionData } = selectedTransaction;
-     if (transactionData.type !== 'Despesa') {
+     if (transactionData.type !== 'Despesa' || !transactionData.artistId) {
       transactionData.artistId = undefined;
     }
     updateDocumentNonBlocking(transactionDocRef, transactionData);
@@ -191,7 +191,6 @@ export default function FinancesPage() {
                         <SelectValue placeholder="Selecione um artista (opcional)" />
                       </SelectTrigger>
                       <SelectContent>
-                         <SelectItem value="">Nenhum</SelectItem>
                         {artists?.map(artist => (
                           <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
                         ))}
@@ -380,3 +379,5 @@ export default function FinancesPage() {
     </div>
   );
 }
+
+    
