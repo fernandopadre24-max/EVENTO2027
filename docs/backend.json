@@ -1,4 +1,5 @@
 
+
 {
   "entities": {
     "Client": {
@@ -235,6 +236,14 @@
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this purchase."
+        },
+        "photoUrl": {
+          "type": "string",
+          "description": "URL of a photo of the purchased item."
+        },
+        "observations": {
+          "type": "string",
+          "description": "Additional notes or observations about the purchase."
         }
       },
       "required": [
@@ -285,3 +294,4 @@
     }
   }
 }
+

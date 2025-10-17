@@ -1,4 +1,5 @@
 
+
 export interface Client {
   id: string;
   name: string;
@@ -59,4 +60,7 @@ export interface Purchase {
   paymentMethod: PaymentMethod;
   installments?: number;
   userId: string;
+  photoUrl?: string;
+  observations?: string;
 }
+
