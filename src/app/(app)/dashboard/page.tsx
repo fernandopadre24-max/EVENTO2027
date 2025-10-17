@@ -28,7 +28,7 @@ import {
   ResponsiveContainer,
 } from 'recharts';
 import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
-import { format, parseISO, getMonth } from 'date-fns';
+import { format, parseISO, getMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
@@ -59,9 +59,14 @@ export default function DashboardPage() {
     return { totalIncome: income, totalOutcome: outcome, netProfit: income - outcome };
   }, [financialTransactions]);
 
-  const upcomingEvents = useMemo(() => events?.filter(
-    (e) => new Date(e.date) >= new Date() && e.status !== 'Cancelado'
-  ).slice(0, 5) || [], [events]);
+  const upcomingEvents = useMemo(() => {
+    if (!events) return [];
+    const today = startOfDay(new Date());
+    return events
+      .filter(e => parseISO(e.date) >= today && e.status !== 'Cancelado')
+      .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
+      .slice(0, 5);
+  }, [events]);
 
   const monthlyChartData = useMemo(() => {
     const currentYear = new Date().getFullYear();
