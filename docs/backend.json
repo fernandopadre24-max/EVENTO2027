@@ -237,13 +237,9 @@
           "type": "string",
           "description": "The ID of the user who owns this purchase."
         },
-        "photoUrl": {
+        "details": {
           "type": "string",
-          "description": "URL of a photo of the purchased item."
-        },
-        "observations": {
-          "type": "string",
-          "description": "Additional notes or observations about the purchase."
+          "description": "Additional notes or details about the purchase."
         }
       },
       "required": [
