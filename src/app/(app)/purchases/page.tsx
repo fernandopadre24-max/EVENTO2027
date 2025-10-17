@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import {
   Card,
   CardContent,
@@ -143,6 +143,13 @@ export default function PurchasesPage() {
     setDeleteAlertOpen(true);
   }
   
+    const { totalSpent, numberOfPurchases } = useMemo(() => {
+        if (!purchases) return { totalSpent: 0, numberOfPurchases: 0 };
+        const total = purchases.reduce((sum, p) => sum + p.amount, 0);
+        return { totalSpent: total, numberOfPurchases: purchases.length };
+    }, [purchases]);
+
+
   const renderForm = (isEditing: boolean) => {
     const currentData = isEditing ? selectedPurchase : newPurchase;
     const handleSubmit = isEditing ? handleEditSubmit : handleAddSubmit;
@@ -263,6 +270,26 @@ export default function PurchasesPage() {
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
+        
+        <div className="grid gap-6 md:grid-cols-2">
+            <Card>
+                <CardHeader>
+                    <CardTitle>Total Gasto em Compras</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-3xl font-bold text-red-600">R${totalSpent.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
+                </CardContent>
+            </Card>
+            <Card>
+                <CardHeader>
+                    <CardTitle>Número de Compras</CardTitle>
+                </CardHeader>
+                <CardContent>
+                    <p className="text-3xl font-bold">{numberOfPurchases}</p>
+                </CardContent>
+            </Card>
+        </div>
+
 
       <Card>
         <CardHeader>
@@ -300,7 +327,7 @@ export default function PurchasesPage() {
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                       <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>
-                      <TableCell className="hidden md:table-cell">
+                      <TableCell className="hidden sm:table-cell">
                         {purchase.details && (
                           <TooltipProvider>
                             <Tooltip>
@@ -352,3 +379,5 @@ export default function PurchasesPage() {
 
     
 }
+
+  
