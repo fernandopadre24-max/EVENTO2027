@@ -53,6 +53,7 @@ export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartã
 export interface Purchase {
   id: string;
   description: string;
+  recipient?: string;
   amount: number;
   date: string;
   paymentMethod: PaymentMethod;

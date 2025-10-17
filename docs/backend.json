@@ -206,6 +206,10 @@
           "type": "string",
           "description": "Description of the purchase."
         },
+        "recipient": {
+          "type": "string",
+          "description": "Who the payment was made to."
+        },
         "amount": {
           "type": "number",
           "description": "Amount of the purchase."

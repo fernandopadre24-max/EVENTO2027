@@ -59,6 +59,7 @@ import { cn } from '@/lib/utils';
 
 const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     description: '',
+    recipient: '',
     amount: 0,
     date: format(new Date(), 'yyyy-MM-dd'),
     paymentMethod: 'Dinheiro',
@@ -146,6 +147,12 @@ export default function PurchasesPage() {
               Descrição
             </Label>
             <Input id="description" value={currentData.description} onChange={handleInputChange} placeholder="Ex: Equipamento de som" className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="recipient" className="text-right">
+              Pagar para
+            </Label>
+            <Input id="recipient" value={currentData.recipient || ''} onChange={handleInputChange} placeholder="Ex: Loja de Música" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="amount" className="text-right">
@@ -269,12 +276,12 @@ export default function PurchasesPage() {
                   <TableRow key={purchase.id}>
                     <TableCell>
                       <div className="font-medium">{purchase.description}</div>
-                       <div className="text-sm text-muted-foreground md:hidden">{purchase.paymentMethod}</div>
+                       <div className="text-sm text-muted-foreground">{purchase.recipient}</div>
                     </TableCell>
                     <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                     <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {purchase.installments && purchase.installments > 1 ? `${purchase.installments}x` : '1x'}
+                      {purchase.installments && purchase.installments > 0 ? `${purchase.installments}x` : '1x'}
                     </TableCell>
                     <TableCell className="text-right">R${purchase.amount.toLocaleString('pt-BR')}</TableCell>
                     <TableCell>
@@ -306,5 +313,3 @@ export default function PurchasesPage() {
 
     
 }
-
-    
