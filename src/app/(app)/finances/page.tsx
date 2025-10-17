@@ -27,7 +27,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
-import type { FinancialTransaction, Artist, PaymentMethod } from '@/lib/types';
+import type { FinancialTransaction, Artist } from '@/lib/types';
 import { format, parseISO } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
@@ -62,8 +62,6 @@ const initialTransactionState = {
   amount: 0,
   date: format(new Date(), 'yyyy-MM-dd'),
   artistId: '',
-  paymentMethod: 'Dinheiro' as PaymentMethod,
-  installments: 1
 };
 
 export default function FinancesPage() {
@@ -88,7 +86,7 @@ export default function FinancesPage() {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => ({ ...prev!, [id]: id === 'amount' || id === 'installments' ? Number(value) : value }));
+    targetState(prev => ({ ...prev!, [id]: id === 'amount' ? Number(value) : value }));
   };
 
   const handleSelectChange = (id: string) => (value: string) => {
@@ -110,10 +108,6 @@ export default function FinancesPage() {
     const dataToAdd: Partial<FinancialTransaction> = { ...newTransaction, userId: user.uid };
     if (dataToAdd.type !== 'Despesa') {
       delete dataToAdd.artistId;
-      delete dataToAdd.paymentMethod;
-      delete dataToAdd.installments;
-    } else if (dataToAdd.paymentMethod !== 'Cartão de Crédito') {
-      delete dataToAdd.installments;
     }
     addDocumentNonBlocking(transactionsCollectionRef, dataToAdd);
     setAddOpen(false);
@@ -127,10 +121,6 @@ export default function FinancesPage() {
     const { id, ...transactionData } = selectedTransaction;
      if (transactionData.type !== 'Despesa') {
       transactionData.artistId = undefined;
-      transactionData.paymentMethod = undefined;
-      transactionData.installments = undefined;
-    } else if (transactionData.paymentMethod !== 'Cartão de Crédito') {
-        transactionData.installments = undefined;
     }
     updateDocumentNonBlocking(transactionDocRef, transactionData);
     setEditOpen(false);
@@ -192,48 +182,22 @@ export default function FinancesPage() {
                 </div>
                 
                 {currentData.type === 'Despesa' && (
-                  <>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="artistId" className="text-right">
-                        Artista
-                      </Label>
-                      <Select value={currentData.artistId} onValueChange={handleSelectChange('artistId')}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Selecione um artista (opcional)" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {artists?.map(artist => (
-                            <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    <div className="grid grid-cols-4 items-center gap-4">
-                      <Label htmlFor="paymentMethod" className="text-right">
-                        Pagamento
-                      </Label>
-                      <Select value={currentData.paymentMethod} onValueChange={handleSelectChange('paymentMethod')}>
-                        <SelectTrigger className="col-span-3">
-                          <SelectValue placeholder="Método de Pagamento" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="Dinheiro">Dinheiro</SelectItem>
-                          <SelectItem value="PIX">PIX</SelectItem>
-                          <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
-                          <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    {currentData.paymentMethod === 'Cartão de Crédito' && (
-                       <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="installments" className="text-right">
-                          Parcelas
-                        </Label>
-                        <Input id="installments" type="number" value={currentData.installments || 1} onChange={handleInputChange} min="1" className="col-span-3" />
-                      </div>
-                    )}
-                  </>
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="artistId" className="text-right">
+                      Artista
+                    </Label>
+                    <Select value={currentData.artistId || ''} onValueChange={handleSelectChange('artistId')}>
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Selecione um artista (opcional)" />
+                      </SelectTrigger>
+                      <SelectContent>
+                         <SelectItem value="">Nenhum</SelectItem>
+                        {artists?.map(artist => (
+                          <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
                 )}
 
                 <div className="grid grid-cols-4 items-center gap-4">
@@ -359,7 +323,6 @@ export default function FinancesPage() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead className="hidden sm:table-cell">Data</TableHead>
-                  <TableHead className="hidden md:table-cell">Pagamento</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>
                     <span className="sr-only">Ações</span>
@@ -388,16 +351,6 @@ export default function FinancesPage() {
                           </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
-                       <TableCell className="hidden md:table-cell">
-                        {transaction.paymentMethod && (
-                          <div className="flex flex-col">
-                            <span className='font-medium'>{transaction.paymentMethod}</span>
-                             {transaction.paymentMethod === 'Cartão de Crédito' && transaction.installments && (
-                              <span className="text-xs text-muted-foreground">{transaction.installments}x</span>
-                            )}
-                          </div>
-                        )}
-                      </TableCell>
                       <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
                         {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
                       </TableCell>
