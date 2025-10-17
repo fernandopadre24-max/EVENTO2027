@@ -184,6 +184,15 @@
           "type": "string",
           "description": "Reference to an Artist if the transaction is an expense/payment to them."
         },
+        "paymentMethod": {
+            "type": "string",
+            "description": "Payment method for the expense.",
+            "enum": ["Dinheiro", "PIX", "Cartão de Crédito", "Cartão de Débito"]
+        },
+        "installments": {
+            "type": "number",
+            "description": "Number of installments for credit card payments."
+        },
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this financial record."
