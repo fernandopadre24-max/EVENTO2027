@@ -98,7 +98,7 @@ export default function PurchasesPage() {
     
     let dataToAdd: any = { ...newPurchase, userId: user.uid };
     if (dataToAdd.paymentMethod !== 'Cartão de Crédito') {
-        delete dataToAdd.installments;
+        dataToAdd.installments = 1;
     }
 
     addDocumentNonBlocking(purchasesCollectionRef, dataToAdd);
@@ -113,7 +113,7 @@ export default function PurchasesPage() {
     const { id, ...purchaseData } = selectedPurchase;
 
     if (purchaseData.paymentMethod !== 'Cartão de Crédito') {
-        purchaseData.installments = undefined;
+        purchaseData.installments = 1;
     }
 
     updateDocumentNonBlocking(purchaseDocRef, purchaseData);
@@ -312,4 +312,5 @@ export default function PurchasesPage() {
       </Card>
     </div>
   );
-}
+
+    
