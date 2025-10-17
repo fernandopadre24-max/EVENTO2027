@@ -1,5 +1,4 @@
 
-
 'use client';
 
 import { useState } from 'react';
@@ -93,6 +92,7 @@ export default function PurchasesPage() {
   const [selectedImage, setSelectedImage] = useState<string | null>(null);
 
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
+  const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
   const [newPurchase, setNewPurchase] = useState<Omit<Purchase, 'id' | 'userId'>>(initialNewPurchaseState);
 
@@ -113,6 +113,9 @@ export default function PurchasesPage() {
     const purchasesCollectionRef = collection(firestore, 'purchases');
     
     let dataToAdd: any = { ...newPurchase, userId: user.uid };
+    if (newPurchase.installments <= 1) {
+        dataToAdd.installments = 1;
+    }
 
     addDocumentNonBlocking(purchasesCollectionRef, dataToAdd);
     setAddOpen(false);
@@ -125,18 +128,25 @@ export default function PurchasesPage() {
     const purchaseDocRef = doc(firestore, 'purchases', selectedPurchase.id);
     const { id, ...purchaseData } = selectedPurchase;
 
+     if (purchaseData.installments <= 1) {
+        purchaseData.installments = 1;
+    }
+
     updateDocumentNonBlocking(purchaseDocRef, purchaseData);
     setEditOpen(false);
     setSelectedPurchase(null);
   }
 
   const handleDeletePurchase = async () => {
-    if (!firestore || !selectedPurchase) return;
+    if (!firestore || !purchaseToDelete) return;
+
+    const purchaseToDeleteId = purchaseToDelete.id;
+    const photoUrlToDelete = purchaseToDelete.photoUrl;
     
-    // Delete photo from storage if it exists
-    if (selectedPurchase.photoUrl) {
+    // First, delete the photo from storage if it exists
+    if (photoUrlToDelete) {
       try {
-        const photoRef = ref(storage, selectedPurchase.photoUrl);
+        const photoRef = ref(storage, photoUrlToDelete);
         await deleteObject(photoRef);
       } catch (error: any) {
         // Ignore "object not found" errors, but log others
@@ -147,16 +157,19 @@ export default function PurchasesPage() {
             title: "Erro ao deletar foto",
             description: "Não foi possível remover a imagem associada a esta compra.",
           });
-          // Optionally, decide if you still want to delete the Firestore document
+          setDeleteAlertOpen(false);
+          setPurchaseToDelete(null);
+          return;
         }
       }
     }
 
-    const purchaseDocRef = doc(firestore, 'purchases', selectedPurchase.id);
+    // Then, delete the Firestore document
+    const purchaseDocRef = doc(firestore, 'purchases', purchaseToDeleteId);
     deleteDocumentNonBlocking(purchaseDocRef);
 
     setDeleteAlertOpen(false);
-    setSelectedPurchase(null);
+    setPurchaseToDelete(null);
   }
 
   const openEditDialog = (purchase: Purchase) => {
@@ -165,9 +178,22 @@ export default function PurchasesPage() {
   }
   
   const openDeleteAlert = (purchase: Purchase) => {
-    setSelectedPurchase(purchase);
+    setPurchaseToDelete(purchase);
     setDeleteAlertOpen(true);
   }
+
+  const deletePreviousPhoto = async (photoUrl: string) => {
+      if (!photoUrl) return;
+      try {
+        const photoRef = ref(storage, photoUrl);
+        await deleteObject(photoRef);
+      } catch (error: any) {
+        if (error.code !== 'storage/object-not-found') {
+          console.error("Could not delete previous photo:", error);
+        }
+      }
+  }
+
 
   const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -179,6 +205,13 @@ export default function PurchasesPage() {
         if (dataUrl) {
            const storageRef = ref(storage, `purchase-photos/${user.uid}/${Date.now()}_${file.name}`);
            try {
+              // If editing, delete previous photo first
+              if (isEditOpen && selectedPurchase?.photoUrl) {
+                await deletePreviousPhoto(selectedPurchase.photoUrl);
+              } else if (isAddOpen && newPurchase.photoUrl) {
+                 await deletePreviousPhoto(newPurchase.photoUrl);
+              }
+
               await uploadString(storageRef, dataUrl, 'data_url');
               const downloadURL = await getDownloadURL(storageRef);
               
@@ -376,7 +409,7 @@ export default function PurchasesPage() {
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setPurchaseToDelete(null)}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeletePurchase}>Excluir</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
