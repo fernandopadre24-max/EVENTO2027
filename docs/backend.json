@@ -196,6 +196,50 @@
         "type",
         "userId"
       ]
+    },
+    "Purchase": {
+      "title": "Purchase",
+      "type": "object",
+      "description": "Represents a purchase made.",
+      "properties": {
+        "description": {
+          "type": "string",
+          "description": "Description of the purchase."
+        },
+        "amount": {
+          "type": "number",
+          "description": "Amount of the purchase."
+        },
+        "date": {
+          "type": "string",
+          "description": "Date of the purchase.",
+          "format": "date"
+        },
+        "paymentMethod": {
+          "type": "string",
+          "enum": [
+            "Dinheiro",
+            "PIX",
+            "Cartão de Crédito",
+            "Cartão de Débito"
+          ]
+        },
+        "installments": {
+          "type": "number",
+          "description": "Number of installments for credit card payment."
+        },
+        "userId": {
+          "type": "string",
+          "description": "The ID of the user who owns this purchase."
+        }
+      },
+      "required": [
+        "description",
+        "amount",
+        "date",
+        "paymentMethod",
+        "userId"
+      ]
     }
   },
   "auth": {
@@ -228,6 +272,12 @@
         "$ref": "#/entities/Finance"
       },
       "description": "Stores financial information."
+    },
+    "/purchases/{purchaseId}": {
+      "schema": {
+        "$ref": "#/entities/Purchase"
+      },
+      "description": "Stores purchase information."
     }
   }
 }

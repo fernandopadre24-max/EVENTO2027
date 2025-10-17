@@ -47,3 +47,15 @@ export interface FinancialTransaction {
   artistId?: string;
   userId: string;
 }
+
+export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';
+
+export interface Purchase {
+  id: string;
+  description: string;
+  amount: number;
+  date: string;
+  paymentMethod: PaymentMethod;
+  installments?: number;
+  userId: string;
+}
