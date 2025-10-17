@@ -264,7 +264,6 @@ export default function PurchasesPage() {
                   <TableHead>Descrição</TableHead>
                   <TableHead className="hidden sm:table-cell">Data</TableHead>
                   <TableHead className="hidden md:table-cell">Pagamento</TableHead>
-                  <TableHead className="hidden lg:table-cell">Parcelas</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>
                     <span className="sr-only">Ações</span>
@@ -272,37 +271,46 @@ export default function PurchasesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {purchases?.map((purchase) => (
-                  <TableRow key={purchase.id}>
-                    <TableCell>
-                      <div className="font-medium">{purchase.description}</div>
-                       <div className="text-sm text-muted-foreground">{purchase.recipient}</div>
-                    </TableCell>
-                    <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                    <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>
-                    <TableCell className="hidden lg:table-cell">
-                      {purchase.installments && purchase.installments > 0 ? `${purchase.installments}x` : '1x'}
-                    </TableCell>
-                    <TableCell className="text-right">R${purchase.amount.toLocaleString('pt-BR')}</TableCell>
-                    <TableCell>
-                      <DropdownMenu>
-                        <DropdownMenuTrigger asChild>
-                          <Button aria-haspopup="true" size="icon" variant="ghost">
-                            <MoreHorizontal className="w-4 h-4" />
-                            <span className="sr-only">Alternar menu</span>
-                          </Button>
-                        </DropdownMenuTrigger>
-                        <DropdownMenuContent align="end">
-                          <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                          <DropdownMenuItem onClick={() => openEditDialog(purchase)}>Editar</DropdownMenuItem>
-                          <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(purchase)}>
-                            Excluir
-                          </DropdownMenuItem>
-                        </DropdownMenuContent>
-                      </DropdownMenu>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                {purchases?.map((purchase) => {
+                  const hasInstallments = purchase.installments && purchase.installments > 1;
+                  const installmentValue = hasInstallments ? purchase.amount / purchase.installments : 0;
+
+                  return (
+                    <TableRow key={purchase.id}>
+                      <TableCell>
+                        <div className="font-medium">{purchase.description}</div>
+                         <div className="text-sm text-muted-foreground">{purchase.recipient}</div>
+                      </TableCell>
+                      <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>
+                      <TableCell className="text-right">
+                        <div>R${purchase.amount.toLocaleString('pt-BR')}</div>
+                        {hasInstallments && (
+                            <div className="text-xs text-muted-foreground">
+                                {purchase.installments}x de R${installmentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            </div>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <DropdownMenu>
+                          <DropdownMenuTrigger asChild>
+                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                              <MoreHorizontal className="w-4 h-4" />
+                              <span className="sr-only">Alternar menu</span>
+                            </Button>
+                          </DropdownMenuTrigger>
+                          <DropdownMenuContent align="end">
+                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => openEditDialog(purchase)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(purchase)}>
+                              Excluir
+                            </DropdownMenuItem>
+                          </DropdownMenuContent>
+                        </DropdownMenu>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           </div>
@@ -313,3 +321,5 @@ export default function PurchasesPage() {
 
     
 }
+
+    
