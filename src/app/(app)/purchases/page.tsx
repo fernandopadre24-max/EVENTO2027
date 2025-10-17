@@ -97,9 +97,6 @@ export default function PurchasesPage() {
     const purchasesCollectionRef = collection(firestore, 'purchases');
     
     let dataToAdd: any = { ...newPurchase, userId: user.uid };
-    if (dataToAdd.paymentMethod !== 'Cartão de Crédito') {
-        dataToAdd.installments = 1;
-    }
 
     addDocumentNonBlocking(purchasesCollectionRef, dataToAdd);
     setAddOpen(false);
@@ -111,10 +108,6 @@ export default function PurchasesPage() {
     if (!firestore || !selectedPurchase) return;
     const purchaseDocRef = doc(firestore, 'purchases', selectedPurchase.id);
     const { id, ...purchaseData } = selectedPurchase;
-
-    if (purchaseData.paymentMethod !== 'Cartão de Crédito') {
-        purchaseData.installments = 1;
-    }
 
     updateDocumentNonBlocking(purchaseDocRef, purchaseData);
     setEditOpen(false);
@@ -182,14 +175,12 @@ export default function PurchasesPage() {
               </SelectContent>
             </Select>
           </div>
-          {currentData.paymentMethod === 'Cartão de Crédito' && (
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="installments" className="text-right">
-                Parcelas
-              </Label>
-              <Input id="installments" type="number" value={currentData.installments || 1} onChange={handleInputChange} placeholder="1" className="col-span-3" min="1" />
-            </div>
-          )}
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="installments" className="text-right">
+              Parcelas
+            </Label>
+            <Input id="installments" type="number" value={currentData.installments || 1} onChange={handleInputChange} placeholder="1" className="col-span-3" min="1" />
+          </div>
         </div>
         <DialogFooter>
           <Button type="submit">Salvar Compra</Button>
@@ -283,7 +274,7 @@ export default function PurchasesPage() {
                     <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                     <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>
                     <TableCell className="hidden lg:table-cell">
-                      {purchase.paymentMethod === 'Cartão de Crédito' ? `${purchase.installments}x` : 'N/A'}
+                      {purchase.installments && purchase.installments > 1 ? `${purchase.installments}x` : '1x'}
                     </TableCell>
                     <TableCell className="text-right">R${purchase.amount.toLocaleString('pt-BR')}</TableCell>
                     <TableCell>
