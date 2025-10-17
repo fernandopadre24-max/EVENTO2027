@@ -29,12 +29,20 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { FinancialTransaction, Event, Artist } from '@/lib/types';
+import type { FinancialTransaction, Event, Artist, Purchase } from '@/lib/types';
 import { format, parseISO, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
 const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+
+type UnifiedTransaction = {
+  id: string;
+  type: 'Receita' | 'Despesa';
+  description: string;
+  date: string;
+  amount: number;
+};
 
 export default function ReportsPage() {
   const firestore = useFirestore();
@@ -48,18 +56,44 @@ export default function ReportsPage() {
 
   const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
+  
+  const purchasesRef = useMemoFirebase(() => user ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid)) : null, [firestore, user]);
+  const { data: purchases, isLoading: isLoadingPurchases } = useCollection<Purchase>(purchasesRef);
+
 
   const { totalIncome, totalExpense, netBalance, recentTransactions } = useMemo(() => {
-    if (!transactions) return { totalIncome: 0, totalExpense: 0, netBalance: 0, recentTransactions: [] };
+    if (!transactions && !purchases) return { totalIncome: 0, totalExpense: 0, netBalance: 0, recentTransactions: [] };
 
     const income = transactions
-      .filter(t => t.type === 'Receita')
-      .reduce((sum, t) => sum + t.amount, 0);
-    const expense = transactions
-      .filter(t => t.type === 'Despesa')
-      .reduce((sum, t) => sum + t.amount, 0);
+      ?.filter(t => t.type === 'Receita')
+      .reduce((sum, t) => sum + t.amount, 0) || 0;
+      
+    const expenseFromFinances = transactions
+      ?.filter(t => t.type === 'Despesa')
+      .reduce((sum, t) => sum + t.amount, 0) || 0;
+      
+    const expenseFromPurchases = purchases?.reduce((sum, p) => sum + p.amount, 0) || 0;
+    
+    const expense = expenseFromFinances + expenseFromPurchases;
 
-    const sortedTransactions = [...transactions].sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
+    const unifiedTransactions: UnifiedTransaction[] = [
+      ...(transactions || []).map(t => ({
+          id: t.id,
+          type: t.type,
+          description: t.description,
+          date: t.date,
+          amount: t.amount,
+      })),
+      ...(purchases || []).map(p => ({
+          id: p.id,
+          type: 'Despesa' as 'Despesa',
+          description: p.description,
+          date: p.date,
+          amount: p.amount,
+      })),
+    ];
+    
+    const sortedTransactions = unifiedTransactions.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
 
     return {
       totalIncome: income,
@@ -67,18 +101,18 @@ export default function ReportsPage() {
       netBalance: income - expense,
       recentTransactions: sortedTransactions.slice(0, 10),
     };
-  }, [transactions]);
+  }, [transactions, purchases]);
 
 
   const monthlyData = useMemo(() => {
-    if (!transactions) return [];
+    if (!transactions && !purchases) return [];
     const monthlySummary = Array.from({ length: 12 }, (_, i) => ({
       name: format(new Date(0, i), 'LLL', { locale: ptBR }),
       income: 0,
       expenses: 0,
     }));
 
-    transactions.forEach(transaction => {
+    transactions?.forEach(transaction => {
       const month = getMonth(parseISO(transaction.date));
       if (transaction.type === 'Receita') {
         monthlySummary[month].income += transaction.amount;
@@ -87,8 +121,13 @@ export default function ReportsPage() {
       }
     });
 
+    purchases?.forEach(purchase => {
+        const month = getMonth(parseISO(purchase.date));
+        monthlySummary[month].expenses += purchase.amount;
+    });
+
     return monthlySummary;
-  }, [transactions]);
+  }, [transactions, purchases]);
 
   const revenueByArtistData = useMemo(() => {
     if (!events || !artists) return [];
@@ -134,7 +173,7 @@ export default function ReportsPage() {
 
   }, [events, artists]);
   
-  const isLoading = isLoadingFinances || isLoadingEvents || isLoadingArtists;
+  const isLoading = isLoadingFinances || isLoadingEvents || isLoadingArtists || isLoadingPurchases;
 
   return (
     <div className="space-y-8">

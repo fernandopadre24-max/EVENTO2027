@@ -32,7 +32,7 @@ import { format, parseISO, getMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Event, FinancialTransaction, Client } from '@/lib/types';
+import type { Event, FinancialTransaction, Client, Purchase } from '@/lib/types';
 
 
 export default function DashboardPage() {
@@ -47,17 +47,26 @@ export default function DashboardPage() {
   
   const clientsRef = useMemoFirebase(() => user ? query(collection(firestore, 'clients'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: clients } = useCollection<Client>(clientsRef);
+  
+  const purchasesRef = useMemoFirebase(() => user ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid)) : null, [firestore, user]);
+  const { data: purchases } = useCollection<Purchase>(purchasesRef);
 
 
   const { totalIncome, totalOutcome, netProfit } = useMemo(() => {
     const income = financialTransactions
     ?.filter((t) => t.type === 'Receita')
     .reduce((sum, t) => sum + t.amount, 0) || 0;
-    const outcome = financialTransactions
+
+    const financeOutcome = financialTransactions
     ?.filter((t) => t.type === 'Despesa')
     .reduce((sum, t) => sum + t.amount, 0) || 0;
+    
+    const purchaseOutcome = purchases?.reduce((sum, p) => sum + p.amount, 0) || 0;
+
+    const outcome = financeOutcome + purchaseOutcome;
+
     return { totalIncome: income, totalOutcome: outcome, netProfit: income - outcome };
-  }, [financialTransactions]);
+  }, [financialTransactions, purchases]);
 
   const upcomingEvents = useMemo(() => {
     if (!events) return [];
@@ -87,9 +96,17 @@ export default function DashboardPage() {
         }
       }
     });
+    
+    purchases?.forEach(purchase => {
+        const purchaseDate = parseISO(purchase.date);
+        if(purchaseDate.getFullYear() === currentYear) {
+            const monthIndex = getMonth(purchaseDate);
+            data[monthIndex].outcome += purchase.amount;
+        }
+    });
 
     return data;
-  }, [financialTransactions]);
+  }, [financialTransactions, purchases]);
 
   return (
     <div className="space-y-8">
