@@ -188,6 +188,10 @@
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this financial record."
+        },
+        "receiptUrl": {
+          "type": "string",
+          "description": "URL of the payment receipt image."
         }
       },
       "required": [

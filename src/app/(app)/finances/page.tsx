@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreHorizontal } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreHorizontal, Paperclip, Upload, Loader2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,20 +53,24 @@ import {
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
+import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser, useFirebaseApp } from '@/firebase';
 import { collection, query, where, doc } from 'firebase/firestore';
+import { getStorage, ref, uploadString, getDownloadURL, deleteObject } from 'firebase/storage';
 
-const initialTransactionState = {
-  type: 'Receita' as 'Receita' | 'Despesa',
+const initialTransactionState: Omit<FinancialTransaction, 'id' | 'userId'> = {
+  type: 'Receita',
   description: '',
   amount: 0,
   date: format(new Date(), 'yyyy-MM-dd'),
   artistId: '',
+  receiptUrl: '',
 };
 
 export default function FinancesPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const firebaseApp = useFirebaseApp();
+  const storage = getStorage(firebaseApp);
   
   const transactionsRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: transactions, isLoading: isLoadingTransactions } = useCollection<FinancialTransaction>(transactionsRef);
@@ -77,29 +81,33 @@ export default function FinancesPage() {
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
+  const [isUploadOpen, setUploadOpen] = useState(false);
+  const [isUploading, setIsUploading] = useState(false);
+  const [transactionToUpload, setTransactionToUpload] = useState<FinancialTransaction | null>(null);
+  
   const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
+  const [transactionToDelete, setTransactionToDelete] = useState<FinancialTransaction | null>(null);
 
-  const [newTransaction, setNewTransaction] = useState(initialTransactionState);
+  const [newTransaction, setNewTransaction] = useState<Omit<FinancialTransaction, 'id' | 'userId'>>(initialTransactionState);
   
   const isLoading = isLoadingTransactions || isLoadingArtists;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => ({ ...prev!, [id]: id === 'amount' ? Number(value) : value }));
+    targetState(prev => prev ? ({ ...prev, [id]: id === 'amount' ? Number(value) : value }) : null);
   };
 
   const handleSelectChange = (id: string) => (value: string) => {
     const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => ({ ...prev!, [id]: value }));
+    targetState(prev => prev ? ({ ...prev, [id]: value }) : null);
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => ({ ...prev!, [id]: value }));
+    targetState(prev => prev ? ({ ...prev, [id]: value }) : null);
   };
-
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -127,13 +135,67 @@ export default function FinancesPage() {
     setSelectedTransaction(null);
   }
   
-  const handleDeleteTransaction = () => {
-    if (!firestore || !selectedTransaction) return;
-    const transactionDocRef = doc(firestore, 'finances', selectedTransaction.id);
-    deleteDocumentNonBlocking(transactionDocRef);
+  const handleDeleteTransaction = async () => {
+    if (!firestore || !transactionToDelete) return;
+    
+    // Delete receipt from storage if it exists
+    if (transactionToDelete.receiptUrl) {
+      const receiptRef = ref(storage, transactionToDelete.receiptUrl);
+      await deleteObject(receiptRef).catch(error => {
+        console.error("Failed to delete receipt from storage:", error);
+      });
+    }
+
+    const transactionDocRef = doc(firestore, 'finances', transactionToDelete.id);
+    await deleteDocumentNonBlocking(transactionDocRef);
+
     setDeleteAlertOpen(false);
-    setSelectedTransaction(null);
+    setTransactionToDelete(null);
   }
+
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+    if (!transactionToUpload || !user) return;
+    const file = event.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        const dataUrl = e.target?.result as string;
+        if (dataUrl) {
+          uploadReceipt(transactionToUpload, dataUrl);
+        }
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const uploadReceipt = async (transaction: FinancialTransaction, dataUrl: string) => {
+    if (!user) return;
+    setIsUploading(true);
+
+    const oldReceiptUrl = transaction.receiptUrl;
+    const storageRef = ref(storage, `receipts/${user.uid}/${transaction.id}/${Date.now()}`);
+
+    try {
+      await uploadString(storageRef, dataUrl, 'data_url');
+      const downloadURL = await getDownloadURL(storageRef);
+      
+      const transactionDocRef = doc(firestore, 'finances', transaction.id);
+      await updateDocumentNonBlocking(transactionDocRef, { receiptUrl: downloadURL });
+      
+      if (oldReceiptUrl) {
+        const oldReceiptRef = ref(storage, oldReceiptUrl);
+        await deleteObject(oldReceiptRef).catch(err => console.error("Error deleting old receipt:", err));
+      }
+
+    } catch (error) {
+        console.error("Upload failed", error);
+    } finally {
+        setIsUploading(false);
+        setUploadOpen(false);
+        setTransactionToUpload(null);
+    }
+  };
+
 
   const openEditDialog = (transaction: FinancialTransaction) => {
     setSelectedTransaction(transaction);
@@ -141,10 +203,14 @@ export default function FinancesPage() {
   }
 
   const openDeleteAlert = (transaction: FinancialTransaction) => {
-    setSelectedTransaction(transaction);
+    setTransactionToDelete(transaction);
     setDeleteAlertOpen(true);
   }
-
+  
+  const openUploadDialog = (transaction: FinancialTransaction) => {
+    setTransactionToUpload(transaction);
+    setUploadOpen(true);
+  }
 
   const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     const totalIncome = transactions
@@ -267,16 +333,41 @@ export default function FinancesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente a transação.
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente a transação e seu comprovante.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogCancel onClick={() => setTransactionToDelete(null)}>Cancelar</AlertDialogCancel>
               <AlertDialogAction onClick={handleDeleteTransaction}>Excluir</AlertDialogAction>
             </AlertDialogFooter>
           </AlertDialogContent>
         </AlertDialog>
       
+        <Dialog open={isUploadOpen} onOpenChange={(isOpen) => { if (!isUploading) { setUploadOpen(isOpen); setTransactionToUpload(null); } }}>
+            <DialogContent className="sm:max-w-md">
+                <DialogHeader>
+                    <DialogTitle>Carregar Comprovante</DialogTitle>
+                    <DialogDescription>Selecione uma imagem para a transação: {transactionToUpload?.description}</DialogDescription>
+                </DialogHeader>
+                <div className="flex flex-col items-center justify-center gap-4 p-8 border-2 border-dashed rounded-lg">
+                     <Upload className="h-12 w-12 text-muted-foreground" />
+                    <p className="text-muted-foreground text-center">Arraste e solte um arquivo ou clique abaixo</p>
+                    <Button asChild variant="outline">
+                        <label htmlFor="file-upload">
+                            Selecionar Arquivo
+                            <input id="file-upload" type="file" accept="image/*" className="sr-only" onChange={handleFileChange} disabled={isUploading} />
+                        </label>
+                    </Button>
+                    {isUploading && (
+                        <div className='flex items-center gap-2 mt-4'>
+                            <Loader2 className="h-4 w-4 animate-spin" />
+                            <p className='text-sm text-muted-foreground'>Enviando...</p>
+                        </div>
+                    )}
+                </div>
+            </DialogContent>
+        </Dialog>
+
       <div className="grid gap-6 md:grid-cols-3">
         <Card>
           <CardHeader>
@@ -322,6 +413,7 @@ export default function FinancesPage() {
                   <TableHead>Tipo</TableHead>
                   <TableHead>Descrição</TableHead>
                   <TableHead className="hidden sm:table-cell">Data</TableHead>
+                  <TableHead className="hidden md:table-cell">Comprovante</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>
                     <span className="sr-only">Ações</span>
@@ -350,6 +442,15 @@ export default function FinancesPage() {
                           </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell className="hidden md:table-cell">
+                        {transaction.receiptUrl && (
+                          <Button variant="outline" size="icon" asChild>
+                            <a href={transaction.receiptUrl} target="_blank" rel="noopener noreferrer">
+                              <Paperclip className="w-4 h-4" />
+                            </a>
+                          </Button>
+                        )}
+                      </TableCell>
                       <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
                         {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
                       </TableCell>
@@ -364,6 +465,7 @@ export default function FinancesPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => openEditDialog(transaction)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => openUploadDialog(transaction)}>Carregar Comprovante</DropdownMenuItem>
                             <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(transaction)}>Excluir</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>

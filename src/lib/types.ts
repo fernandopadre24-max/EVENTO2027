@@ -47,6 +47,7 @@ export interface FinancialTransaction {
   eventId?: string;
   artistId?: string;
   userId: string;
+  receiptUrl?: string;
 }
 
 export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';
