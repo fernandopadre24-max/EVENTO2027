@@ -364,12 +364,6 @@ export default function EventsPage() {
                   </Collapsible>
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="payment" className="text-right">
-                    Pagamento (R$)
-                  </Label>
-                  <Input id="payment" type="number" value={currentData.payment || ''} onChange={handleInputChange} placeholder="2000" className="col-span-3" />
-                </div>
-                <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hasSound" className="text-right">
                         Com ou Sem Som
                     </Label>
@@ -378,6 +372,12 @@ export default function EventsPage() {
                         checked={currentData.hasSound}
                         onCheckedChange={handleSoundToggle}
                     />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="payment" className="text-right">
+                    Pagamento (R$)
+                  </Label>
+                  <Input id="payment" type="number" value={currentData.payment || ''} onChange={handleInputChange} placeholder="2000" className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
