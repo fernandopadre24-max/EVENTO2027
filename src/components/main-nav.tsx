@@ -11,7 +11,6 @@ import {
   Music,
   Settings,
   Users,
-  ShoppingCart,
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { cn } from '@/lib/utils';
@@ -22,7 +21,7 @@ const navItems = [
   { href: '/events', label: 'Eventos', icon: Calendar },
   { href: '/clients', label: 'Clientes', icon: Users },
   { href: '/artists', label: 'Artistas', icon: Music },
-  { href: '/purchases', label: 'Compras', icon: ShoppingCart },
+  { href: '/purchases', label: 'Pagar', icon: DollarSign },
   { href: '/reports', label: 'Relatórios', icon: BarChart2 },
 ];
 
