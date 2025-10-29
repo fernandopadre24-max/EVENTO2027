@@ -26,7 +26,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
-import type { Purchase, PaymentMethod } from '@/lib/types';
+import type { Purchase, PaymentMethod, Artist } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -60,6 +60,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     description: '',
     recipient: '',
+    artistId: '',
     amount: 0,
     date: format(new Date(), 'yyyy-MM-dd'),
     paymentMethod: 'Dinheiro',
@@ -73,7 +74,11 @@ export default function PurchasesPage() {
   const { user } = useUser();
   
   const purchasesRef = useMemoFirebase(() => user ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid)) : null, [firestore, user]);
-  const { data: purchases, isLoading } = useCollection<Purchase>(purchasesRef);
+  const { data: purchases, isLoading: isLoadingPurchases } = useCollection<Purchase>(purchasesRef);
+
+  const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
+  const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
+
 
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
@@ -149,6 +154,7 @@ export default function PurchasesPage() {
         return { totalSpent: total, numberOfPurchases: purchases.length };
     }, [purchases]);
 
+    const isLoading = isLoadingPurchases || isLoadingArtists;
 
   const renderForm = (isEditing: boolean) => {
     const currentData = isEditing ? selectedPurchase : newPurchase;
@@ -163,13 +169,29 @@ export default function PurchasesPage() {
             <Label htmlFor="description" className="text-right">
               Descrição
             </Label>
-            <Input id="description" value={currentData.description} onChange={handleInputChange} placeholder="Ex: Equipamento de som" className="col-span-3" />
+            <Input id="description" value={currentData.description} onChange={handleInputChange} placeholder="Ex: Pagamento de cachê" className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+             <Label htmlFor="artistId" className="text-right">
+                Artista
+              </Label>
+               <Select value={currentData.artistId || ''} onValueChange={handleSelectChange('artistId')}>
+                <SelectTrigger className="col-span-3">
+                  <SelectValue placeholder="Selecione um artista (opcional)" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
+                  {artists?.map(artist => (
+                    <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="recipient" className="text-right">
               Pagar para
             </Label>
-            <Input id="recipient" value={currentData.recipient || ''} onChange={handleInputChange} placeholder="Ex: Loja de Música" className="col-span-3" />
+            <Input id="recipient" value={currentData.recipient || ''} onChange={handleInputChange} placeholder="Ex: Loja de Música (se não for artista)" className="col-span-3" />
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="amount" className="text-right">
@@ -318,12 +340,13 @@ export default function PurchasesPage() {
                 {purchases?.map((purchase) => {
                   const hasInstallments = purchase.installments && purchase.installments > 1;
                   const installmentValue = hasInstallments ? purchase.amount / purchase.installments : 0;
+                  const artistPaid = artists?.find(a => a.id === purchase.artistId);
 
                   return (
                     <TableRow key={purchase.id}>
                       <TableCell>
                         <div className="font-medium">{purchase.description}</div>
-                         <div className="text-sm text-muted-foreground">{purchase.recipient}</div>
+                         <div className="text-sm text-muted-foreground">{artistPaid?.name || purchase.recipient}</div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                       <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>

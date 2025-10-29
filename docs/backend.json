@@ -169,6 +169,10 @@
           "type": "string",
           "description": "Who the payment was made to."
         },
+        "artistId": {
+            "type": "string",
+            "description": "Reference to Artist being paid."
+        },
         "amount": {
           "type": "number",
           "description": "Amount of the purchase."

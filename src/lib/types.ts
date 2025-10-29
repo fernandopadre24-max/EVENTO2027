@@ -45,6 +45,7 @@ export interface Purchase {
   id: string;
   description: string;
   recipient?: string;
+  artistId?: string;
   amount: number;
   date: string;
   paymentMethod: PaymentMethod;
