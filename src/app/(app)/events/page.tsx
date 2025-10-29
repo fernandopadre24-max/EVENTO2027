@@ -371,13 +371,12 @@ export default function EventsPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hasSound" className="text-right">
-                        Com Som
+                        Com ou Sem Som
                     </Label>
                     <Switch
                         id="hasSound"
                         checked={currentData.hasSound}
                         onCheckedChange={handleSoundToggle}
-                        className="col-span-3"
                     />
                 </div>
               </div>
