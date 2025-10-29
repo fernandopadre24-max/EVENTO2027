@@ -26,7 +26,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDownCircle, ArrowUpCircle } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { FinancialTransaction, Event, Artist, Purchase } from '@/lib/types';
@@ -181,6 +181,7 @@ export default function ReportsPage() {
       
        {isLoading && (
           <div className="flex items-center justify-center h-64">
+            <Loader2 className="w-8 h-8 mr-2 animate-spin text-muted-foreground" />
             <p className="text-muted-foreground">Carregando relatórios...</p>
           </div>
         )}
@@ -325,3 +326,5 @@ export default function ReportsPage() {
     </div>
   );
 }
+
+    
