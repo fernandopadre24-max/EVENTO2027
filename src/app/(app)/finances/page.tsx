@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreHorizontal } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, PlusCircle, MoreHorizontal, CalendarIcon } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -53,6 +53,8 @@ import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, query, where, doc, orderBy } from 'firebase/firestore';
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
 
 const initialTransactionState: Omit<FinancialTransaction, 'id' | 'userId'> = {
   type: 'Receita',
@@ -89,9 +91,10 @@ export default function FinancesPage() {
     setCurrentTransaction(prev => ({ ...prev, [id]: value }));
   };
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setCurrentTransaction(prev => ({ ...prev, [id]: value }));
+  const handleDateSelect = (date: Date | undefined) => {
+    if (date) {
+      setCurrentTransaction(prev => ({ ...prev, date: format(date, 'yyyy-MM-dd') }));
+    }
   };
   
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -106,7 +109,7 @@ export default function FinancesPage() {
         const { id, ...dataToUpdate } = currentTransaction;
 
         if (dataToUpdate.type !== 'Despesa') {
-            delete dataToUpdate.artistId;
+            dataToUpdate.artistId = undefined; // Use undefined to remove field
         }
         updateDocumentNonBlocking(transactionDocRef, dataToUpdate);
     } else {
@@ -163,6 +166,8 @@ export default function FinancesPage() {
   const renderForm = () => {
       if (!currentTransaction) return null;
 
+      const selectedDate = currentTransaction.date ? parseISO(currentTransaction.date) : undefined;
+
       return (
         <form onSubmit={handleSubmit} className="p-4">
               <div className="grid gap-4 py-4">
@@ -215,7 +220,29 @@ export default function FinancesPage() {
                   <Label htmlFor="date" className="text-right">
                     Data
                   </Label>
-                  <Input id="date" type="date" value={currentTransaction.date || ''} onChange={handleDateChange} className="col-span-3" />
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant={"outline"}
+                        className={cn(
+                          "col-span-3 justify-start text-left font-normal",
+                          !selectedDate && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {selectedDate ? format(selectedDate, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0">
+                      <Calendar
+                        mode="single"
+                        selected={selectedDate}
+                        onSelect={handleDateSelect}
+                        initialFocus
+                        locale={ptBR}
+                      />
+                    </PopoverContent>
+                  </Popover>
                 </div>
               </div>
               <div className="flex justify-end">
