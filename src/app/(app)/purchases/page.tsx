@@ -252,7 +252,7 @@ export default function PurchasesPage() {
           </div>
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="status" className="text-right">
-              Status
+              Pago
             </Label>
             <div className="col-span-3 flex items-center gap-2">
               <Switch
@@ -364,7 +364,7 @@ export default function PurchasesPage() {
                 <TableRow>
                   <TableHead>Descrição</TableHead>
                   <TableHead className="hidden sm:table-cell">Data</TableHead>
-                  <TableHead>Status</TableHead>
+                  <TableHead>Pago</TableHead>
                   <TableHead className="hidden md:table-cell">Detalhes</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>
