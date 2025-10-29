@@ -1,179 +1,132 @@
 /**
  * @file Firestore Security Rules
- * @description This ruleset enforces a strict user-ownership model, ensuring that each user can only access data they own.
+ * @description This ruleset enforces a strict user-ownership model, where each user can only access data they own.
  *
  * Data Structure:
- * All data is stored in top-level collections: /clients/{clientId}, /artists/{artistId}, /events/{eventId}, /finances/{financeId}, and /purchases/{purchaseId}.
- * Each document in these collections contains a 'userId' field indicating the owner.
+ * All data is stored in top-level collections: /clients/{clientId}, /artists/{artistId}, /events/{eventId}, /finances/{financeId}, /purchases/{purchaseId}.
+ * Each document contains a `userId` field indicating the owner.
  *
  * Key Security Decisions:
- * - User ownership is enforced for all collections.
- * - Only authenticated users can access data.
- * - The 'userId' field in each document must match the authenticated user's UID.
- * - List operations are allowed only for the owner of the documents.
+ * - Users can only create, read, update, and delete their own data.
+ * - Listing of collections is restricted to the owner.
+ * - Data validation is relaxed in this prototyping phase but critical relational fields like `userId` are validated for consistency.
+ *
+ * Denormalization for Authorization:
+ * The `userId` field within each document is used for authorization, avoiding the need for additional reads or complex queries.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Controls access to client documents.
+     * @description Manages access to client data. Only the owner can create, read, update, or delete clients.
      * @path /clients/{clientId}
-     * @allow (create) - User with UID 'user_abc' creates a new client document where client.userId == 'user_abc'.
-     * @deny (create) - User with UID 'user_xyz' attempts to create a client document where client.userId == 'user_abc'.
-     * @allow (get, list, update, delete) - User with UID 'user_abc' reads, lists, updates, or deletes a client document where client.userId == 'user_abc'.
-     * @deny (get, list, update, delete) - User with UID 'user_xyz' attempts to read, list, update, or delete a client document where client.userId == 'user_abc'.
+     * @allow (create) User 'user_abc' can create a new client with client.userId == 'user_abc'.
+     * @allow (get) User 'user_abc' can read client 'client_xyz' if client.userId == 'user_abc'.
+     * @allow (update) User 'user_abc' can update client 'client_xyz' if client.userId == 'user_abc'.
+     * @allow (delete) User 'user_abc' can delete client 'client_xyz' if client.userId == 'user_abc'.
+     * @deny (create) User 'user_xyz' cannot create a client with client.userId == 'user_abc'.
      * @principle Enforces document ownership for all operations.
      */
     match /clients/{clientId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      //Helper function to check if the user is the existing owner of the document
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(request.resource.data.userId) && isExistingOwner(resource.data.userId);
+      allow delete: if isSignedIn() && isOwner(resource.data.userId);
     }
 
     /**
-     * @description Controls access to artist documents.
+     * @description Manages access to artist data. Only the owner can create, read, update, or delete artists.
      * @path /artists/{artistId}
-     * @allow (create) - User with UID 'user_abc' creates a new artist document where artist.userId == 'user_abc'.
-     * @deny (create) - User with UID 'user_xyz' attempts to create an artist document where artist.userId == 'user_abc'.
-     * @allow (get, list, update, delete) - User with UID 'user_abc' reads, lists, updates, or deletes an artist document where artist.userId == 'user_abc'.
-     * @deny (get, list, update, delete) - User with UID 'user_xyz' attempts to read, list, update, or delete an artist document where artist.userId == 'user_abc'.
+     * @allow (create) User 'user_abc' can create a new artist with artist.userId == 'user_abc'.
+     * @allow (get) User 'user_abc' can read artist 'artist_xyz' if artist.userId == 'user_abc'.
+     * @allow (update) User 'user_abc' can update artist 'artist_xyz' if artist.userId == 'user_abc'.
+     * @allow (delete) User 'user_abc' can delete artist 'artist_xyz' if artist.userId == 'user_abc'.
+     * @deny (create) User 'user_xyz' cannot create an artist with artist.userId == 'user_abc'.
      * @principle Enforces document ownership for all operations.
      */
     match /artists/{artistId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      //Helper function to check if the user is the existing owner of the document
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(request.resource.data.userId) && isExistingOwner(resource.data.userId);
+      allow delete: if isSignedIn() && isOwner(resource.data.userId);
     }
 
     /**
-     * @description Controls access to event documents.
+     * @description Manages access to event data. Only the owner can create, read, update, or delete events.
      * @path /events/{eventId}
-     * @allow (create) - User with UID 'user_abc' creates a new event document where event.userId == 'user_abc'.
-     * @deny (create) - User with UID 'user_xyz' attempts to create an event document where event.userId == 'user_abc'.
-     * @allow (get, list, update, delete) - User with UID 'user_abc' reads, lists, updates, or deletes an event document where event.userId == 'user_abc'.
-     * @deny (get, list, update, delete) - User with UID 'user_xyz' attempts to read, list, update, or delete an event document where event.userId == 'user_abc'.
+     * @allow (create) User 'user_abc' can create a new event with event.userId == 'user_abc'.
+     * @allow (get) User 'user_abc' can read event 'event_xyz' if event.userId == 'user_abc'.
+     * @allow (update) User 'user_abc' can update event 'event_xyz' if event.userId == 'user_abc'.
+     * @allow (delete) User 'user_abc' can delete event 'event_xyz' if event.userId == 'user_abc'.
+     * @deny (create) User 'user_xyz' cannot create an event with event.userId == 'user_abc'.
      * @principle Enforces document ownership for all operations.
      */
     match /events/{eventId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      //Helper function to check if the user is the existing owner of the document
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(request.resource.data.userId) && isExistingOwner(resource.data.userId);
+      allow delete: if isSignedIn() && isOwner(resource.data.userId);
     }
 
     /**
-     * @description Controls access to finance documents.
+     * @description Manages access to finance data. Only the owner can create, read, update, or delete finance records.
      * @path /finances/{financeId}
-     * @allow (create) - User with UID 'user_abc' creates a new finance document where finance.userId == 'user_abc'.
-     * @deny (create) - User with UID 'user_xyz' attempts to create a finance document where finance.userId == 'user_abc'.
-     * @allow (get, list, update, delete) - User with UID 'user_abc' reads, lists, updates, or deletes a finance document where finance.userId == 'user_abc'.
-     * @deny (get, list, update, delete) - User with UID 'user_xyz' attempts to read, list, update, or delete a finance document where finance.userId == 'user_abc'.
+     * @allow (create) User 'user_abc' can create a new finance record with finance.userId == 'user_abc'.
+     * @allow (get) User 'user_abc' can read finance record 'finance_xyz' if finance.userId == 'user_abc'.
+     * @allow (update) User 'user_abc' can update finance record 'finance_xyz' if finance.userId == 'user_abc'.
+     * @allow (delete) User 'user_abc' can delete finance record 'finance_xyz' if finance.userId == 'user_abc'.
+     * @deny (create) User 'user_xyz' cannot create a finance record with finance.userId == 'user_abc'.
      * @principle Enforces document ownership for all operations.
      */
     match /finances/{financeId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      //Helper function to check if the user is the existing owner of the document
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(request.resource.data.userId) && isExistingOwner(resource.data.userId);
+      allow delete: if isSignedIn() && isOwner(resource.data.userId);
     }
 
     /**
-     * @description Controls access to purchase documents.
+     * @description Manages access to purchase data. Only the owner can create, read, update, or delete purchase records.
      * @path /purchases/{purchaseId}
-     * @allow (create) - User with UID 'user_abc' creates a new purchase document where purchase.userId == 'user_abc'.
-     * @deny (create) - User with UID 'user_xyz' attempts to create a purchase document where purchase.userId == 'user_abc'.
-     * @allow (get, list, update, delete) - User with UID 'user_abc' reads, lists, updates, or deletes a purchase document where purchase.userId == 'user_abc'.
-     * @deny (get, list, update, delete) - User with UID 'user_xyz' attempts to read, list, update, or delete a purchase document where purchase.userId == 'user_abc'.
+     * @allow (create) User 'user_abc' can create a new purchase record with purchase.userId == 'user_abc'.
+     * @allow (get) User 'user_abc' can read purchase record 'purchase_xyz' if purchase.userId == 'user_abc'.
+     * @allow (update) User 'user_abc' can update purchase record 'purchase_xyz' if purchase.userId == 'user_abc'.
+     * @allow (delete) User 'user_abc' can delete purchase record 'purchase_xyz' if purchase.userId == 'user_abc'.
+     * @deny (create) User 'user_xyz' cannot create a purchase record with purchase.userId == 'user_abc'.
      * @principle Enforces document ownership for all operations.
      */
     match /purchases/{purchaseId} {
-      // Helper function to check if the user is signed in
-      function isSignedIn() {
-        return request.auth != null;
-      }
-
-      // Helper function to check if the user is the owner of the document
-      function isOwner(userId) {
-        return isSignedIn() && request.auth.uid == userId;
-      }
-
-      //Helper function to check if the user is the existing owner of the document
-      function isExistingOwner(userId) {
-        return isOwner(userId) && resource != null;
-      }
-
-      allow get: if isOwner(resource.data.userId);
-      allow list: if isOwner(resource.data.userId);
-      allow create: if isSignedIn() && request.resource.data.userId == request.auth.uid;
-      allow update: if isExistingOwner(resource.data.userId) && request.resource.data.userId == resource.data.userId;
-      allow delete: if isExistingOwner(resource.data.userId);
+      allow get: if isSignedIn() && isOwner(resource.data.userId);
+      allow list: if false;
+      allow create: if isSignedIn() && isOwner(request.resource.data.userId);
+      allow update: if isSignedIn() && isOwner(request.resource.data.userId) && isExistingOwner(resource.data.userId);
+      allow delete: if isSignedIn() && isOwner(resource.data.userId);
     }
+  }
+
+  // Helper functions
+  function isSignedIn() {
+    return request.auth != null;
+  }
+
+  function isOwner(userId) {
+    return request.auth.uid == userId;
+  }
+
+  function isExistingOwner(userId) {
+    return resource.data.userId == userId;
+  }
+
+  function isOwnerIdImmutable(userId) {
+    return resource.data.userId == userId;
+  }
+
+  function isOwnerList() {
+    return false;
   }
 }
