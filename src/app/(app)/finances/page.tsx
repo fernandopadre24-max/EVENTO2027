@@ -98,20 +98,22 @@ export default function FinancesPage() {
     e.preventDefault();
     if(!firestore || !user || !currentTransaction) return;
 
-    const dataToSave = { ...currentTransaction };
-
     if (isEditing) {
-        if (!dataToSave.id) return;
-        const transactionDocRef = doc(firestore, 'finances', dataToSave.id);
-        const { id, ...transactionData } = dataToSave;
-        if (transactionData.type !== 'Despesa' || !transactionData.artistId) {
-            transactionData.artistId = undefined;
+        if (!currentTransaction.id) return;
+        const transactionDocRef = doc(firestore, 'finances', currentTransaction.id);
+        
+        // Create a copy to avoid mutating state, and remove id
+        const { id, ...dataToUpdate } = currentTransaction;
+
+        if (dataToUpdate.type !== 'Despesa') {
+            delete dataToUpdate.artistId;
         }
-        updateDocumentNonBlocking(transactionDocRef, transactionData);
+        updateDocumentNonBlocking(transactionDocRef, dataToUpdate);
     } else {
         const transactionsCollectionRef = collection(firestore, 'finances');
-        const dataToAdd = { ...dataToSave, userId: user.uid };
-        if (dataToAdd.type !== 'Despesa' || !dataToAdd.artistId) {
+        
+        const dataToAdd: any = { ...currentTransaction, userId: user.uid };
+        if (dataToAdd.type !== 'Despesa') {
             delete dataToAdd.artistId;
         }
         addDocumentNonBlocking(transactionsCollectionRef, dataToAdd);
@@ -201,7 +203,7 @@ export default function FinancesPage() {
                   <Label htmlFor="description" className="text-right">
                     Descrição
                   </Label>
-                  <Input id="description" value={currentTransaction.description} onChange={handleInputChange} placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
+                  <Input id="description" value={currentTransaction.description || ''} onChange={handleInputChange} placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="amount" className="text-right">
@@ -213,7 +215,7 @@ export default function FinancesPage() {
                   <Label htmlFor="date" className="text-right">
                     Data
                   </Label>
-                  <Input id="date" type="date" value={currentTransaction.date} onChange={handleDateChange} className="col-span-3" />
+                  <Input id="date" type="date" value={currentTransaction.date || ''} onChange={handleDateChange} className="col-span-3" />
                 </div>
               </div>
               <div className="flex justify-end">
@@ -331,12 +333,12 @@ export default function FinancesPage() {
                       <TableCell>
                           <div className="font-medium">{description}</div>
                           <div className="text-sm text-muted-foreground sm:hidden">
-                              {format(parseISO(transaction.date), 'dd/MM/yy', { locale: ptBR })}
+                              {transaction.date ? format(parseISO(transaction.date), 'dd/MM/yy', { locale: ptBR }) : ''}
                           </div>
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{transaction.date ? format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR }) : ''}</TableCell>
                       <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
-                        {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
+                        {transaction.type === 'Receita' ? '+' : '-'}{transaction.amount ? `R$${transaction.amount.toLocaleString('pt-BR')}` : 'R$0'}
                       </TableCell>
                       <TableCell>
                         <DropdownMenu>
@@ -369,3 +371,5 @@ export default function FinancesPage() {
     </div>
   );
 }
+
+    
