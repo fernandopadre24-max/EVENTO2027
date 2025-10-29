@@ -386,9 +386,11 @@ export default function PurchasesPage() {
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn('font-semibold', purchaseStatusColors[purchase.status])}>
-                          {purchase.status}
-                        </Badge>
+                         <Switch
+                              checked={purchase.status === 'Pago'}
+                              onCheckedChange={() => togglePurchaseStatus(purchase)}
+                              aria-label="Status do pagamento"
+                          />
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         {purchase.details && (
@@ -443,6 +445,4 @@ export default function PurchasesPage() {
       </Card>
     </div>
   );
-
-    
 }
