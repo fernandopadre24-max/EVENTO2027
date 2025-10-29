@@ -97,7 +97,8 @@ export default function PurchasesPage() {
   
   const handleSelectChange = (id: string) => (value: string) => {
     const targetState = isEditOpen ? setSelectedPurchase : setNewPurchase;
-    targetState(prev => prev ? ({ ...prev, [id]: value }) : null);
+    const finalValue = value === 'none' ? '' : value;
+    targetState(prev => prev ? ({ ...prev, [id]: finalValue }) : null);
   };
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -175,12 +176,12 @@ export default function PurchasesPage() {
              <Label htmlFor="artistId" className="text-right">
                 Artista
               </Label>
-               <Select value={currentData.artistId || ''} onValueChange={handleSelectChange('artistId')}>
+               <Select value={currentData.artistId || 'none'} onValueChange={handleSelectChange('artistId')}>
                 <SelectTrigger className="col-span-3">
                   <SelectValue placeholder="Selecione um artista (opcional)" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {artists?.map(artist => (
                     <SelectItem key={artist.id} value={artist.id}>{artist.name}</SelectItem>
                   ))}
@@ -402,3 +403,5 @@ export default function PurchasesPage() {
 
     
 }
+
+    
