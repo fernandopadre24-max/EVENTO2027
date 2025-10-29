@@ -83,8 +83,11 @@ export default function FinancesPage() {
   const isLoading = isLoadingTransactions || isLoadingArtists;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { id, value } = e.target;
-    setCurrentTransaction(prev => ({ ...prev, [id]: id === 'amount' ? Number(value) : value }));
+    const { id, value, type } = e.target;
+    setCurrentTransaction(prev => ({
+        ...prev,
+        [id]: type === 'number' && value !== '' ? Number(value) : value
+    }));
   };
 
   const handleSelectChange = (id: string) => (value: string) => {
@@ -101,21 +104,25 @@ export default function FinancesPage() {
     e.preventDefault();
     if(!firestore || !user || !currentTransaction) return;
 
-    if (isEditing) {
-        if (!currentTransaction.id) return;
-        const transactionDocRef = doc(firestore, 'finances', currentTransaction.id);
-        
-        // Create a copy to avoid mutating state, and remove id
-        const { id, ...dataToUpdate } = currentTransaction;
+    const dataToSave = {
+        ...currentTransaction,
+        amount: Number(currentTransaction.amount) || 0,
+    };
 
-        if (dataToUpdate.type !== 'Despesa') {
-            dataToUpdate.artistId = undefined; // Use undefined to remove field
+    if (isEditing) {
+        if (!dataToSave.id) return;
+        const transactionDocRef = doc(firestore, 'finances', dataToSave.id);
+        const { id, ...transactionData } = dataToSave;
+        
+        if (transactionData.type !== 'Despesa') {
+            delete transactionData.artistId;
         }
-        updateDocumentNonBlocking(transactionDocRef, dataToUpdate);
+
+        updateDocumentNonBlocking(transactionDocRef, transactionData);
     } else {
         const transactionsCollectionRef = collection(firestore, 'finances');
+        const dataToAdd: any = { ...dataToSave, userId: user.uid };
         
-        const dataToAdd: any = { ...currentTransaction, userId: user.uid };
         if (dataToAdd.type !== 'Despesa') {
             delete dataToAdd.artistId;
         }
