@@ -54,7 +54,9 @@ export default function DashboardPage() {
     ?.filter((e) => e.paymentStatus === 'Pago')
     .reduce((sum, e) => sum + e.payment, 0) || 0;
     
-    const purchaseOutcome = purchases?.reduce((sum, p) => sum + p.amount, 0) || 0;
+    const purchaseOutcome = purchases
+    ?.filter(p => p.status === 'Pago')
+    .reduce((sum, p) => sum + p.amount, 0) || 0;
 
     const outcome = purchaseOutcome;
 
@@ -88,7 +90,7 @@ export default function DashboardPage() {
     
     purchases?.forEach(purchase => {
         const purchaseDate = parseISO(purchase.date);
-        if(purchaseDate.getFullYear() === currentYear) {
+        if(purchaseDate.getFullYear() === currentYear && purchase.status === 'Pago') {
             const monthIndex = getMonth(purchaseDate);
             data[monthIndex].outcome += purchase.amount;
         }

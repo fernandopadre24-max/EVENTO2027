@@ -65,7 +65,9 @@ export default function ReportsPage() {
       ?.filter(e => e.paymentStatus === 'Pago')
       .reduce((sum, e) => sum + e.payment, 0) || 0;
       
-    const expenseFromPurchases = purchases?.reduce((sum, p) => sum + p.amount, 0) || 0;
+    const expenseFromPurchases = purchases
+      ?.filter(p => p.status === 'Pago')
+      .reduce((sum, p) => sum + p.amount, 0) || 0;
     
     const expense = expenseFromPurchases;
 
@@ -77,7 +79,7 @@ export default function ReportsPage() {
           date: e.date,
           amount: e.payment,
       })),
-      ...(purchases || []).map(p => ({
+      ...(purchases || []).filter(p => p.status === 'Pago').map(p => ({
           id: p.id,
           type: 'Despesa' as 'Despesa',
           description: p.description,
@@ -114,7 +116,9 @@ export default function ReportsPage() {
 
     purchases?.forEach(purchase => {
         const month = getMonth(parseISO(purchase.date));
-        monthlySummary[month].expenses += purchase.amount;
+        if (purchase.status === 'Pago') {
+          monthlySummary[month].expenses += purchase.amount;
+        }
     });
 
     return monthlySummary;
@@ -192,7 +196,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Despesa Total</CardTitle>
-                 <CardDescription>Soma de todas as compras.</CardDescription>
+                 <CardDescription>Soma de todas as compras pagas.</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p>
@@ -272,7 +276,7 @@ export default function ReportsPage() {
             <CardHeader>
               <CardTitle>Atividade Recente</CardTitle>
               <CardDescription>
-                As 10 transações financeiras mais recentes (receitas de eventos e compras).
+                As 10 transações financeiras mais recentes (receitas de eventos e compras pagas).
               </CardDescription>
             </CardHeader>
             <CardContent>

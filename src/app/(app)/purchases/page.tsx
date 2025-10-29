@@ -25,8 +25,9 @@ import {
   DropdownMenuItem,
   DropdownMenuLabel,
   DropdownMenuTrigger,
+  DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
-import type { Purchase, PaymentMethod, Artist } from '@/lib/types';
+import type { Purchase, PaymentMethod, Artist, PurchaseStatus } from '@/lib/types';
 import {
   Dialog,
   DialogContent,
@@ -55,7 +56,15 @@ import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
+import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
 
+
+const purchaseStatusColors: Record<PurchaseStatus, string> = {
+  Pago: 'bg-green-400/20 text-green-600 border-green-400/30',
+  'Não Pago': 'bg-gray-400/20 text-gray-600 border-gray-400/30',
+};
 
 const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     description: '',
@@ -66,6 +75,7 @@ const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     paymentMethod: 'Dinheiro',
     installments: 1,
     details: '',
+    status: 'Não Pago',
 };
 
 
@@ -100,6 +110,11 @@ export default function PurchasesPage() {
     const finalValue = value === 'none' ? '' : value;
     targetState(prev => prev ? ({ ...prev, [id]: finalValue }) : null);
   };
+  
+  const handleStatusToggle = (checked: boolean) => {
+    const targetState = isEditOpen ? setSelectedPurchase : setNewPurchase;
+    targetState(prev => prev ? ({ ...prev, status: checked ? 'Pago' : 'Não Pago' }) : null);
+  }
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -148,6 +163,13 @@ export default function PurchasesPage() {
     setPurchaseToDelete(purchase);
     setDeleteAlertOpen(true);
   }
+  
+  const togglePurchaseStatus = (purchase: Purchase) => {
+    if (!firestore) return;
+    const purchaseDocRef = doc(firestore, 'purchases', purchase.id);
+    const newStatus = purchase.status === 'Pago' ? 'Não Pago' : 'Pago';
+    updateDocumentNonBlocking(purchaseDocRef, { status: newStatus });
+  };
   
     const { totalSpent, numberOfPurchases } = useMemo(() => {
         if (!purchases) return { totalSpent: 0, numberOfPurchases: 0 };
@@ -228,6 +250,19 @@ export default function PurchasesPage() {
             </Label>
             <Input id="installments" type="number" value={currentData.installments || 1} onChange={handleInputChange} placeholder="1" className="col-span-3" min="1" />
           </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="status" className="text-right">
+              Status
+            </Label>
+            <div className="col-span-3 flex items-center gap-2">
+              <Switch
+                id="status"
+                checked={currentData.status === 'Pago'}
+                onCheckedChange={handleStatusToggle}
+              />
+              <span className="text-sm text-muted-foreground">{currentData.status}</span>
+            </div>
+          </div>
           <div className="grid grid-cols-4 items-start gap-4">
             <Label htmlFor="details" className="text-right pt-2">
               Detalhes
@@ -246,20 +281,20 @@ export default function PurchasesPage() {
     <div className="space-y-8">
       <div className="flex items-center justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
-          Compras
+          Pagar
         </h1>
         <Dialog open={isAddOpen} onOpenChange={(isOpen) => { setAddOpen(isOpen); if (!isOpen) setNewPurchase(initialNewPurchaseState); }}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Compra
+              Adicionar Pagamento
             </Button>
           </DialogTrigger>
           <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Adicionar Nova Compra</DialogTitle>
+              <DialogTitle>Adicionar Novo Pagamento</DialogTitle>
               <DialogDescription>
-                Preencha os detalhes da nova compra aqui.
+                Preencha os detalhes do novo pagamento aqui.
               </DialogDescription>
             </DialogHeader>
             {renderForm(false)}
@@ -270,9 +305,9 @@ export default function PurchasesPage() {
        <Dialog open={isEditOpen} onOpenChange={(isOpen) => { setEditOpen(isOpen); if (!isOpen) setSelectedPurchase(null); }}>
         <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Editar Compra</DialogTitle>
+              <DialogTitle>Editar Pagamento</DialogTitle>
               <DialogDescription>
-                Atualize os detalhes da compra. Clique em salvar para confirmar.
+                Atualize os detalhes do pagamento. Clique em salvar para confirmar.
               </DialogDescription>
             </DialogHeader>
             {renderForm(true)}
@@ -284,7 +319,7 @@ export default function PurchasesPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro desta compra.
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente o registro deste pagamento.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -297,7 +332,7 @@ export default function PurchasesPage() {
         <div className="grid gap-6 md:grid-cols-2">
             <Card>
                 <CardHeader>
-                    <CardTitle>Total Gasto em Compras</CardTitle>
+                    <CardTitle>Total Gasto</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <p className="text-3xl font-bold text-red-600">R${totalSpent.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</p>
@@ -305,7 +340,7 @@ export default function PurchasesPage() {
             </Card>
             <Card>
                 <CardHeader>
-                    <CardTitle>Número de Compras</CardTitle>
+                    <CardTitle>Número de Pagamentos</CardTitle>
                 </CardHeader>
                 <CardContent>
                     <p className="text-3xl font-bold">{numberOfPurchases}</p>
@@ -316,20 +351,20 @@ export default function PurchasesPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Histórico de Compras</CardTitle>
+          <CardTitle>Histórico de Pagamentos</CardTitle>
           <CardDescription>
-            Gerencie todas as suas compras e despesas de equipamentos.
+            Gerencie todas as suas compras e despesas.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && <p>Carregando compras...</p>}
+          {isLoading && <p>Carregando pagamentos...</p>}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Descrição</TableHead>
                   <TableHead className="hidden sm:table-cell">Data</TableHead>
-                  <TableHead className="hidden md:table-cell">Pagamento</TableHead>
+                  <TableHead>Status</TableHead>
                   <TableHead className="hidden md:table-cell">Detalhes</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>
@@ -338,7 +373,7 @@ export default function PurchasesPage() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {purchases?.map((purchase) => {
+                {purchases?.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((purchase) => {
                   const hasInstallments = purchase.installments && purchase.installments > 1;
                   const installmentValue = hasInstallments ? purchase.amount / purchase.installments : 0;
                   const artistPaid = artists?.find(a => a.id === purchase.artistId);
@@ -350,7 +385,11 @@ export default function PurchasesPage() {
                          <div className="text-sm text-muted-foreground">{artistPaid?.name || purchase.recipient}</div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                      <TableCell className="hidden md:table-cell">{purchase.paymentMethod}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn('font-semibold', purchaseStatusColors[purchase.status])}>
+                          {purchase.status}
+                        </Badge>
+                      </TableCell>
                       <TableCell className="hidden sm:table-cell">
                         {purchase.details && (
                           <TooltipProvider>
@@ -384,6 +423,10 @@ export default function PurchasesPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => openEditDialog(purchase)}>Editar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => togglePurchaseStatus(purchase)}>
+                              {purchase.status === 'Pago' ? 'Marcar como Não Pago' : 'Marcar como Pago'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(purchase)}>
                               Excluir
                             </DropdownMenuItem>
@@ -403,5 +446,3 @@ export default function PurchasesPage() {
 
     
 }
-
-    

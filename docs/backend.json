@@ -202,6 +202,11 @@
         "details": {
           "type": "string",
           "description": "Additional notes or details about the purchase."
+        },
+        "status": {
+            "type": "string",
+            "description": "The payment status of the purchase.",
+            "enum": ["Pago", "Não Pago"]
         }
       },
       "required": [
@@ -209,7 +214,8 @@
         "amount",
         "date",
         "paymentMethod",
-        "userId"
+        "userId",
+        "status"
       ]
     }
   },

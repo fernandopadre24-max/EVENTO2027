@@ -41,6 +41,8 @@ export interface Event {
 
 export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';
 
+export type PurchaseStatus = 'Pago' | 'Não Pago';
+
 export interface Purchase {
   id: string;
   description: string;
@@ -52,4 +54,5 @@ export interface Purchase {
   installments?: number;
   userId: string;
   details?: string;
+  status: PurchaseStatus;
 }
