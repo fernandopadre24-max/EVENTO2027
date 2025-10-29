@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, Volume2, VolumeX } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -60,6 +60,7 @@ import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, u
 import { collection, doc, query, where } from 'firebase/firestore';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Switch } from '@/components/ui/switch';
 
 
 const statusColors: Record<EventStatus, string> = {
@@ -81,6 +82,7 @@ const initialNewEventState = {
   local: '',
   artistIds: [] as string[],
   payment: 0,
+  hasSound: false,
 };
 
 export default function EventsPage() {
@@ -162,6 +164,11 @@ export default function EventsPage() {
     });
   };
 
+  const handleSoundToggle = (checked: boolean) => {
+    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
+    targetState(prev => ({ ...prev!, hasSound: checked }));
+  };
+
   const clearFilters = () => {
     setSearchTerm('');
     setStatusFilter('all');
@@ -188,10 +195,11 @@ export default function EventsPage() {
     setAddOpen(false);
     // Reset only client, date, and local, keeping the rest for the next entry
     setNewEvent(prev => ({
-      ...prev,
-      clientId: '',
-      date: new Date(),
-      local: '',
+      ...initialNewEventState,
+      time: prev.time,
+      artistIds: prev.artistIds,
+      payment: prev.payment,
+      hasSound: prev.hasSound,
     }));
   };
   
@@ -229,6 +237,12 @@ export default function EventsPage() {
     if (!firestore || !user) return;
     const eventDocRef = doc(firestore, 'events', event.id);
     updateDocumentNonBlocking(eventDocRef, { paymentStatus });
+  };
+  
+  const toggleSoundStatus = (event: Event) => {
+    if (!firestore) return;
+    const eventDocRef = doc(firestore, 'events', event.id);
+    updateDocumentNonBlocking(eventDocRef, { hasSound: !event.hasSound });
   };
 
   const openDeleteAlert = (event: Event) => {
@@ -354,6 +368,17 @@ export default function EventsPage() {
                     Pagamento (R$)
                   </Label>
                   <Input id="payment" type="number" value={currentData.payment || ''} onChange={handleInputChange} placeholder="2000" className="col-span-3" />
+                </div>
+                <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="hasSound" className="text-right">
+                        Com Som
+                    </Label>
+                    <Switch
+                        id="hasSound"
+                        checked={currentData.hasSound}
+                        onCheckedChange={handleSoundToggle}
+                        className="col-span-3"
+                    />
                 </div>
               </div>
               <DialogFooter>
@@ -523,7 +548,10 @@ export default function EventsPage() {
                   return (
                     <TableRow key={event.id}>
                       <TableCell>
-                        <div className="font-medium">{client?.name}</div>
+                        <div className="font-medium flex items-center gap-2">
+                          {event.hasSound ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
+                          {client?.name}
+                        </div>
                         <div className="text-sm text-muted-foreground sm:hidden">
                             {format(parseISO(event.date), 'dd/MM/yy')} às {event.time}
                         </div>
@@ -555,6 +583,10 @@ export default function EventsPage() {
                           <DropdownMenuContent align="end">
                             <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => openEditDialog(event)}>Editar</DropdownMenuItem>
+                             <DropdownMenuItem onClick={() => toggleSoundStatus(event)}>
+                              {event.hasSound ? 'Marcar Sem Som' : 'Marcar Com Som'}
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator />
                             <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')}>
                               Marcar como Confirmado
                             </DropdownMenuItem>

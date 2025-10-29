@@ -36,6 +36,7 @@ export interface Event {
   status: EventStatus;
   paymentStatus: PaymentStatus;
   userId: string;
+  hasSound?: boolean;
 }
 
 export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';

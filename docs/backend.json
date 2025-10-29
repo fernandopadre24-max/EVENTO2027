@@ -138,6 +138,10 @@
         "userId": {
           "type": "string",
           "description": "The ID of the user who owns this event."
+        },
+        "hasSound": {
+          "type": "boolean",
+          "description": "Indicates if the event includes sound equipment."
         }
       },
       "required": [
