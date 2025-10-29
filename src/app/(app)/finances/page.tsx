@@ -37,8 +37,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -56,14 +54,11 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, query, where, doc, orderBy } from 'firebase/firestore';
 
-type EditableTransaction = Partial<Omit<FinancialTransaction, 'id' | 'userId'>>;
-
-const initialTransactionState: EditableTransaction = {
+const initialTransactionState: Omit<FinancialTransaction, 'id' | 'userId'> = {
   type: 'Receita',
   description: '',
   amount: 0,
   date: format(new Date(), 'yyyy-MM-dd'),
-  artistId: '',
 };
 
 export default function FinancesPage() {
@@ -87,18 +82,18 @@ export default function FinancesPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setCurrentTransaction(prev => ({ ...prev!, [id]: id === 'amount' ? Number(value) : value }));
+    setCurrentTransaction(prev => ({ ...prev, [id]: id === 'amount' ? Number(value) : value }));
   };
 
   const handleSelectChange = (id: string) => (value: string) => {
-    setCurrentTransaction(prev => ({ ...prev!, [id]: value }));
+    setCurrentTransaction(prev => ({ ...prev, [id]: value }));
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    setCurrentTransaction(prev => ({ ...prev!, [id]: value }));
+    setCurrentTransaction(prev => ({ ...prev, [id]: value }));
   };
-
+  
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if(!firestore || !user || !currentTransaction) return;
@@ -167,7 +162,7 @@ export default function FinancesPage() {
       if (!currentTransaction) return null;
 
       return (
-        <form onSubmit={handleSubmit}>
+        <form onSubmit={handleSubmit} className="p-4">
               <div className="grid gap-4 py-4">
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="type" className="text-right">
@@ -221,9 +216,9 @@ export default function FinancesPage() {
                   <Input id="date" type="date" value={currentTransaction.date} onChange={handleDateChange} className="col-span-3" />
                 </div>
               </div>
-              <DialogFooter>
+              <div className="flex justify-end">
                 <Button type="submit">Salvar Transação</Button>
-              </DialogFooter>
+              </div>
             </form>
       )
   }
@@ -241,8 +236,8 @@ export default function FinancesPage() {
       </div>
 
        <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
-        <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
+        <DialogContent className="sm:max-w-lg p-0">
+            <DialogHeader className="p-6 pb-0">
               <DialogTitle>{isEditing ? 'Editar Transação' : 'Adicionar Nova Transação'}</DialogTitle>
               <DialogDescription>
                 {isEditing ? 'Atualize os detalhes da transação.' : 'Preencha os detalhes da nova transação.'}
