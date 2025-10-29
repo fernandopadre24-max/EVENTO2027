@@ -56,7 +56,9 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, query, where, doc, orderBy } from 'firebase/firestore';
 
-const initialTransactionState: Omit<FinancialTransaction, 'id' | 'userId'> = {
+type EditableTransaction = Partial<Omit<FinancialTransaction, 'id' | 'userId'>>;
+
+const initialTransactionState: EditableTransaction = {
   type: 'Receita',
   description: '',
   amount: 0,
@@ -74,59 +76,54 @@ export default function FinancesPage() {
   const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
 
-  const [isAddOpen, setAddOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
+  const [isFormOpen, setFormOpen] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   
-  const [selectedTransaction, setSelectedTransaction] = useState<FinancialTransaction | null>(null);
+  const [currentTransaction, setCurrentTransaction] = useState<Partial<FinancialTransaction>>(initialTransactionState);
   const [transactionToDelete, setTransactionToDelete] = useState<FinancialTransaction | null>(null);
 
-  const [newTransaction, setNewTransaction] = useState<Omit<FinancialTransaction, 'id' | 'userId'>>(initialTransactionState);
-  
   const isLoading = isLoadingTransactions || isLoadingArtists;
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => prev ? ({ ...prev, [id]: id === 'amount' ? Number(value) : value }) : null);
+    setCurrentTransaction(prev => ({ ...prev!, [id]: id === 'amount' ? Number(value) : value }));
   };
 
   const handleSelectChange = (id: string) => (value: string) => {
-    const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => prev ? ({ ...prev, [id]: value }) : null);
+    setCurrentTransaction(prev => ({ ...prev!, [id]: value }));
   };
 
   const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    const targetState = isEditOpen ? setSelectedTransaction : setNewTransaction;
-    targetState(prev => prev ? ({ ...prev, [id]: value }) : null);
+    setCurrentTransaction(prev => ({ ...prev!, [id]: value }));
   };
 
-  const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if(!firestore || !user) return;
-    const transactionsCollectionRef = collection(firestore, 'finances');
-    const dataToAdd: Partial<FinancialTransaction> = { ...newTransaction, userId: user.uid };
-    if (dataToAdd.type !== 'Despesa' || !dataToAdd.artistId) {
-      delete dataToAdd.artistId;
+    if(!firestore || !user || !currentTransaction) return;
+
+    const dataToSave = { ...currentTransaction };
+
+    if (isEditing) {
+        if (!dataToSave.id) return;
+        const transactionDocRef = doc(firestore, 'finances', dataToSave.id);
+        const { id, ...transactionData } = dataToSave;
+        if (transactionData.type !== 'Despesa' || !transactionData.artistId) {
+            transactionData.artistId = undefined;
+        }
+        updateDocumentNonBlocking(transactionDocRef, transactionData);
+    } else {
+        const transactionsCollectionRef = collection(firestore, 'finances');
+        const dataToAdd = { ...dataToSave, userId: user.uid };
+        if (dataToAdd.type !== 'Despesa' || !dataToAdd.artistId) {
+            delete dataToAdd.artistId;
+        }
+        addDocumentNonBlocking(transactionsCollectionRef, dataToAdd);
     }
-    addDocumentNonBlocking(transactionsCollectionRef, dataToAdd);
-    setAddOpen(false);
-    setNewTransaction(initialTransactionState);
+    
+    setFormOpen(false);
   };
-  
-  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!firestore || !selectedTransaction) return;
-    const transactionDocRef = doc(firestore, 'finances', selectedTransaction.id);
-    const { id, ...transactionData } = selectedTransaction;
-     if (transactionData.type !== 'Despesa' || !transactionData.artistId) {
-      transactionData.artistId = undefined;
-    }
-    updateDocumentNonBlocking(transactionDocRef, transactionData);
-    setEditOpen(false);
-    setSelectedTransaction(null);
-  }
   
   const handleDeleteTransaction = async () => {
     if (!firestore || !transactionToDelete) return;
@@ -138,10 +135,16 @@ export default function FinancesPage() {
     setTransactionToDelete(null);
   }
 
+  const openAddDialog = () => {
+    setCurrentTransaction(initialTransactionState);
+    setIsEditing(false);
+    setFormOpen(true);
+  }
 
   const openEditDialog = (transaction: FinancialTransaction) => {
-    setSelectedTransaction(transaction);
-    setEditOpen(true);
+    setCurrentTransaction(transaction);
+    setIsEditing(true);
+    setFormOpen(true);
   }
 
   const openDeleteAlert = (transaction: FinancialTransaction) => {
@@ -160,11 +163,8 @@ export default function FinancesPage() {
     return { totalIncome, totalExpense, netBalance };
   }, [transactions]);
 
-  const renderForm = (isEditing: boolean) => {
-      const currentData = isEditing ? selectedTransaction : newTransaction;
-      const handleSubmit = isEditing ? handleEditSubmit : handleAddSubmit;
-
-      if (!currentData) return null;
+  const renderForm = () => {
+      if (!currentTransaction) return null;
 
       return (
         <form onSubmit={handleSubmit}>
@@ -173,7 +173,7 @@ export default function FinancesPage() {
                   <Label htmlFor="type" className="text-right">
                     Tipo
                   </Label>
-                  <Select value={currentData.type} onValueChange={handleSelectChange('type') as (value: 'Receita' | 'Despesa') => void}>
+                  <Select value={currentTransaction.type} onValueChange={handleSelectChange('type') as (value: 'Receita' | 'Despesa') => void}>
                     <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Selecione o tipo" />
                     </SelectTrigger>
@@ -184,12 +184,12 @@ export default function FinancesPage() {
                   </Select>
                 </div>
                 
-                {currentData.type === 'Despesa' && (
+                {currentTransaction.type === 'Despesa' && (
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="artistId" className="text-right">
                       Artista
                     </Label>
-                    <Select value={currentData.artistId || ''} onValueChange={handleSelectChange('artistId')}>
+                    <Select value={currentTransaction.artistId || ''} onValueChange={handleSelectChange('artistId')}>
                       <SelectTrigger className="col-span-3">
                         <SelectValue placeholder="Selecione um artista (opcional)" />
                       </SelectTrigger>
@@ -206,19 +206,19 @@ export default function FinancesPage() {
                   <Label htmlFor="description" className="text-right">
                     Descrição
                   </Label>
-                  <Input id="description" value={currentData.description} onChange={handleInputChange} placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
+                  <Input id="description" value={currentTransaction.description} onChange={handleInputChange} placeholder="Ex: Aluguel de equipamento" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="amount" className="text-right">
                     Valor (R$)
                   </Label>
-                  <Input id="amount" type="number" value={currentData.amount || ''} onChange={handleInputChange} placeholder="300" className="col-span-3" />
+                  <Input id="amount" type="number" value={currentTransaction.amount || ''} onChange={handleInputChange} placeholder="300" className="col-span-3" />
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="date" className="text-right">
                     Data
                   </Label>
-                  <Input id="date" type="date" value={currentData.date} onChange={handleDateChange} className="col-span-3" />
+                  <Input id="date" type="date" value={currentTransaction.date} onChange={handleDateChange} className="col-span-3" />
                 </div>
               </div>
               <DialogFooter>
@@ -234,34 +234,21 @@ export default function FinancesPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Finanças
         </h1>
-        <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Transação
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Adicionar Nova Transação</DialogTitle>
-              <DialogDescription>
-                Preencha os detalhes da nova transação.
-              </DialogDescription>
-            </DialogHeader>
-            {renderForm(false)}
-          </DialogContent>
-        </Dialog>
+        <Button onClick={openAddDialog}>
+            <PlusCircle className="w-4 h-4 mr-2" />
+            Adicionar Transação
+        </Button>
       </div>
 
-       <Dialog open={isEditOpen} onOpenChange={setEditOpen}>
+       <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
         <DialogContent className="sm:max-w-lg">
             <DialogHeader>
-              <DialogTitle>Editar Transação</DialogTitle>
+              <DialogTitle>{isEditing ? 'Editar Transação' : 'Adicionar Nova Transação'}</DialogTitle>
               <DialogDescription>
-                Atualize os detalhes da transação.
+                {isEditing ? 'Atualize os detalhes da transação.' : 'Preencha os detalhes da nova transação.'}
               </DialogDescription>
             </DialogHeader>
-            {renderForm(true)}
+            {renderForm()}
         </DialogContent>
        </Dialog>
       
@@ -387,5 +374,3 @@ export default function FinancesPage() {
     </div>
   );
 }
-
-    
