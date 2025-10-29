@@ -86,7 +86,7 @@ export default function FinancesPage() {
     const { id, value, type } = e.target;
     setCurrentTransaction(prev => ({
         ...prev,
-        [id]: type === 'number' && value !== '' ? Number(value) : value
+        [id]: type === 'number' ? (value === '' ? '' : Number(value)) : value
     }));
   };
 
