@@ -27,12 +27,12 @@ import {
   Bar,
   ResponsiveContainer,
 } from 'recharts';
-import { ArrowDown, ArrowUp, DollarSign, Calendar as CalendarIcon } from 'lucide-react';
+import { ArrowUp, DollarSign, Calendar as CalendarIcon, ArrowDown } from 'lucide-react';
 import { format, parseISO, getMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Event, FinancialTransaction, Client, Purchase } from '@/lib/types';
+import type { Event, Client, Purchase } from '@/lib/types';
 
 
 export default function DashboardPage() {
@@ -42,9 +42,6 @@ export default function DashboardPage() {
   const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events } = useCollection<Event>(eventsRef);
 
-  const financesRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
-  const { data: financialTransactions } = useCollection<FinancialTransaction>(financesRef);
-  
   const clientsRef = useMemoFirebase(() => user ? query(collection(firestore, 'clients'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: clients } = useCollection<Client>(clientsRef);
   
@@ -53,20 +50,16 @@ export default function DashboardPage() {
 
 
   const { totalIncome, totalOutcome, netProfit } = useMemo(() => {
-    const income = financialTransactions
-    ?.filter((t) => t.type === 'Receita')
-    .reduce((sum, t) => sum + t.amount, 0) || 0;
-
-    const financeOutcome = financialTransactions
-    ?.filter((t) => t.type === 'Despesa')
-    .reduce((sum, t) => sum + t.amount, 0) || 0;
+    const income = events
+    ?.filter((e) => e.paymentStatus === 'Pago')
+    .reduce((sum, e) => sum + e.payment, 0) || 0;
     
     const purchaseOutcome = purchases?.reduce((sum, p) => sum + p.amount, 0) || 0;
 
-    const outcome = financeOutcome + purchaseOutcome;
+    const outcome = purchaseOutcome;
 
     return { totalIncome: income, totalOutcome: outcome, netProfit: income - outcome };
-  }, [financialTransactions, purchases]);
+  }, [events, purchases]);
 
   const upcomingEvents = useMemo(() => {
     if (!events) return [];
@@ -85,15 +78,11 @@ export default function DashboardPage() {
       outcome: 0,
     }));
 
-    financialTransactions?.forEach(transaction => {
-      const transactionDate = parseISO(transaction.date);
-      if (transactionDate.getFullYear() === currentYear) {
-        const monthIndex = getMonth(transactionDate);
-        if (transaction.type === 'Receita') {
-          data[monthIndex].income += transaction.amount;
-        } else if (transaction.type === 'Despesa') {
-          data[monthIndex].outcome += transaction.amount;
-        }
+    events?.forEach(event => {
+      const eventDate = parseISO(event.date);
+      if (eventDate.getFullYear() === currentYear && event.paymentStatus === 'Pago') {
+        const monthIndex = getMonth(eventDate);
+        data[monthIndex].income += event.payment;
       }
     });
     
@@ -106,7 +95,7 @@ export default function DashboardPage() {
     });
 
     return data;
-  }, [financialTransactions, purchases]);
+  }, [events, purchases]);
 
   return (
     <div className="space-y-8">

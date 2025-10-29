@@ -29,7 +29,7 @@ import { Badge } from '@/components/ui/badge';
 import { ArrowDownCircle, ArrowUpCircle, Loader2 } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { FinancialTransaction, Event, Artist, Purchase } from '@/lib/types';
+import type { Event, Artist, Purchase } from '@/lib/types';
 import { format, parseISO, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -48,9 +48,6 @@ export default function ReportsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
 
-  const financesRef = useMemoFirebase(() => user ? query(collection(firestore, 'finances'), where('userId', '==', user.uid)) : null, [firestore, user]);
-  const { data: transactions, isLoading: isLoadingFinances } = useCollection<FinancialTransaction>(financesRef);
-  
   const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events, isLoading: isLoadingEvents } = useCollection<Event>(eventsRef);
 
@@ -62,27 +59,23 @@ export default function ReportsPage() {
 
 
   const { totalIncome, totalExpense, netBalance, recentTransactions } = useMemo(() => {
-    if (!transactions && !purchases) return { totalIncome: 0, totalExpense: 0, netBalance: 0, recentTransactions: [] };
+    if (!events && !purchases) return { totalIncome: 0, totalExpense: 0, netBalance: 0, recentTransactions: [] };
 
-    const income = transactions
-      ?.filter(t => t.type === 'Receita')
-      .reduce((sum, t) => sum + t.amount, 0) || 0;
-      
-    const expenseFromFinances = transactions
-      ?.filter(t => t.type === 'Despesa')
-      .reduce((sum, t) => sum + t.amount, 0) || 0;
+    const income = events
+      ?.filter(e => e.paymentStatus === 'Pago')
+      .reduce((sum, e) => sum + e.payment, 0) || 0;
       
     const expenseFromPurchases = purchases?.reduce((sum, p) => sum + p.amount, 0) || 0;
     
-    const expense = expenseFromFinances + expenseFromPurchases;
+    const expense = expenseFromPurchases;
 
     const unifiedTransactions: UnifiedTransaction[] = [
-      ...(transactions || []).map(t => ({
-          id: t.id,
-          type: t.type,
-          description: t.description,
-          date: t.date,
-          amount: t.amount,
+      ...(events || []).filter(e => e.paymentStatus === 'Pago').map(e => ({
+          id: e.id,
+          type: 'Receita' as 'Receita',
+          description: `Pagamento do evento em ${e.local}`,
+          date: e.date,
+          amount: e.payment,
       })),
       ...(purchases || []).map(p => ({
           id: p.id,
@@ -101,23 +94,21 @@ export default function ReportsPage() {
       netBalance: income - expense,
       recentTransactions: sortedTransactions.slice(0, 10),
     };
-  }, [transactions, purchases]);
+  }, [events, purchases]);
 
 
   const monthlyData = useMemo(() => {
-    if (!transactions && !purchases) return [];
+    if (!events && !purchases) return [];
     const monthlySummary = Array.from({ length: 12 }, (_, i) => ({
       name: format(new Date(0, i), 'LLL', { locale: ptBR }),
       income: 0,
       expenses: 0,
     }));
 
-    transactions?.forEach(transaction => {
-      const month = getMonth(parseISO(transaction.date));
-      if (transaction.type === 'Receita') {
-        monthlySummary[month].income += transaction.amount;
-      } else {
-        monthlySummary[month].expenses += transaction.amount;
+    events?.forEach(event => {
+      const month = getMonth(parseISO(event.date));
+      if (event.paymentStatus === 'Pago') {
+        monthlySummary[month].income += event.payment;
       }
     });
 
@@ -127,7 +118,7 @@ export default function ReportsPage() {
     });
 
     return monthlySummary;
-  }, [transactions, purchases]);
+  }, [events, purchases]);
 
   const revenueByArtistData = useMemo(() => {
     if (!events || !artists) return [];
@@ -173,7 +164,7 @@ export default function ReportsPage() {
 
   }, [events, artists]);
   
-  const isLoading = isLoadingFinances || isLoadingEvents || isLoadingArtists || isLoadingPurchases;
+  const isLoading = isLoadingEvents || isLoadingArtists || isLoadingPurchases;
 
   return (
     <div className="space-y-8">
@@ -192,7 +183,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Receita Total</CardTitle>
-                <CardDescription>Soma de todas as receitas.</CardDescription>
+                <CardDescription>Soma de todos os pagamentos de eventos.</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-green-600">R${totalIncome.toLocaleString('pt-BR')}</p>
@@ -201,7 +192,7 @@ export default function ReportsPage() {
             <Card>
               <CardHeader>
                 <CardTitle>Despesa Total</CardTitle>
-                 <CardDescription>Soma de todas as despesas.</CardDescription>
+                 <CardDescription>Soma de todas as compras.</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p>
@@ -279,9 +270,9 @@ export default function ReportsPage() {
 
           <Card>
             <CardHeader>
-              <CardTitle>Transações Recentes</CardTitle>
+              <CardTitle>Atividade Recente</CardTitle>
               <CardDescription>
-                As 10 transações financeiras mais recentes.
+                As 10 transações financeiras mais recentes (receitas de eventos e compras).
               </CardDescription>
             </CardHeader>
             <CardContent>
@@ -326,5 +317,3 @@ export default function ReportsPage() {
     </div>
   );
 }
-
-    

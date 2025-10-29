@@ -22,7 +22,6 @@ const navItems = [
   { href: '/events', label: 'Eventos', icon: Calendar },
   { href: '/clients', label: 'Clientes', icon: Users },
   { href: '/artists', label: 'Artistas', icon: Music },
-  { href: '/finances', label: 'Finanças', icon: DollarSign },
   { href: '/purchases', label: 'Compras', icon: ShoppingCart },
   { href: '/reports', label: 'Relatórios', icon: BarChart2 },
 ];

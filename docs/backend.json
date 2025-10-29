@@ -152,52 +152,6 @@
         "userId"
       ]
     },
-    "Finance": {
-      "title": "Finance",
-      "type": "object",
-      "description": "Represents financial information related to events or other income/expenses.",
-      "properties": {
-        "description": {
-          "type": "string",
-          "description": "Description of the financial transaction."
-        },
-        "amount": {
-          "type": "number",
-          "description": "Amount of the transaction (positive for income, negative for expense)."
-        },
-        "date": {
-          "type": "string",
-          "description": "Date of the financial transaction.",
-          "format": "date"
-        },
-        "type": {
-          "type": "string",
-          "enum": [
-            "Receita",
-            "Despesa"
-          ]
-        },
-        "eventId": {
-          "type": "string",
-          "description": "Reference to Event."
-        },
-        "artistId": {
-          "type": "string",
-          "description": "Reference to an Artist if the transaction is an expense/payment to them."
-        },
-        "userId": {
-          "type": "string",
-          "description": "The ID of the user who owns this financial record."
-        }
-      },
-      "required": [
-        "description",
-        "amount",
-        "date",
-        "type",
-        "userId"
-      ]
-    },
     "Purchase": {
       "title": "Purchase",
       "type": "object",
@@ -276,12 +230,6 @@
       },
       "description": "Stores event information."
     },
-    "/finances/{financeId}": {
-      "schema": {
-        "$ref": "#/entities/Finance"
-      },
-      "description": "Stores financial information."
-    },
     "/purchases/{purchaseId}": {
       "schema": {
         "$ref": "#/entities/Purchase"
@@ -290,6 +238,3 @@
     }
   }
 }
-
-
-    

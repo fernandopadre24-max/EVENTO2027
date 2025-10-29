@@ -96,8 +96,6 @@ export default function EventsPage() {
   const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
 
-  const financesRef = useMemoFirebase(() => collection(firestore, 'finances'), [firestore]);
-
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [newEvent, setNewEvent] = useState(initialNewEventState);
@@ -228,22 +226,9 @@ export default function EventsPage() {
   };
 
   const updatePaymentStatus = (event: Event, paymentStatus: PaymentStatus) => {
-    if (!firestore || !financesRef || !user) return;
+    if (!firestore || !user) return;
     const eventDocRef = doc(firestore, 'events', event.id);
     updateDocumentNonBlocking(eventDocRef, { paymentStatus });
-    
-    if (paymentStatus === 'Pago' && event.paymentStatus !== 'Pago') {
-      const client = clients?.find(c => c.id === event.clientId);
-      const financialTransaction = {
-        type: 'Receita' as 'Receita' | 'Despesa',
-        description: `Pagamento do evento para ${client?.name || 'Cliente desconhecido'} em ${format(parseISO(event.date), 'dd/MM/yyyy', { locale: ptBR })}`,
-        amount: event.payment,
-        date: format(new Date(), 'yyyy-MM-dd'),
-        eventId: event.id,
-        userId: user.uid,
-      };
-      addDocumentNonBlocking(financesRef, financialTransaction);
-    }
   };
 
   const openDeleteAlert = (event: Event) => {
@@ -600,4 +585,3 @@ export default function EventsPage() {
     </div>
   );
 }
-

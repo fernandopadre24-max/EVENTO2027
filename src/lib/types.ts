@@ -38,17 +38,6 @@ export interface Event {
   userId: string;
 }
 
-export interface FinancialTransaction {
-  id: string;
-  type: 'Receita' | 'Despesa';
-  description: string;
-  amount: number;
-  date: string;
-  eventId?: string;
-  artistId?: string;
-  userId: string;
-}
-
 export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';
 
 export interface Purchase {
