@@ -317,7 +317,7 @@ export default function FinancesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && <p>Carregando transações...</p>}
+          {isLoading && <p className='text-center text-muted-foreground'>Carregando transações...</p>}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
@@ -341,7 +341,7 @@ export default function FinancesPage() {
                   return (
                     <TableRow key={transaction.id}>
                       <TableCell>
-                        <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
+                        <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600 border-green-600/30 bg-green-500/10' : 'text-red-600 border-red-600/30 bg-red-500/10')}>
                           {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
                           {transaction.type}
                         </Badge>
@@ -377,8 +377,15 @@ export default function FinancesPage() {
               </TableBody>
             </Table>
           </div>
+           {!isLoading && transactions?.length === 0 && (
+            <div className="text-center text-muted-foreground py-10">
+              Nenhuma transação encontrada.
+            </div>
+          )}
         </CardContent>
       </Card>
     </div>
   );
 }
+
+    
