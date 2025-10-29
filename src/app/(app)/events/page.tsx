@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, Volume2, VolumeX } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -532,6 +532,7 @@ export default function EventsPage() {
                   <TableHead className="hidden sm:table-cell">Data e Hora</TableHead>
                   <TableHead className="hidden md:table-cell">Local</TableHead>
                   <TableHead className="hidden lg:table-cell">Artistas</TableHead>
+                  <TableHead className="hidden xl:table-cell">Som</TableHead>
                   <TableHead className="hidden sm:table-cell">Pagamento</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead className="hidden lg:table-cell">Pagamento</TableHead>
@@ -547,10 +548,7 @@ export default function EventsPage() {
                   return (
                     <TableRow key={event.id}>
                       <TableCell>
-                        <div className="font-medium flex items-center gap-2">
-                          {event.hasSound ? <Volume2 className="h-4 w-4 text-primary" /> : <VolumeX className="h-4 w-4 text-muted-foreground" />}
-                          {client?.name}
-                        </div>
+                        <div className="font-medium">{client?.name}</div>
                         <div className="text-sm text-muted-foreground sm:hidden">
                             {format(parseISO(event.date), 'dd/MM/yy')} às {event.time}
                         </div>
@@ -560,6 +558,13 @@ export default function EventsPage() {
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{event.local}</TableCell>
                       <TableCell className="hidden lg:table-cell">{eventArtists?.map(a => a.name).join(', ')}</TableCell>
+                      <TableCell className="hidden xl:table-cell">
+                          <Switch
+                              checked={event.hasSound}
+                              onCheckedChange={() => toggleSoundStatus(event)}
+                              aria-label="Status do som"
+                          />
+                      </TableCell>
                       <TableCell className="hidden sm:table-cell">R${event.payment.toLocaleString('pt-BR')}</TableCell>
                       <TableCell>
                         <Badge variant="outline" className={cn('font-semibold', statusColors[event.status])}>
@@ -616,3 +621,5 @@ export default function EventsPage() {
     </div>
   );
 }
+
+    
