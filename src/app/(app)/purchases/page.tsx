@@ -271,7 +271,7 @@ export default function PurchasesPage() {
           </div>
         </div>
         <DialogFooter>
-          <Button type="submit">Salvar Compra</Button>
+          <Button type="submit">Salvar Pagamento</Button>
         </DialogFooter>
       </form>
     )
