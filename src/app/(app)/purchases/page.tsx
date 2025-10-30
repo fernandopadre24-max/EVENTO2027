@@ -178,7 +178,8 @@ export default function PurchasesPage() {
   
     const { totalSpent, numberOfPurchases } = useMemo(() => {
         if (!purchases) return { totalSpent: 0, numberOfPurchases: 0 };
-        const total = purchases.reduce((sum, p) => sum + p.amount, 0);
+        const paidPurchases = purchases.filter(p => p.status === 'Pago');
+        const total = paidPurchases.reduce((sum, p) => sum + p.amount, 0);
         return { totalSpent: total, numberOfPurchases: purchases.length };
     }, [purchases]);
 
@@ -551,7 +552,7 @@ export default function PurchasesPage() {
             <Accordion type="multiple" className="w-full">
                 {sortedArtistEntries.map(([artistId, artistPurchases]) => {
                     const artist = artists?.find(a => a.id === artistId);
-                    const totalPaidToArtist = artistPurchases.reduce((acc, p) => acc + p.amount, 0);
+                    const totalPaidToArtist = artistPurchases.filter(p => p.status === 'Pago').reduce((acc, p) => acc + p.amount, 0);
                     if (!artist) return null;
 
                     return (
@@ -583,7 +584,7 @@ export default function PurchasesPage() {
                                     <span className="font-semibold text-lg">Outros Pagamentos</span>
                                 </div>
                                  <span className="font-bold text-lg text-red-600">
-                                    R${otherPayments.reduce((acc, p) => acc + p.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    R${otherPayments.filter(p => p.status === 'Pago').reduce((acc, p) => acc + p.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
                             </div>
                         </AccordionTrigger>
