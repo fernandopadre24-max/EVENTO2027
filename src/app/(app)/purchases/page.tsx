@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, MessageSquare, PieChart, BarChart2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, PieChart, BarChart2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -55,18 +55,10 @@ import { collection, doc, query, where } from 'firebase/firestore';
 import { format, parseISO } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { Switch } from '@/components/ui/switch';
-import { Badge } from '@/components/ui/badge';
-import { cn } from '@/lib/utils';
 import { Bar, BarChart, Pie, PieChart as RechartsPieChart, Cell, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis, Legend } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-
-const purchaseStatusColors: Record<PurchaseStatus, string> = {
-  Pago: 'bg-green-400/20 text-green-600 border-green-400/30',
-  'Não Pago': 'bg-gray-400/20 text-gray-600 border-gray-400/30',
-};
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
@@ -77,7 +69,8 @@ const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     artistId: '',
     amount: 0,
     date: format(new Date(), 'yyyy-MM-dd'),
-    paymentMethod: 'Dinheiro',
+    paymentMethod: 'PIX',
+    pixKey: '',
     installments: 1,
     details: '',
     status: 'Não Pago',
@@ -102,7 +95,7 @@ export default function PurchasesPage() {
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
-  const [newPurchase, setNewPurchase] = useState<Omit<Purchase, 'id' | 'userId'>>(initialNewPurchaseState);
+  const [newPurchase, setNewPurchase] = useState<Omit<Purchase, 'id' | 'userId' | 'pixKey'> & { pixKey?: string }>(initialNewPurchaseState);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -127,6 +120,9 @@ export default function PurchasesPage() {
     const purchasesCollectionRef = collection(firestore, 'purchases');
     
     let dataToAdd: any = { ...newPurchase, userId: user.uid };
+    if (dataToAdd.paymentMethod !== 'PIX') {
+      delete dataToAdd.pixKey;
+    }
     if (!dataToAdd.installments || dataToAdd.installments < 1) {
         dataToAdd.installments = 1;
     }
@@ -141,6 +137,10 @@ export default function PurchasesPage() {
     if (!firestore || !selectedPurchase) return;
     const purchaseDocRef = doc(firestore, 'purchases', selectedPurchase.id);
     const { id, ...purchaseData } = selectedPurchase;
+     
+    if (purchaseData.paymentMethod !== 'PIX') {
+      (purchaseData as Partial<Purchase>).pixKey = undefined;
+    }
 
      if (!purchaseData.installments || purchaseData.installments < 1) {
         purchaseData.installments = 1;
@@ -271,6 +271,14 @@ export default function PurchasesPage() {
               </SelectContent>
             </Select>
           </div>
+          {currentData.paymentMethod === 'PIX' && (
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="pixKey" className="text-right">
+                Chave PIX
+              </Label>
+              <Input id="pixKey" value={(currentData as Purchase).pixKey || ''} onChange={handleInputChange} placeholder="Chave PIX do destinatário" className="col-span-3" />
+            </div>
+          )}
           <div className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor="installments" className="text-right">
               Parcelas
@@ -287,7 +295,6 @@ export default function PurchasesPage() {
                 checked={currentData.status === 'Pago'}
                 onCheckedChange={handleStatusToggle}
               />
-              <span className="text-sm text-muted-foreground">{currentData.status}</span>
             </div>
           </div>
           <div className="grid grid-cols-4 items-start gap-4">
@@ -461,6 +468,7 @@ export default function PurchasesPage() {
                       <TableCell>
                         <div className="font-medium">{purchase.description}</div>
                          <div className="text-sm text-muted-foreground">{artistPaid?.name || purchase.recipient}</div>
+                         {purchase.pixKey && <div className="text-xs text-muted-foreground">PIX: {purchase.pixKey}</div>}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                       <TableCell>
@@ -470,19 +478,8 @@ export default function PurchasesPage() {
                               aria-label="Status do pagamento"
                           />
                       </TableCell>
-                      <TableCell className="hidden sm:table-cell">
-                        {purchase.details && (
-                          <TooltipProvider>
-                            <Tooltip>
-                              <TooltipTrigger>
-                                <MessageSquare className="w-5 h-5 text-muted-foreground cursor-pointer" />
-                              </TooltipTrigger>
-                              <TooltipContent>
-                                <p className="max-w-xs">{purchase.details}</p>
-                              </TooltipContent>
-                            </Tooltip>
-                          </TooltipProvider>
-                        )}
+                      <TableCell className="hidden md:table-cell">
+                        <span className="text-sm text-muted-foreground">{purchase.details}</span>
                       </TableCell>
                       <TableCell className="text-right">
                         <div>R${purchase.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>

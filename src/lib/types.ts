@@ -51,6 +51,7 @@ export interface Purchase {
   amount: number;
   date: string;
   paymentMethod: PaymentMethod;
+  pixKey?: string;
   installments?: number;
   userId: string;
   details?: string;

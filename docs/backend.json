@@ -191,6 +191,10 @@
             "Cartão de Débito"
           ]
         },
+        "pixKey": {
+          "type": "string",
+          "description": "PIX key for the recipient."
+        },
         "installments": {
           "type": "number",
           "description": "Number of installments for credit card payment."
