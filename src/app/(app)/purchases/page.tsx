@@ -450,6 +450,7 @@ export default function PurchasesPage() {
                   <TableHead>Descrição</TableHead>
                   <TableHead className="hidden sm:table-cell">Data</TableHead>
                   <TableHead>Pago</TableHead>
+                  <TableHead className="hidden sm:table-cell">Chave PIX</TableHead>
                   <TableHead className="hidden md:table-cell">Detalhes</TableHead>
                   <TableHead className="text-right">Valor</TableHead>
                   <TableHead>
@@ -468,7 +469,6 @@ export default function PurchasesPage() {
                       <TableCell>
                         <div className="font-medium">{purchase.description}</div>
                          <div className="text-sm text-muted-foreground">{artistPaid?.name || purchase.recipient}</div>
-                         {purchase.pixKey && <div className="text-xs text-muted-foreground">PIX: {purchase.pixKey}</div>}
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
                       <TableCell>
@@ -478,6 +478,7 @@ export default function PurchasesPage() {
                               aria-label="Status do pagamento"
                           />
                       </TableCell>
+                       <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{purchase.pixKey}</TableCell>
                       <TableCell className="hidden md:table-cell">
                         <span className="text-sm text-muted-foreground">{purchase.details}</span>
                       </TableCell>
@@ -521,3 +522,5 @@ export default function PurchasesPage() {
     </div>
   );
 }
+
+    
