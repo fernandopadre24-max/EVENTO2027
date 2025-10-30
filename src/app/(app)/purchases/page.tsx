@@ -59,6 +59,7 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Bar, BarChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts';
 
 
 const purchaseStatusColors: Record<PurchaseStatus, string> = {
@@ -176,6 +177,28 @@ export default function PurchasesPage() {
         const total = purchases.reduce((sum, p) => sum + p.amount, 0);
         return { totalSpent: total, numberOfPurchases: purchases.length };
     }, [purchases]);
+
+    const artistPaymentsData = useMemo(() => {
+        if (!purchases || !artists) return [];
+    
+        const paymentsByArtist = purchases.reduce((acc, purchase) => {
+          if (purchase.artistId && purchase.status === 'Pago') {
+            if (!acc[purchase.artistId]) {
+              acc[purchase.artistId] = 0;
+            }
+            acc[purchase.artistId] += purchase.amount;
+          }
+          return acc;
+        }, {} as Record<string, number>);
+    
+        return artists
+          .map(artist => ({
+            name: artist.name.split(' ')[0], // Get first name for brevity in chart
+            totalPaid: paymentsByArtist[artist.id] || 0,
+          }))
+          .filter(data => data.totalPaid > 0);
+    
+      }, [purchases, artists]);
 
     const isLoading = isLoadingPurchases || isLoadingArtists;
 
@@ -347,6 +370,29 @@ export default function PurchasesPage() {
                 </CardContent>
             </Card>
         </div>
+
+        {artistPaymentsData.length > 0 && (
+            <Card>
+                <CardHeader>
+                    <CardTitle>Pagamentos por Artista</CardTitle>
+                    <CardDescription>Total de pagamentos efetuados para cada artista.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                    <ResponsiveContainer width="100%" height={300}>
+                        <BarChart data={artistPaymentsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `R$${value}`} />
+                            <ChartTooltip 
+                                cursor={{fill: 'hsl(var(--muted))'}}
+                                contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
+                                formatter={(value: number) => [`R$${value.toLocaleString('pt-BR')}`, 'Total Pago']}
+                            />
+                            <Bar dataKey="totalPaid" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                </CardContent>
+            </Card>
+        )}
 
 
       <Card>
