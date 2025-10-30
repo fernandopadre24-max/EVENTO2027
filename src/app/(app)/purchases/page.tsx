@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, PieChart, BarChart2, ChevronDown, ChevronRight, User, Package } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, PieChart, BarChart2, User, Package, Search, CalendarIcon, X } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -51,14 +51,16 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
-import { format, parseISO } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
 import { Bar, BarChart, Pie, PieChart as RechartsPieChart, Cell, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis, Legend } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
-
+import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover';
+import { Calendar } from '@/components/ui/calendar';
+import { cn } from '@/lib/utils';
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
 
@@ -87,7 +89,6 @@ export default function PurchasesPage() {
   const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
 
-
   const [isAddOpen, setAddOpen] = useState(false);
   const [isEditOpen, setEditOpen] = useState(false);
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
@@ -96,6 +97,41 @@ export default function PurchasesPage() {
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
   const [newPurchase, setNewPurchase] = useState<Omit<Purchase, 'id' | 'userId' | 'pixKey'> & { pixKey?: string }>(initialNewPurchaseState);
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState<PurchaseStatus | 'all'>('all');
+  const [paymentMethodFilter, setPaymentMethodFilter] = useState<PaymentMethod | 'all'>('all');
+  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>();
+  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>();
+
+  const filteredPurchases = useMemo(() => {
+    return purchases
+      ?.filter(purchase => {
+        const searchLower = searchTerm.toLowerCase();
+
+        const descriptionMatch = purchase.description.toLowerCase().includes(searchLower);
+        const recipientMatch = purchase.recipient?.toLowerCase().includes(searchLower);
+        
+        const statusMatch = statusFilter === 'all' || purchase.status === statusFilter;
+        const paymentMethodMatch = paymentMethodFilter === 'all' || purchase.paymentMethod === paymentMethodFilter;
+
+        const purchaseDate = parseISO(purchase.date);
+        const dateMatch =
+          (!startDateFilter || purchaseDate >= startOfDay(startDateFilter)) &&
+          (!endDateFilter || purchaseDate <= endOfDay(endDateFilter));
+
+        return (descriptionMatch || recipientMatch) && statusMatch && paymentMethodMatch && dateMatch;
+      })
+      .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()) || [];
+  }, [purchases, searchTerm, statusFilter, paymentMethodFilter, startDateFilter, endDateFilter]);
+
+  const clearFilters = () => {
+    setSearchTerm('');
+    setStatusFilter('all');
+    setPaymentMethodFilter('all');
+    setStartDateFilter(undefined);
+    setEndDateFilter(undefined);
+  };
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -211,9 +247,9 @@ export default function PurchasesPage() {
         const paymentsByArtist = new Map<string, Purchase[]>();
         const otherPayments: Purchase[] = [];
 
-        if (!purchases || !artists) return { paymentsByArtist, otherPayments };
+        if (!filteredPurchases || !artists) return { paymentsByArtist, otherPayments };
 
-        purchases.forEach(p => {
+        filteredPurchases.forEach(p => {
             if (p.artistId && artists.find(a => a.id === p.artistId)) {
                 const artistPurchases = paymentsByArtist.get(p.artistId) || [];
                 artistPurchases.push(p);
@@ -224,7 +260,7 @@ export default function PurchasesPage() {
         });
 
         return { paymentsByArtist, otherPayments };
-    }, [purchases, artists]);
+    }, [filteredPurchases, artists]);
 
     const sortedArtistEntries = useMemo(() => {
         return Array.from(paymentsByArtist.entries()).sort((a, b) => {
@@ -539,17 +575,91 @@ export default function PurchasesPage() {
             </Card>
         )}
 
-
       <Card>
         <CardHeader>
           <CardTitle>Histórico de Pagamentos</CardTitle>
           <CardDescription>
-            Gerencie todas as suas compras e despesas.
+            Filtre e gerencie todas as suas compras e despesas.
           </CardDescription>
         </CardHeader>
         <CardContent>
-            {isLoading && <p>Carregando pagamentos...</p>}
-            <Accordion type="multiple" className="w-full">
+            {isLoading && <p className='py-4'>Carregando pagamentos...</p>}
+            <div className="space-y-4 pb-4">
+              <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+                  <div className="relative w-full md:max-w-sm">
+                      <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
+                      <Input
+                      type="search"
+                      placeholder="Buscar por descrição ou recebedor..."
+                      className="pl-8"
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      />
+                  </div>
+                  <div className="flex flex-col sm:flex-row gap-4">
+                      <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as PurchaseStatus | 'all')}>
+                          <SelectTrigger className="w-full sm:w-[180px]">
+                              <SelectValue placeholder="Filtrar por Status" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="all">Todos os Status</SelectItem>
+                              <SelectItem value="Pago">Pago</SelectItem>
+                              <SelectItem value="Não Pago">Não Pago</SelectItem>
+                          </SelectContent>
+                      </Select>
+                      <Select value={paymentMethodFilter} onValueChange={(value) => setPaymentMethodFilter(value as PaymentMethod | 'all')}>
+                          <SelectTrigger className="w-full sm:w-[180px]">
+                              <SelectValue placeholder="Filtrar por Método" />
+                          </SelectTrigger>
+                          <SelectContent>
+                              <SelectItem value="all">Todos os Métodos</SelectItem>
+                              <SelectItem value="Dinheiro">Dinheiro</SelectItem>
+                              <SelectItem value="PIX">PIX</SelectItem>
+                              <SelectItem value="Cartão de Crédito">Cartão de Crédito</SelectItem>
+                              <SelectItem value="Cartão de Débito">Cartão de Débito</SelectItem>
+                          </SelectContent>
+                      </Select>
+                  </div>
+              </div>
+              <div className="flex flex-col sm:flex-row gap-4 items-center">
+                  <div className="flex w-full sm:w-auto gap-4">
+                      <Popover>
+                          <PopoverTrigger asChild>
+                          <Button
+                              variant={"outline"}
+                              className={cn("w-full justify-start text-left font-normal", !startDateFilter && "text-muted-foreground")}
+                          >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {startDateFilter ? format(startDateFilter, "dd/MM/yy") : <span>De</span>}
+                          </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                          <Calendar mode="single" selected={startDateFilter} onSelect={setStartDateFilter} initialFocus locale={ptBR}/>
+                          </PopoverContent>
+                      </Popover>
+                      <Popover>
+                          <PopoverTrigger asChild>
+                          <Button
+                              variant={"outline"}
+                              className={cn("w-full justify-start text-left font-normal", !endDateFilter && "text-muted-foreground")}
+                          >
+                              <CalendarIcon className="mr-2 h-4 w-4" />
+                              {endDateFilter ? format(endDateFilter, "dd/MM/yy") : <span>Até</span>}
+                          </Button>
+                          </PopoverTrigger>
+                          <PopoverContent className="w-auto p-0">
+                          <Calendar mode="single" selected={endDateFilter} onSelect={setEndDateFilter} initialFocus locale={ptBR}/>
+                          </PopoverContent>
+                      </Popover>
+                  </div>
+                  <Button variant="ghost" onClick={clearFilters} className="w-full sm:w-auto">
+                      <X className="mr-2 h-4 w-4" />
+                      Limpar Filtros
+                  </Button>
+              </div>
+            </div>
+            
+            <Accordion type="multiple" className="w-full" defaultValue={['outros', ...(artists?.map(a => a.id) || [])]}>
                 {sortedArtistEntries.map(([artistId, artistPurchases]) => {
                     const artist = artists?.find(a => a.id === artistId);
                     const totalPaidToArtist = artistPurchases.filter(p => p.status === 'Pago').reduce((acc, p) => acc + p.amount, 0);
