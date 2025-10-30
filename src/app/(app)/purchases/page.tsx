@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -18,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, PieChart, BarChart2 } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, PieChart, BarChart2, ChevronDown, ChevronRight } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -58,6 +57,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Switch } from '@/components/ui/switch';
 import { Bar, BarChart, Pie, PieChart as RechartsPieChart, Cell, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis, Legend } from 'recharts';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from '@/components/ui/accordion';
 
 
 const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
@@ -206,6 +206,34 @@ export default function PurchasesPage() {
 
     const isLoading = isLoadingPurchases || isLoadingArtists;
 
+    const { paymentsByArtist, otherPayments } = useMemo(() => {
+        const paymentsByArtist = new Map<string, Purchase[]>();
+        const otherPayments: Purchase[] = [];
+
+        if (!purchases || !artists) return { paymentsByArtist, otherPayments };
+
+        purchases.forEach(p => {
+            if (p.artistId && artists.find(a => a.id === p.artistId)) {
+                const artistPurchases = paymentsByArtist.get(p.artistId) || [];
+                artistPurchases.push(p);
+                paymentsByArtist.set(p.artistId, artistPurchases);
+            } else {
+                otherPayments.push(p);
+            }
+        });
+
+        return { paymentsByArtist, otherPayments };
+    }, [purchases, artists]);
+
+    const sortedArtistEntries = useMemo(() => {
+        return Array.from(paymentsByArtist.entries()).sort((a, b) => {
+            const artistA = artists?.find(artist => artist.id === a[0]);
+            const artistB = artists?.find(artist => artist.id === b[0]);
+            return artistA?.name.localeCompare(artistB?.name || '') || 0;
+        });
+    }, [paymentsByArtist, artists]);
+
+
   const renderForm = (isEditing: boolean) => {
     const currentData = isEditing ? selectedPurchase : newPurchase;
     const handleSubmit = isEditing ? handleEditSubmit : handleAddSubmit;
@@ -310,6 +338,83 @@ export default function PurchasesPage() {
       </form>
     )
   }
+  
+  const renderPurchasesTable = (purchasesList: Purchase[]) => (
+    <div className="overflow-x-auto">
+        <Table>
+            <TableHeader>
+                <TableRow>
+                    <TableHead>Descrição</TableHead>
+                    <TableHead className="hidden sm:table-cell">Data</TableHead>
+                    <TableHead>Pago</TableHead>
+                    <TableHead className="hidden sm:table-cell">Chave PIX</TableHead>
+                    <TableHead className="hidden md:table-cell">Detalhes</TableHead>
+                    <TableHead className="text-right">Valor</TableHead>
+                    <TableHead>
+                        <span className="sr-only">Ações</span>
+                    </TableHead>
+                </TableRow>
+            </TableHeader>
+            <TableBody>
+                {purchasesList.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((purchase) => {
+                    const hasInstallments = purchase.installments && purchase.installments > 1;
+                    const installmentValue = hasInstallments ? purchase.amount / purchase.installments : 0;
+                    const artistPaid = artists?.find(a => a.id === purchase.artistId);
+
+                    return (
+                        <TableRow key={purchase.id}>
+                            <TableCell>
+                                <div className="font-medium">{purchase.description}</div>
+                                <div className="text-sm text-muted-foreground">{artistPaid?.name || purchase.recipient}</div>
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
+                            <TableCell>
+                                <Switch
+                                    checked={purchase.status === 'Pago'}
+                                    onCheckedChange={() => togglePurchaseStatus(purchase)}
+                                    aria-label="Status do pagamento"
+                                />
+                            </TableCell>
+                            <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{purchase.pixKey}</TableCell>
+                            <TableCell className="hidden md:table-cell">
+                                <span className="text-sm text-muted-foreground">{purchase.details}</span>
+                            </TableCell>
+                            <TableCell className="text-right">
+                                <div>R${purchase.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                {hasInstallments && (
+                                    <div className="text-xs text-muted-foreground">
+                                        {purchase.installments}x de R${installmentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </div>
+                                )}
+                            </TableCell>
+                            <TableCell>
+                                <DropdownMenu>
+                                    <DropdownMenuTrigger asChild>
+                                        <Button aria-haspopup="true" size="icon" variant="ghost">
+                                            <MoreHorizontal className="w-4 h-4" />
+                                            <span className="sr-only">Alternar menu</span>
+                                        </Button>
+                                    </DropdownMenuTrigger>
+                                    <DropdownMenuContent align="end">
+                                        <DropdownMenuLabel>Ações</DropdownMenuLabel>
+                                        <DropdownMenuItem onClick={() => openEditDialog(purchase)}>Editar</DropdownMenuItem>
+                                        <DropdownMenuItem onClick={() => togglePurchaseStatus(purchase)}>
+                                            {purchase.status === 'Pago' ? 'Marcar como Não Pago' : 'Marcar como Pago'}
+                                        </DropdownMenuItem>
+                                        <DropdownMenuSeparator />
+                                        <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(purchase)}>
+                                            Excluir
+                                        </DropdownMenuItem>
+                                    </DropdownMenuContent>
+                                </DropdownMenu>
+                            </TableCell>
+                        </TableRow>
+                    )
+                })}
+            </TableBody>
+        </Table>
+    </div>
+  );
 
   return (
     <div className="space-y-8">
@@ -392,8 +497,8 @@ export default function PurchasesPage() {
                                 <CardDescription>Total de pagamentos efetuados para cada artista.</CardDescription>
                             </div>
                             <TabsList>
-                                <TabsTrigger value="bar"><BarChart2 className="h-5 w-5" /></TabsTrigger>
-                                <TabsTrigger value="pie"><PieChart className="h-5 w-5" /></TabsTrigger>
+                                <TabsTrigger value="bar"><BarChart2 className="w-5 h-5" /></TabsTrigger>
+                                <TabsTrigger value="pie"><PieChart className="w-5 h-5" /></TabsTrigger>
                             </TabsList>
                         </div>
                     </CardHeader>
@@ -442,85 +547,48 @@ export default function PurchasesPage() {
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {isLoading && <p>Carregando pagamentos...</p>}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Descrição</TableHead>
-                  <TableHead className="hidden sm:table-cell">Data</TableHead>
-                  <TableHead>Pago</TableHead>
-                  <TableHead className="hidden sm:table-cell">Chave PIX</TableHead>
-                  <TableHead className="hidden md:table-cell">Detalhes</TableHead>
-                  <TableHead className="text-right">Valor</TableHead>
-                  <TableHead>
-                    <span className="sr-only">Ações</span>
-                  </TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {purchases?.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((purchase) => {
-                  const hasInstallments = purchase.installments && purchase.installments > 1;
-                  const installmentValue = hasInstallments ? purchase.amount / purchase.installments : 0;
-                  const artistPaid = artists?.find(a => a.id === purchase.artistId);
+            {isLoading && <p>Carregando pagamentos...</p>}
+            <Accordion type="multiple" className="w-full">
+                {sortedArtistEntries.map(([artistId, artistPurchases]) => {
+                    const artist = artists?.find(a => a.id === artistId);
+                    const totalPaidToArtist = artistPurchases.reduce((acc, p) => acc + p.amount, 0);
+                    if (!artist) return null;
 
-                  return (
-                    <TableRow key={purchase.id}>
-                      <TableCell>
-                        <div className="font-medium">{purchase.description}</div>
-                         <div className="text-sm text-muted-foreground">{artistPaid?.name || purchase.recipient}</div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">{format(parseISO(purchase.date), 'dd/MM/yyyy', { locale: ptBR })}</TableCell>
-                      <TableCell>
-                         <Switch
-                              checked={purchase.status === 'Pago'}
-                              onCheckedChange={() => togglePurchaseStatus(purchase)}
-                              aria-label="Status do pagamento"
-                          />
-                      </TableCell>
-                       <TableCell className="hidden sm:table-cell text-sm text-muted-foreground">{purchase.pixKey}</TableCell>
-                      <TableCell className="hidden md:table-cell">
-                        <span className="text-sm text-muted-foreground">{purchase.details}</span>
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <div>R${purchase.amount.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                        {hasInstallments && (
-                            <div className="text-xs text-muted-foreground">
-                                {purchase.installments}x de R${installmentValue.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
-                            </div>
-                        )}
-                      </TableCell>
-                      <TableCell>
-                        <DropdownMenu>
-                          <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost">
-                              <MoreHorizontal className="w-4 h-4" />
-                              <span className="sr-only">Alternar menu</span>
-                            </Button>
-                          </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => openEditDialog(purchase)}>Editar</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => togglePurchaseStatus(purchase)}>
-                              {purchase.status === 'Pago' ? 'Marcar como Não Pago' : 'Marcar como Pago'}
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(purchase)}>
-                              Excluir
-                            </DropdownMenuItem>
-                          </DropdownMenuContent>
-                        </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
-                  )
+                    return (
+                        <AccordionItem value={artistId} key={artistId}>
+                            <AccordionTrigger className="hover:no-underline">
+                                <div className="flex justify-between w-full pr-4">
+                                    <span className="font-semibold text-lg">{artist.name}</span>
+                                    <span className="font-bold text-lg text-red-600">
+                                        R${totalPaidToArtist.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                    </span>
+                                </div>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                                {renderPurchasesTable(artistPurchases)}
+                            </AccordionContent>
+                        </AccordionItem>
+                    );
                 })}
-              </TableBody>
-            </Table>
-          </div>
+
+                {otherPayments.length > 0 && (
+                    <AccordionItem value="outros">
+                        <AccordionTrigger className="hover:no-underline">
+                            <div className="flex justify-between w-full pr-4">
+                                <span className="font-semibold text-lg">Outros Pagamentos</span>
+                                 <span className="font-bold text-lg text-red-600">
+                                    R${otherPayments.reduce((acc, p) => acc + p.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                                </span>
+                            </div>
+                        </AccordionTrigger>
+                        <AccordionContent>
+                            {renderPurchasesTable(otherPayments)}
+                        </AccordionContent>
+                    </AccordionItem>
+                )}
+            </Accordion>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
