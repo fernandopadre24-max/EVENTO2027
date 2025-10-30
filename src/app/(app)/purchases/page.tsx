@@ -18,7 +18,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, MessageSquare } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, MessageSquare, PieChart, BarChart2 } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -59,13 +59,17 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import { Switch } from '@/components/ui/switch';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
-import { Bar, BarChart, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis } from 'recharts';
+import { Bar, BarChart, Pie, PieChart as RechartsPieChart, Cell, ResponsiveContainer, Tooltip as ChartTooltip, XAxis, YAxis, Legend } from 'recharts';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 
 const purchaseStatusColors: Record<PurchaseStatus, string> = {
   Pago: 'bg-green-400/20 text-green-600 border-green-400/30',
   'Não Pago': 'bg-gray-400/20 text-gray-600 border-gray-400/30',
 };
+
+const CHART_COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))', 'hsl(var(--chart-5))'];
+
 
 const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     description: '',
@@ -194,9 +198,9 @@ export default function PurchasesPage() {
         return artists
           .map(artist => ({
             name: artist.name.split(' ')[0], // Get first name for brevity in chart
-            totalPaid: paymentsByArtist[artist.id] || 0,
+            value: paymentsByArtist[artist.id] || 0,
           }))
-          .filter(data => data.totalPaid > 0);
+          .filter(data => data.value > 0);
     
       }, [purchases, artists]);
 
@@ -373,24 +377,52 @@ export default function PurchasesPage() {
 
         {artistPaymentsData.length > 0 && (
             <Card>
-                <CardHeader>
-                    <CardTitle>Pagamentos por Artista</CardTitle>
-                    <CardDescription>Total de pagamentos efetuados para cada artista.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                    <ResponsiveContainer width="100%" height={300}>
-                        <BarChart data={artistPaymentsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
-                            <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                            <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `R$${value}`} />
-                            <ChartTooltip 
-                                cursor={{fill: 'hsl(var(--muted))'}}
-                                contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
-                                formatter={(value: number) => [`R$${value.toLocaleString('pt-BR')}`, 'Total Pago']}
-                            />
-                            <Bar dataKey="totalPaid" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                </CardContent>
+                <Tabs defaultValue="bar">
+                    <CardHeader>
+                        <div className="flex justify-between items-start">
+                            <div>
+                                <CardTitle>Pagamentos por Artista</CardTitle>
+                                <CardDescription>Total de pagamentos efetuados para cada artista.</CardDescription>
+                            </div>
+                            <TabsList>
+                                <TabsTrigger value="bar"><BarChart2 className="h-5 w-5" /></TabsTrigger>
+                                <TabsTrigger value="pie"><PieChart className="h-5 w-5" /></TabsTrigger>
+                            </TabsList>
+                        </div>
+                    </CardHeader>
+                    <CardContent>
+                         <TabsContent value="bar">
+                            <ResponsiveContainer width="100%" height={300}>
+                                <BarChart data={artistPaymentsData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
+                                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(value) => `R$${value}`} />
+                                    <ChartTooltip 
+                                        cursor={{fill: 'hsl(var(--muted))'}}
+                                        contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
+                                        formatter={(value: number) => [`R$${value.toLocaleString('pt-BR')}`, 'Total Pago']}
+                                    />
+                                    <Bar dataKey="value" name="Total Pago" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                                </BarChart>
+                            </ResponsiveContainer>
+                        </TabsContent>
+                        <TabsContent value="pie">
+                             <ResponsiveContainer width="100%" height={300}>
+                                <RechartsPieChart>
+                                    <Pie data={artistPaymentsData} dataKey="value" nameKey="name" cx="50%" cy="50%" outerRadius={100} label>
+                                        {artistPaymentsData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                                        ))}
+                                    </Pie>
+                                    <ChartTooltip 
+                                        contentStyle={{ backgroundColor: 'hsl(var(--background))' }}
+                                        formatter={(value: number, name) => [`R$${value.toLocaleString('pt-BR')}`, name]}
+                                    />
+                                    <Legend />
+                                </RechartsPieChart>
+                            </ResponsiveContainer>
+                        </TabsContent>
+                    </CardContent>
+                </Tabs>
             </Card>
         )}
 
