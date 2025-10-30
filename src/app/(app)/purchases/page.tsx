@@ -17,7 +17,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, PieChart, BarChart2, ChevronDown, ChevronRight } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, PieChart, BarChart2, ChevronDown, ChevronRight, User, Package } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -558,7 +558,10 @@ export default function PurchasesPage() {
                         <AccordionItem value={artistId} key={artistId}>
                             <AccordionTrigger className="hover:no-underline">
                                 <div className="flex justify-between w-full pr-4">
-                                    <span className="font-semibold text-lg">{artist.name}</span>
+                                    <div className="flex items-center gap-2">
+                                        <User className="w-5 h-5 text-muted-foreground" />
+                                        <span className="font-semibold text-lg">{artist.name}</span>
+                                    </div>
                                     <span className="font-bold text-lg text-red-600">
                                         R${totalPaidToArtist.toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                     </span>
@@ -575,7 +578,10 @@ export default function PurchasesPage() {
                     <AccordionItem value="outros">
                         <AccordionTrigger className="hover:no-underline">
                             <div className="flex justify-between w-full pr-4">
-                                <span className="font-semibold text-lg">Outros Pagamentos</span>
+                                <div className="flex items-center gap-2">
+                                    <Package className="w-5 h-5 text-muted-foreground" />
+                                    <span className="font-semibold text-lg">Outros Pagamentos</span>
+                                </div>
                                  <span className="font-bold text-lg text-red-600">
                                     R${otherPayments.reduce((acc, p) => acc + p.amount, 0).toLocaleString('pt-BR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                 </span>
