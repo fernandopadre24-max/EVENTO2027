@@ -29,7 +29,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import type { Event, EventStatus, PaymentStatus, Client, Artist } from '@/lib/types';
-import { format, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, parse, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -132,7 +132,11 @@ export default function EventsPage() {
 
         return (clientMatch || localMatch) && statusMatch && paymentStatusMatch && dateMatch;
       })
-      .sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()) || [];
+      .sort((a, b) => {
+        const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+        const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+        return dateB.getTime() - dateA.getTime();
+      }) || [];
   }, [events, clients, searchTerm, statusFilter, paymentStatusFilter, startDateFilter, endDateFilter]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
