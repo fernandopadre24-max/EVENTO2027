@@ -181,8 +181,8 @@ export default function DashboardPage() {
                   formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`}
                 />
                 <Legend iconSize={10} />
-                <Bar dataKey="income" fill="#22c55e" name="Receita" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="outcome" fill="#f97316" name="Despesa" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="income" fill="hsl(var(--primary))" name="Receita" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="outcome" fill="hsl(var(--accent))" name="Despesa" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
