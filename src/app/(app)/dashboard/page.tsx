@@ -189,6 +189,7 @@ export default function DashboardPage() {
                   <TableRow>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Data</TableHead>
+                    <TableHead>Hora</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -198,6 +199,7 @@ export default function DashboardPage() {
                       <TableRow key={event.id}>
                         <TableCell className="font-medium">{client?.name || 'N/A'}</TableCell>
                         <TableCell>{format(parseISO(event.date), 'dd/MM')}</TableCell>
+                        <TableCell>{event.time}</TableCell>
                       </TableRow>
                     );
                   })}
