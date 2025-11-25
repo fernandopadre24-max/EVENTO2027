@@ -32,7 +32,16 @@ import { format, parseISO, getMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Event, Client, Purchase } from '@/lib/types';
+import type { Event, Client, Purchase, EventStatus } from '@/lib/types';
+import { Badge } from '@/components/ui/badge';
+import { cn } from '@/lib/utils';
+
+const statusColors: Record<EventStatus, string> = {
+  Pendente: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
+  Confirmado: 'bg-blue-400/20 text-blue-600 border-blue-400/30',
+  Concluído: 'bg-green-400/20 text-green-600 border-green-400/30',
+  Cancelado: 'bg-red-400/20 text-red-600 border-red-400/30',
+};
 
 
 export default function DashboardPage() {
@@ -68,7 +77,11 @@ export default function DashboardPage() {
     const today = startOfDay(new Date());
     return events
       .filter(e => parseISO(e.date) >= today && e.status !== 'Cancelado')
-      .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime())
+      .sort((a, b) => {
+        const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
+        const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+        return dateA.getTime() - dateB.getTime();
+      })
       .slice(0, 5);
   }, [events]);
 
@@ -189,7 +202,8 @@ export default function DashboardPage() {
                   <TableRow>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Data</TableHead>
-                    <TableHead>Hora</TableHead>
+                    <TableHead>Valor</TableHead>
+                    <TableHead>Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -197,9 +211,17 @@ export default function DashboardPage() {
                     const client = clients?.find(c => c.id === event.clientId);
                     return (
                       <TableRow key={event.id}>
-                        <TableCell className="font-medium">{client?.name || 'N/A'}</TableCell>
+                        <TableCell className="font-medium">
+                            <div>{client?.name || 'N/A'}</div>
+                            <div className="text-xs text-muted-foreground">{event.time}</div>
+                        </TableCell>
                         <TableCell>{format(parseISO(event.date), 'dd/MM')}</TableCell>
-                        <TableCell>{event.time}</TableCell>
+                        <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className={cn('font-semibold text-xs', statusColors[event.status])}>
+                            {event.status}
+                          </Badge>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
