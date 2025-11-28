@@ -202,6 +202,7 @@ export default function DashboardPage() {
                   <TableRow>
                     <TableHead>Cliente</TableHead>
                     <TableHead>Data</TableHead>
+                    <TableHead>Hora</TableHead>
                     <TableHead>Valor</TableHead>
                     <TableHead>Status</TableHead>
                   </TableRow>
@@ -213,9 +214,9 @@ export default function DashboardPage() {
                       <TableRow key={event.id}>
                         <TableCell className="font-medium">
                             <div>{client?.name || 'N/A'}</div>
-                            <div className="text-xs text-muted-foreground">{event.time}</div>
                         </TableCell>
                         <TableCell>{format(parseISO(event.date), 'dd/MM')}</TableCell>
+                        <TableCell>{event.time}</TableCell>
                         <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
                         <TableCell>
                           <Badge variant="outline" className={cn('font-semibold text-xs', statusColors[event.status])}>
