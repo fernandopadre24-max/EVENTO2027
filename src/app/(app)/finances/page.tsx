@@ -57,7 +57,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 
 
-const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
+const getInitialNewPurchaseState = (): Omit<Purchase, 'id' | 'userId'> => ({
     description: '',
     recipient: '',
     artistId: '',
@@ -67,7 +67,7 @@ const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     installments: 1,
     details: '',
     status: 'Não Pago',
-};
+});
 
 
 export default function PurchasesPage() {
@@ -84,7 +84,7 @@ export default function PurchasesPage() {
   const [selectedPurchase, setSelectedPurchase] = useState<Purchase | null>(null);
   const [purchaseToDelete, setPurchaseToDelete] = useState<Purchase | null>(null);
 
-  const [newPurchase, setNewPurchase] = useState<Omit<Purchase, 'id' | 'userId'>>(initialNewPurchaseState);
+  const [newPurchase, setNewPurchase] = useState<Omit<Purchase, 'id' | 'userId'>>(getInitialNewPurchaseState());
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
@@ -109,7 +109,7 @@ export default function PurchasesPage() {
 
     addDocumentNonBlocking(purchasesCollectionRef, dataToAdd);
     setAddOpen(false);
-    setNewPurchase(initialNewPurchaseState);
+    setNewPurchase(getInitialNewPurchaseState());
   };
   
   const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -227,7 +227,7 @@ export default function PurchasesPage() {
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Compras
         </h1>
-        <Dialog open={isAddOpen} onOpenChange={(isOpen) => { setAddOpen(isOpen); if (!isOpen) setNewPurchase(initialNewPurchaseState); }}>
+        <Dialog open={isAddOpen} onOpenChange={(isOpen) => { setAddOpen(isOpen); if (!isOpen) setNewPurchase(getInitialNewPurchaseState()); }}>
           <DialogTrigger asChild>
             <Button>
               <PlusCircle className="w-4 h-4 mr-2" />
