@@ -119,27 +119,27 @@ export default function DashboardPage() {
         Painel
       </h1>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card>
+        <Card className="bg-green-500/10 border-green-500/20 text-green-900 dark:text-green-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <ArrowUp className="w-4 h-4 text-green-500" />
+            <ArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R${totalIncome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-muted-foreground">+20.1% do último mês</p>
+            <p className="text-xs text-green-800 dark:text-green-300/80">+20.1% do último mês</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-red-500/10 border-red-500/20 text-red-900 dark:text-red-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Despesa Total</CardTitle>
-            <ArrowDown className="w-4 h-4 text-red-500" />
+            <ArrowDown className="w-4 h-4 text-red-600 dark:text-red-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R${totalOutcome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-muted-foreground">+10.5% do último mês</p>
+            <p className="text-xs text-red-800 dark:text-red-300/80">+10.5% do último mês</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="bg-accent/10 border-accent/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
             <DollarSign className="w-4 h-4 text-muted-foreground" />
@@ -236,5 +236,3 @@ export default function DashboardPage() {
     </div>
   );
 }
-
-    
