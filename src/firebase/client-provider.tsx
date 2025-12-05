@@ -1,3 +1,5 @@
 
 'use client';
-// This file is intentionally left blank. The logic has been merged into provider.tsx.
+// Este arquivo não é mais necessário e seu conteúdo foi movido.
+// Pode ser excluído com segurança.
+export {};

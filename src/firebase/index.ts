@@ -2,7 +2,7 @@
 'use client';
 
 export * from './provider';
-// FirebaseClientProvider is deprecated and removed
+export * from './firebase';
 export * from './config';
 export * from './firestore/use-collection';
 export * from './firestore/use-doc';
