@@ -1,3 +1,4 @@
+
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
@@ -7,7 +8,7 @@ import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 
-interface FirebaseServices {
+export interface FirebaseServices {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
