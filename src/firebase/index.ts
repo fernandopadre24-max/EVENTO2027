@@ -10,19 +10,9 @@ import { getStorage } from 'firebase/storage';
 // IMPORTANT: DO NOT MODIFY THIS FUNCTION
 export function initializeFirebase() {
   if (!getApps().length) {
-    // Important! initializeApp() is called without any arguments because Firebase App Hosting
-    // integrates with the initializeApp() function to provide the environment variables needed to
-    // populate the FirebaseOptions in production. It is critical that we attempt to call initializeApp()
-    // without arguments.
-    let firebaseApp;
-    try {
-      // Attempt to initialize via Firebase App Hosting environment variables
-      firebaseApp = initializeApp();
-    } catch (e) {
-      // This fallback is for production environments where App Hosting variables may not be available.
-      firebaseApp = initializeApp(firebaseConfig);
-    }
-
+    // When deploying to Vercel or other non-Firebase hosting,
+    // we need to explicitly provide the config.
+    const firebaseApp = initializeApp(firebaseConfig);
     return getSdks(firebaseApp);
   }
 
