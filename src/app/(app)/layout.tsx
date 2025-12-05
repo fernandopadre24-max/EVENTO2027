@@ -13,8 +13,7 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { AppTitleProvider, useAppTitle } from '@/context/app-title-provider';
-import { AppThemeProvider } from '@/context/app-theme-provider';
+import { useAppTitle } from '@/context/app-title-provider';
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -96,10 +95,6 @@ const topLevelRoutes = [
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
-    <AppThemeProvider>
-      <AppTitleProvider>
-          <AppLayoutContent>{children}</AppLayoutContent>
-      </AppTitleProvider>
-    </AppThemeProvider>
+      <AppLayoutContent>{children}</AppLayoutContent>
   )
 }
