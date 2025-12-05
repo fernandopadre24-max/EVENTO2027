@@ -81,8 +81,10 @@ export function useDoc<T = any>(
         setData(null)
         setIsLoading(false)
 
-        // trigger global error propagation
-        errorEmitter.emit('permission-error', contextualError);
+        // trigger global error propagation, but only on the client
+        if (typeof window !== 'undefined') {
+          errorEmitter.emit('permission-error', contextualError);
+        }
       }
     );
 
