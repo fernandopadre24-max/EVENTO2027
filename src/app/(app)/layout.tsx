@@ -13,13 +13,12 @@ import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { useAppTitle } from '@/context/app-title-provider';
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const { title } = useAppTitle();
+  const title = 'BandMate';
 
   useEffect(() => {
     // If loading is finished and there's no user, redirect to login
