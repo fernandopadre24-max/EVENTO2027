@@ -15,7 +15,7 @@ interface FirebaseClientProviderProps {
 
 // A single function to initialize Firebase
 function getFirebaseServices(): FirebaseServices {
-  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+  const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApp();
   return {
     firebaseApp: app,
     auth: getAuth(app),

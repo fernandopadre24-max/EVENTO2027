@@ -47,30 +47,21 @@ export const FirebaseProvider: React.FC<{ children: ReactNode; services: Firebas
   children,
   services,
 }) => {
-  const [userAuthState, setUserAuthState] = useState<{
-    user: User | null;
-    isUserLoading: boolean;
-    userError: Error | null;
-  }>({
-    user: null,
-    isUserLoading: true,
-    userError: null,
-  });
+  const [user, setUser] = useState<User | null>(null);
+  const [isUserLoading, setIsUserLoading] = useState(true);
+  const [userError, setUserError] = useState<Error | null>(null);
 
   useEffect(() => {
-    if (!services.auth) {
-      setUserAuthState({ user: null, isUserLoading: false, userError: new Error("Auth service not available.") });
-      return;
-    }
-
     const unsubscribe = onAuthStateChanged(
       services.auth,
       (firebaseUser) => {
-        setUserAuthState({ user: firebaseUser, isUserLoading: false, userError: null });
+        setUser(firebaseUser);
+        setIsUserLoading(false);
       },
       (error) => {
         console.error("FirebaseProvider: onAuthStateChanged error:", error);
-        setUserAuthState({ user: null, isUserLoading: false, userError: error });
+        setUserError(error);
+        setIsUserLoading(false);
       }
     );
 
@@ -79,10 +70,10 @@ export const FirebaseProvider: React.FC<{ children: ReactNode; services: Firebas
 
   const contextValue = useMemo((): FirebaseContextState => ({
     ...services,
-    user: userAuthState.user,
-    isUserLoading: userAuthState.isUserLoading,
-    userError: userAuthState.userError,
-  }), [services, userAuthState]);
+    user,
+    isUserLoading,
+    userError,
+  }), [services, user, isUserLoading, userError]);
 
   return (
     <FirebaseContext.Provider value={contextValue}>
