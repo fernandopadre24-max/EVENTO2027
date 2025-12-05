@@ -6,6 +6,7 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { AppTitleProvider } from '@/context/app-title-provider';
 import { AppThemeProvider } from '@/context/app-theme-provider';
+import { AppFontSizeProvider } from '@/context/app-font-size-provider';
 
 export const metadata: Metadata = {
   title: 'BandMate',
@@ -36,9 +37,11 @@ export default function RootLayout({
         >
           <AppThemeProvider>
             <AppTitleProvider>
-              <FirebaseClientProvider>
-                {children}
-              </FirebaseClientProvider>
+                <AppFontSizeProvider>
+                    <FirebaseClientProvider>
+                        {children}
+                    </FirebaseClientProvider>
+                </AppFontSizeProvider>
             </AppTitleProvider>
           </AppThemeProvider>
           <Toaster />
