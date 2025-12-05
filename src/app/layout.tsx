@@ -6,7 +6,6 @@ import './globals.css';
 import { FirebaseClientProvider } from '@/firebase';
 import { AppTitleProvider } from '@/context/app-title-provider';
 import { AppThemeProvider } from '@/context/app-theme-provider';
-import { AppFontSizeProvider } from '@/context/app-font-size-provider';
 
 
 export const metadata: Metadata = {
@@ -38,12 +37,10 @@ export default function RootLayout({
         >
           <AppThemeProvider>
             <AppTitleProvider>
-              <AppFontSizeProvider>
                 <FirebaseClientProvider>
                   {children}
                 </FirebaseClientProvider>
                 <Toaster />
-              </AppFontSizeProvider>
             </AppTitleProvider>
           </AppThemeProvider>
         </ThemeProvider>

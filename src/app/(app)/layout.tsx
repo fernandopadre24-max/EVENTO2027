@@ -15,20 +15,6 @@ import { ArrowLeft, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { AppTitleProvider, useAppTitle } from '@/context/app-title-provider';
 import { AppThemeProvider } from '@/context/app-theme-provider';
-import { AppFontSizeProvider } from '@/context/app-font-size-provider';
-
-
-const topLevelRoutes = [
-  '/dashboard',
-  '/events',
-  '/clients',
-  '/artists',
-  '/finances',
-  '/reports',
-  '/calendar',
-  '/profile',
-  '/settings'
-];
 
 function AppLayoutContent({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
@@ -96,13 +82,23 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
   );
 }
 
+const topLevelRoutes = [
+  '/dashboard',
+  '/events',
+  '/clients',
+  '/artists',
+  '/finances',
+  '/reports',
+  '/calendar',
+  '/profile',
+  '/settings'
+];
+
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   return (
     <AppThemeProvider>
       <AppTitleProvider>
-        <AppFontSizeProvider>
           <AppLayoutContent>{children}</AppLayoutContent>
-        </AppFontSizeProvider>
       </AppTitleProvider>
     </AppThemeProvider>
   )
