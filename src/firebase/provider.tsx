@@ -1,12 +1,11 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-import { FirebaseApp, initializeApp, getApps, getApp } from 'firebase/app';
-import { Firestore, getFirestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, getAuth } from 'firebase/auth';
-import { FirebaseStorage, getStorage } from 'firebase/storage';
+import { FirebaseApp } from 'firebase/app';
+import { Firestore } from 'firebase/firestore';
+import { Auth, User, onAuthStateChanged } from 'firebase/auth';
+import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { firebaseConfig } from './config';
 
 interface FirebaseServices {
   firebaseApp: FirebaseApp;
@@ -16,8 +15,7 @@ interface FirebaseServices {
 }
 
 // Combined state for the Firebase context
-export interface FirebaseContextState extends Partial<FirebaseServices> {
-  areServicesAvailable: boolean;
+export interface FirebaseContextState extends FirebaseServices {
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
@@ -40,26 +38,14 @@ export interface UserHookResult {
 // React Context
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-// A single function to initialize Firebase
-function initializeFirebase(): FirebaseServices {
-  const app = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
-  return {
-    firebaseApp: app,
-    auth: getAuth(app),
-    firestore: getFirestore(app),
-    storage: getStorage(app),
-  };
-}
 
 /**
  * FirebaseProvider manages and provides Firebase services and user authentication state.
  */
-export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
+export const FirebaseProvider: React.FC<{ children: ReactNode; services: FirebaseServices }> = ({
   children,
+  services,
 }) => {
-  // Initialize Firebase services only once
-  const services = useMemo(() => initializeFirebase(), []);
-
   const [userAuthState, setUserAuthState] = useState<{
     user: User | null;
     isUserLoading: boolean;
@@ -92,7 +78,6 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
 
   const contextValue = useMemo((): FirebaseContextState => ({
     ...services,
-    areServicesAvailable: !!services,
     user: userAuthState.user,
     isUserLoading: userAuthState.isUserLoading,
     userError: userAuthState.userError,
@@ -115,10 +100,6 @@ export const useFirebase = (): FirebaseServicesAndUser => {
 
   if (context === undefined) {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
-  }
-
-  if (!context.areServicesAvailable || !context.firebaseApp || !context.firestore || !context.auth || !context.storage) {
-    throw new Error('Firebase core services not available. Check FirebaseProvider setup.');
   }
 
   return {
@@ -150,14 +131,10 @@ export const useFirebaseApp = (): FirebaseApp => {
   return firebaseApp;
 };
 
-type MemoFirebase <T> = T & {__memo?: boolean};
+type MemoFirebase <T> = T;
 
 export function useMemoFirebase<T>(factory: () => T, deps: React.DependencyList): T | (MemoFirebase<T>) {
   const memoized = useMemo(factory, deps);
-  
-  if(typeof memoized !== 'object' || memoized === null) return memoized;
-  (memoized as MemoFirebase<T>).__memo = true;
-  
   return memoized;
 }
 
