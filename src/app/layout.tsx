@@ -37,11 +37,11 @@ export default function RootLayout({
         >
           <AppThemeProvider>
             <AppTitleProvider>
-                <AppFontSizeProvider>
-                    <FirebaseClientProvider>
-                        {children}
-                    </FirebaseClientProvider>
-                </AppFontSizeProvider>
+              <AppFontSizeProvider>
+                  <FirebaseClientProvider>
+                      {children}
+                  </FirebaseClientProvider>
+              </AppFontSizeProvider>
             </AppTitleProvider>
           </AppThemeProvider>
           <Toaster />

@@ -15,6 +15,73 @@ import { useAppFontSize } from '@/context/app-font-size-provider';
 import { Slider } from '@/components/ui/slider';
 
 
+// Helper to convert HSL string to hex
+const hslStringToHex = (hsl: string): string => {
+  const [h, s, l] = hsl.match(/\d+/g)!.map(Number);
+  const s_norm = s / 100;
+  const l_norm = l / 100;
+  let c = (1 - Math.abs(2 * l_norm - 1)) * s_norm,
+      x = c * (1 - Math.abs((h / 60) % 2 - 1)),
+      m = l_norm - c/2,
+      r = 0,
+      g = 0,
+      b = 0;
+  if (0 <= h && h < 60) {
+    r = c; g = x; b = 0;
+  } else if (60 <= h && h < 120) {
+    r = x; g = c; b = 0;
+  } else if (120 <= h && h < 180) {
+    r = 0; g = c; b = x;
+  } else if (180 <= h && h < 240) {
+    r = 0; g = x; b = c;
+  } else if (240 <= h && h < 300) {
+    r = x; g = 0; b = c;
+  } else if (300 <= h && h < 360) {
+    r = c; g = 0; b = x;
+  }
+  r = Math.round((r + m) * 255);
+  g = Math.round((g + m) * 255);
+  b = Math.round((b + m) * 255);
+  return "#" + ((1 << 24) + (r << 16) + (g << 8) + b).toString(16).slice(1);
+}
+
+// Helper to convert hex to HSL string
+const hexToHslString = (hex: string): string | null => {
+    if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) {
+      return null;
+    }
+    let r_hex, g_hex, b_hex;
+    if (hex.length === 4) {
+      r_hex = hex[1] + hex[1];
+      g_hex = hex[2] + hex[2];
+      b_hex = hex[3] + hex[3];
+    } else {
+      r_hex = hex.substring(1, 3);
+      g_hex = hex.substring(3, 5);
+      b_hex = hex.substring(5, 7);
+    }
+    let r = parseInt(r_hex, 16) / 255;
+    let g = parseInt(g_hex, 16) / 255;
+    let b = parseInt(b_hex, 16) / 255;
+    const max = Math.max(r, g, b), min = Math.min(r, g, b);
+    let h = 0, s = 0, l = (max + min) / 2;
+    if (max !== min) {
+      const d = max - min;
+      s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+      switch (max) {
+        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+        case g: h = (b - r) / d + 2; break;
+        case b: h = (r - g) / d + 4; break;
+      }
+      h /= 6;
+    }
+    h = Math.round(h * 360);
+    s = Math.round(s * 100);
+    l = Math.round(l * 100);
+    return `${h} ${s}% ${l}%`;
+}
+
+
 export default function SettingsPage() {
   const { theme, setTheme, resolvedTheme } = useTheme();
   const { title, setTitle } = useAppTitle();
@@ -22,7 +89,10 @@ export default function SettingsPage() {
   const { fontSize, setFontSize } = useAppFontSize();
 
   const [localTitle, setLocalTitle] = useState(title);
-  const [localBgColor, setLocalBgColor] = useState(backgroundColor);
+  
+  // Local color state is always hex for the color picker input
+  const [localBgColorHex, setLocalBgColorHex] = useState(hslStringToHex(backgroundColor));
+  
   const [localFontSize, setLocalFontSize] = useState(fontSize);
 
   const { toast } = useToast();
@@ -32,7 +102,7 @@ export default function SettingsPage() {
   }, [title]);
 
   useEffect(() => {
-    setLocalBgColor(backgroundColor);
+    setLocalBgColorHex(hslStringToHex(backgroundColor));
   }, [backgroundColor]);
   
   useEffect(() => {
@@ -57,17 +127,24 @@ export default function SettingsPage() {
   };
 
   const handleThemeSave = () => {
-    setBackgroundColor(localBgColor);
-    toast({
-        title: 'Sucesso!',
-        description: 'A cor de fundo foi atualizada.',
-    });
+    const newHslColor = hexToHslString(localBgColorHex);
+    if (newHslColor) {
+      setBackgroundColor(newHslColor);
+      toast({
+          title: 'Sucesso!',
+          description: 'A cor de fundo foi atualizada.',
+      });
+    } else {
+       toast({
+          variant: 'destructive',
+          title: 'Erro!',
+          description: 'Formato de cor inválido.',
+      });
+    }
   }
 
   const handleRestoreTheme = () => {
-    const defaultColor = resolvedTheme === 'dark' ? DEFAULT_BG_COLOR_DARK : DEFAULT_BG_COLOR_LIGHT;
-    setLocalBgColor(defaultColor);
-    setBackgroundColor(''); // Pass empty string to signal reset
+    setBackgroundColor(''); // Pass empty string to signal reset to default for current theme
      toast({
         title: 'Sucesso!',
         description: 'A cor de fundo foi restaurada para o padrão do tema.',
@@ -133,7 +210,15 @@ export default function SettingsPage() {
             <Label>Tema</Label>
             <RadioGroup
               value={theme}
-              onValueChange={setTheme}
+              onValueChange={(newTheme) => {
+                setTheme(newTheme);
+                // When theme changes, we might need to reset the background color
+                // to the default of the new theme if it's not custom.
+                if(!localStorage.getItem(APP_BG_COLOR_KEY)) {
+                    const isDark = newTheme === 'dark' || (newTheme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+                    setBackgroundColor(isDark ? DEFAULT_BG_COLOR_DARK : DEFAULT_BG_COLOR_LIGHT);
+                }
+              }}
               className="grid max-w-md grid-cols-1 gap-4 sm:grid-cols-3"
             >
               <div>
@@ -171,14 +256,14 @@ export default function SettingsPage() {
               <Input 
                 id="bgColor" 
                 type="color"
-                value={localBgColor}
-                onChange={(e) => setLocalBgColor(e.target.value)}
+                value={localBgColorHex}
+                onChange={(e) => setLocalBgColorHex(e.target.value)}
                 className="p-1 h-10 w-14"
               />
               <Input
-                value={localBgColor}
-                onChange={(e) => setLocalBgColor(e.target.value)}
-                placeholder="#ffffff"
+                value={localBgColorHex}
+                onChange={(e) => setLocalBgColorHex(e.target.value)}
+                placeholder="#f0f7f7"
               />
             </div>
             
