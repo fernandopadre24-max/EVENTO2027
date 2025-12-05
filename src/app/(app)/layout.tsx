@@ -14,7 +14,19 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
-function AppLayoutContent({ children }: { children: React.ReactNode }) {
+const topLevelRoutes = [
+  '/dashboard',
+  '/events',
+  '/clients',
+  '/artists',
+  '/finances',
+  '/reports',
+  '/calendar',
+  '/profile',
+  '/settings'
+];
+
+export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
@@ -78,22 +90,4 @@ function AppLayoutContent({ children }: { children: React.ReactNode }) {
       </nav>
     </div>
   );
-}
-
-const topLevelRoutes = [
-  '/dashboard',
-  '/events',
-  '/clients',
-  '/artists',
-  '/finances',
-  '/reports',
-  '/calendar',
-  '/profile',
-  '/settings'
-];
-
-export default function AppLayout({ children }: { children: React.ReactNode }) {
-  return (
-      <AppLayoutContent>{children}</AppLayoutContent>
-  )
 }
