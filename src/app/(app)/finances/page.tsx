@@ -60,11 +60,13 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 const initialNewPurchaseState: Omit<Purchase, 'id' | 'userId'> = {
     description: '',
     recipient: '',
+    artistId: '',
     amount: 0,
     date: format(new Date(), 'yyyy-MM-dd'),
     paymentMethod: 'Dinheiro',
     installments: 1,
     details: '',
+    status: 'Não Pago',
 };
 
 
@@ -379,3 +381,5 @@ export default function PurchasesPage() {
 
     
 }
+
+    
