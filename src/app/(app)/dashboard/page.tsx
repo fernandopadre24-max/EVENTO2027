@@ -78,8 +78,9 @@ export default function DashboardPage() {
     return events
       .filter(e => parseISO(e.date) >= today && e.status !== 'Cancelado')
       .sort((a, b) => {
-        const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
-        const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
+        // Combine date and time for accurate sorting
+        const dateA = new Date(`${a.date}T${a.time || '00:00:00'}`);
+        const dateB = new Date(`${b.date}T${b.time || '00:00:00'}`);
         return dateA.getTime() - dateB.getTime();
       })
       .slice(0, 5);
@@ -235,3 +236,5 @@ export default function DashboardPage() {
     </div>
   );
 }
+
+    
