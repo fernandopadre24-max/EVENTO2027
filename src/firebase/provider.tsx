@@ -2,21 +2,28 @@
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-import { FirebaseApp } from 'firebase/app';
-import { Firestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged } from 'firebase/auth';
-import { FirebaseStorage } from 'firebase/storage';
-import { auth, firestore, storage, firebaseApp } from './firebase'; // Importar serviços inicializados
+import { FirebaseApp, getApps, initializeApp, getApp } from 'firebase/app';
+import { Firestore, getFirestore } from 'firebase/firestore';
+import { Auth, User, onAuthStateChanged, getAuth } from 'firebase/auth';
+import { FirebaseStorage, getStorage } from 'firebase/storage';
+import { firebaseConfig } from './config';
+
+// Initialize Firebase App (Singleton Pattern)
+const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
+const auth: Auth = getAuth(app);
+const firestore: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
 // Interfaces
 export interface FirebaseServices {
-  firebaseApp: FirebaseApp;
+  app: FirebaseApp;
   firestore: Firestore;
   auth: Auth;
   storage: FirebaseStorage;
 }
 
-export interface FirebaseContextState extends FirebaseServices {
+export interface FirebaseContextState {
+  services: FirebaseServices;
   user: User | null;
   isUserLoading: boolean;
   userError: Error | null;
@@ -41,7 +48,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(
-      auth, // Usar a instância de auth importada
+      auth, 
       (firebaseUser) => {
         setUser(firebaseUser);
         setIsUserLoading(false);
@@ -57,10 +64,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const contextValue = useMemo((): FirebaseContextState => ({
-    firebaseApp,
-    firestore,
-    auth,
-    storage,
+    services: { app, firestore, auth, storage },
     user,
     isUserLoading,
     userError,
@@ -83,9 +87,9 @@ const useFirebase = (): FirebaseContextState => {
   return context;
 };
 
-export const useAuth = (): Auth => useFirebase().auth;
-export const useFirestore = (): Firestore => useFirebase().firestore;
-export const useFirebaseApp = (): FirebaseApp => useFirebase().firebaseApp;
+export const useAuth = (): Auth => useFirebase().services.auth;
+export const useFirestore = (): Firestore => useFirebase().services.firestore;
+export const useFirebaseApp = (): FirebaseApp => useFirebase().services.app;
 export const useUser = (): UserHookResult => {
   const { user, isUserLoading, userError } = useFirebase();
   return { user, isUserLoading, userError };
