@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Card,
   CardContent,
@@ -35,6 +35,7 @@ import { collection, query, where } from 'firebase/firestore';
 import type { Event, Client, Purchase, EventStatus } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 const statusColors: Record<EventStatus, string> = {
   Pendente: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
@@ -47,6 +48,7 @@ const statusColors: Record<EventStatus, string> = {
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
+  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
 
   const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events } = useCollection<Event>(eventsRef);
@@ -86,17 +88,31 @@ export default function DashboardPage() {
       .slice(0, 5);
   }, [events]);
 
+  const availableYears = useMemo(() => {
+    const years = new Set<number>();
+    events?.forEach(event => {
+      years.add(parseISO(event.date).getFullYear());
+    });
+    purchases?.forEach(purchase => {
+      years.add(parseISO(purchase.date).getFullYear());
+    });
+    if (years.size === 0) {
+      return [new Date().getFullYear()];
+    }
+    return Array.from(years).sort((a, b) => b - a); // Sort descending
+  }, [events, purchases]);
+
+
   const monthlyChartData = useMemo(() => {
-    const currentYear = new Date().getFullYear();
     const data = Array.from({ length: 12 }, (_, i) => ({
-      month: format(new Date(currentYear, i), 'LLL', { locale: ptBR }),
+      month: format(new Date(selectedYear, i), 'LLL', { locale: ptBR }),
       income: 0,
       outcome: 0,
     }));
 
     events?.forEach(event => {
       const eventDate = parseISO(event.date);
-      if (eventDate.getFullYear() === currentYear && event.paymentStatus === 'Pago') {
+      if (eventDate.getFullYear() === selectedYear && event.paymentStatus === 'Pago') {
         const monthIndex = getMonth(eventDate);
         data[monthIndex].income += event.payment;
       }
@@ -104,14 +120,14 @@ export default function DashboardPage() {
     
     purchases?.forEach(purchase => {
         const purchaseDate = parseISO(purchase.date);
-        if(purchaseDate.getFullYear() === currentYear && purchase.status === 'Pago') {
+        if(purchaseDate.getFullYear() === selectedYear && purchase.status === 'Pago') {
             const monthIndex = getMonth(purchaseDate);
             data[monthIndex].outcome += purchase.amount;
         }
     });
 
     return data;
-  }, [events, purchases]);
+  }, [events, purchases, selectedYear]);
 
   return (
     <div className="space-y-8">
@@ -155,8 +171,22 @@ export default function DashboardPage() {
       <div className="grid gap-6 lg:grid-cols-5 lg:grid-flow-row-dense">
         <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Visão Geral Financeira</CardTitle>
-            <CardDescription>Receitas vs. Despesas este ano.</CardDescription>
+            <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between">
+              <div>
+                <CardTitle>Visão Geral Financeira</CardTitle>
+                <CardDescription>Receitas vs. Despesas por ano.</CardDescription>
+              </div>
+              <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
+                <SelectTrigger className="w-full sm:w-[120px] mt-2 sm:mt-0">
+                  <SelectValue placeholder="Selecione o ano" />
+                </SelectTrigger>
+                <SelectContent>
+                  {availableYears.map(year => (
+                    <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
