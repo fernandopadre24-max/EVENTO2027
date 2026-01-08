@@ -2,6 +2,8 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import jsPDF from 'jspdf';
+import 'jspdf-autotable';
 import {
   Card,
   CardContent,
@@ -18,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, FileDown } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -272,6 +274,36 @@ export default function EventsPage() {
       return typeof editingEvent.date === 'string' ? parseISO(editingEvent.date) : editingEvent.date;
   }, [editingEvent?.date]);
 
+  const handleExportPDF = () => {
+    const doc = new jsPDF();
+    doc.text('Lista de Eventos', 14, 16);
+
+    const tableColumn = ["Cliente", "Data", "Hora", "Local", "Artistas", "Valor (R$)"];
+    const tableRows: (string | number)[][] = [];
+
+    filteredEvents.forEach(event => {
+        const client = clients?.find(c => c.id === event.clientId);
+        const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
+        const eventData = [
+            client?.name || '',
+            format(parseISO(event.date), 'dd/MM/yyyy', { locale: ptBR }),
+            event.time,
+            event.local,
+            eventArtists?.map(a => a.name).join(', ') || '',
+            event.payment.toLocaleString('pt-BR')
+        ];
+        tableRows.push(eventData);
+    });
+
+    (doc as any).autoTable({
+        head: [tableColumn],
+        body: tableRows,
+        startY: 20,
+    });
+
+    doc.save('eventos.pdf');
+  };
+
 
   const renderForm = (isEditing: boolean) => {
     const currentData = isEditing ? editingEvent : newEvent;
@@ -393,27 +425,33 @@ export default function EventsPage() {
 
   return (
     <div className="space-y-8">
-      <div className="flex items-center justify-between">
+      <div className="flex items-center justify-between gap-2">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Eventos
         </h1>
-        <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
-          <DialogTrigger asChild>
-            <Button>
-              <PlusCircle className="w-4 h-4 mr-2" />
-              Adicionar Evento
-            </Button>
-          </DialogTrigger>
-          <DialogContent className="sm:max-w-lg">
-            <DialogHeader>
-              <DialogTitle>Adicionar Novo Evento</DialogTitle>
-              <DialogDescription>
-                Preencha os detalhes do novo evento.
-              </DialogDescription>
-            </DialogHeader>
-            {renderForm(false)}
-          </DialogContent>
-        </Dialog>
+        <div className='flex gap-2'>
+          <Button variant="outline" onClick={handleExportPDF}>
+            <FileDown className="w-4 h-4 mr-2" />
+            Exportar PDF
+          </Button>
+          <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
+            <DialogTrigger asChild>
+              <Button>
+                <PlusCircle className="w-4 h-4 mr-2" />
+                Adicionar Evento
+              </Button>
+            </DialogTrigger>
+            <DialogContent className="sm:max-w-lg">
+              <DialogHeader>
+                <DialogTitle>Adicionar Novo Evento</DialogTitle>
+                <DialogDescription>
+                  Preencha os detalhes do novo evento.
+                </DialogDescription>
+              </DialogHeader>
+              {renderForm(false)}
+            </DialogContent>
+          </Dialog>
+        </div>
       </div>
 
        <Dialog open={isEditOpen} onOpenChange={setEditOpen}>
