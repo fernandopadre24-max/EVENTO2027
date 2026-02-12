@@ -34,7 +34,15 @@ import { format, parseISO, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 
-const COLORS = ['hsl(var(--chart-1))', 'hsl(var(--chart-2))', 'hsl(var(--chart-3))', 'hsl(var(--chart-4))'];
+const COLORS = [
+  'hsl(var(--chart-1))',
+  'hsl(var(--chart-2))',
+  'hsl(var(--chart-3))',
+  'hsl(var(--chart-4))',
+  'hsl(var(--chart-5))',
+  'hsl(var(--primary))',
+  'hsl(var(--accent))',
+];
 
 type UnifiedTransaction = {
   id: string;
@@ -164,7 +172,7 @@ export default function ReportsPage() {
     return artists.map(artist => ({
         name: artist.name,
         events: artistEventCount[artist.id] || 0,
-    }));
+    })).filter(a => a.events > 0);
 
   }, [events, artists]);
   
@@ -266,7 +274,11 @@ export default function ReportsPage() {
                         <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} angle={-15} textAnchor="end" height={50} />
                         <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} allowDecimals={false} />
                         <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} cursor={{fill: 'hsl(var(--muted))'}} />
-                        <Bar dataKey="events" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} name="Eventos" />
+                        <Bar dataKey="events" radius={[4, 4, 0, 0]} name="Eventos">
+                          {artistPerformanceData.map((entry, index) => (
+                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                          ))}
+                        </Bar>
                     </BarChart>
                 </ResponsiveContainer>
             </CardContent>
