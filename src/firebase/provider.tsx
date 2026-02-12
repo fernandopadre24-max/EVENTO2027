@@ -7,7 +7,7 @@ import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
-import { auth, firestore, storage, firebaseApp } from './firebase'; // Importar serviços inicializados
+import { auth, firestore, storage, firebaseApp } from './firebase';
 
 // Interfaces
 export interface FirebaseServices {
@@ -32,7 +32,7 @@ export interface UserHookResult {
 // Context
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-// The one and only provider
+// Provider
 export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -41,8 +41,11 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   const [userError, setUserError] = useState<Error | null>(null);
 
   useEffect(() => {
+    // Garante que a escuta de autenticação só ocorra no cliente
+    if (typeof window === 'undefined') return;
+
     const unsubscribe = onAuthStateChanged(
-      auth, // Usar a instância de auth importada
+      auth,
       (firebaseUser) => {
         setUser(firebaseUser);
         setIsUserLoading(false);
