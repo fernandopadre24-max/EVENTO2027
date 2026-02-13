@@ -1,7 +1,7 @@
 
 'use client';
 
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Bar,
@@ -26,13 +26,14 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Badge } from '@/components/ui/badge';
-import { ArrowDownCircle, ArrowUpCircle, Loader2 } from 'lucide-react';
+import { ArrowDownCircle, ArrowUpCircle, Loader2, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 import type { Event, Artist, Purchase } from '@/lib/types';
 import { format, parseISO, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
 const COLORS = [
   'hsl(var(--chart-1))',
@@ -264,24 +265,61 @@ export default function ReportsPage() {
           </div>
 
           <Card>
-            <CardHeader>
-                <CardTitle>Desempenho do Artista</CardTitle>
-                <CardDescription>Número de eventos por artista.</CardDescription>
-            </CardHeader>
-            <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
+            <Tabs defaultValue="bar" className="w-full">
+              <CardHeader className="flex flex-row items-center justify-between space-y-0">
+                <div>
+                  <CardTitle>Desempenho do Artista</CardTitle>
+                  <CardDescription>Número de eventos realizados por artista.</CardDescription>
+                </div>
+                <TabsList>
+                  <TabsTrigger value="bar" className="gap-2">
+                    <BarChart2 className="w-4 h-4" />
+                    Barras
+                  </TabsTrigger>
+                  <TabsTrigger value="pie" className="gap-2">
+                    <PieChartIcon className="w-4 h-4" />
+                    Pizza
+                  </TabsTrigger>
+                </TabsList>
+              </CardHeader>
+              <CardContent>
+                <TabsContent value="bar" className="mt-0">
+                  <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={artistPerformanceData}>
-                        <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} angle={-15} textAnchor="end" height={50} />
-                        <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} allowDecimals={false} />
-                        <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} cursor={{fill: 'hsl(var(--muted))'}} />
-                        <Bar dataKey="events" radius={[4, 4, 0, 0]} name="Eventos">
-                          {artistPerformanceData.map((entry, index) => (
-                            <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                          ))}
-                        </Bar>
+                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} angle={-15} textAnchor="end" height={60} />
+                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} allowDecimals={false} />
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} cursor={{fill: 'hsl(var(--muted))'}} />
+                      <Bar dataKey="events" radius={[4, 4, 0, 0]} name="Eventos">
+                        {artistPerformanceData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Bar>
                     </BarChart>
-                </ResponsiveContainer>
-            </CardContent>
+                  </ResponsiveContainer>
+                </TabsContent>
+                <TabsContent value="pie" className="mt-0">
+                  <ResponsiveContainer width="100%" height={350}>
+                    <PieChart>
+                      <Pie
+                        data={artistPerformanceData}
+                        dataKey="events"
+                        nameKey="name"
+                        cx="50%"
+                        cy="50%"
+                        outerRadius={120}
+                        label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
+                      >
+                        {artistPerformanceData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} />
+                      <Legend />
+                    </PieChart>
+                  </ResponsiveContainer>
+                </TabsContent>
+              </CardContent>
+            </Tabs>
           </Card>
 
           <Card>
