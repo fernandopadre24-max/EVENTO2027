@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
@@ -11,10 +10,13 @@ import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
 
-
 export default function CalendarPage() {
-  const [date, setDate] = useState<Date | undefined>(new Date());
+  const [date, setDate] = useState<Date | undefined>(undefined);
   
+  useEffect(() => {
+    setDate(new Date());
+  }, []);
+
   const firestore = useFirestore();
   const { user } = useUser();
 
@@ -36,6 +38,8 @@ export default function CalendarPage() {
   const selectedDayEvents = date ? eventsByDate[format(date, 'yyyy-MM-dd')] || [] : [];
   
   const eventDays = Object.keys(eventsByDate).map(d => parseISO(d));
+
+  if (!date) return null;
 
   return (
     <div className="space-y-8">

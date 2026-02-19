@@ -1,27 +1,11 @@
-
 'use client';
 
 import React, { createContext, useContext, ReactNode, useMemo, useState, useEffect } from 'react';
-<<<<<<< HEAD
 import { FirebaseApp } from 'firebase/app';
 import { Firestore } from 'firebase/firestore';
 import { Auth, User, onAuthStateChanged } from 'firebase/auth';
 import { FirebaseStorage } from 'firebase/storage';
-import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { auth, firestore, storage, firebaseApp } from './firebase';
-=======
-import { FirebaseApp, getApps, initializeApp, getApp } from 'firebase/app';
-import { Firestore, getFirestore } from 'firebase/firestore';
-import { Auth, User, onAuthStateChanged, getAuth } from 'firebase/auth';
-import { FirebaseStorage, getStorage } from 'firebase/storage';
-import { firebaseConfig } from './config';
-
-// Initialize Firebase App (Singleton Pattern)
-const app: FirebaseApp = !getApps().length ? initializeApp(firebaseConfig) : getApp();
-const auth: Auth = getAuth(app);
-const firestore: Firestore = getFirestore(app);
-const storage: FirebaseStorage = getStorage(app);
->>>>>>> adc3ec2c8c4adb794174ea0a30e52315420b0efd
 
 export interface FirebaseServices {
   app: FirebaseApp;
@@ -53,13 +37,8 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   const [userError, setUserError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Escuta mudanças no estado de autenticação apenas no lado do cliente
     const unsubscribe = onAuthStateChanged(
-<<<<<<< HEAD
       auth,
-=======
-      auth, 
->>>>>>> adc3ec2c8c4adb794174ea0a30e52315420b0efd
       (firebaseUser) => {
         setUser(firebaseUser);
         setIsUserLoading(false);
@@ -75,7 +54,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   }, []);
 
   const contextValue = useMemo((): FirebaseContextState => ({
-    services: { app, firestore, auth, storage },
+    services: { app: firebaseApp, firestore, auth, storage },
     user,
     isUserLoading,
     userError,

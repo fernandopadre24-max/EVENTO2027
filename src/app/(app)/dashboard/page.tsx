@@ -1,7 +1,6 @@
-
 'use client';
 
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import {
   Card,
   CardContent,
@@ -47,7 +46,11 @@ const statusColors: Record<EventStatus, string> = {
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const [selectedYear, setSelectedYear] = useState(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+
+  useEffect(() => {
+    setSelectedYear(new Date().getFullYear());
+  }, []);
 
   const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events } = useCollection<Event>(eventsRef);
@@ -100,6 +103,8 @@ export default function DashboardPage() {
   }, [events, purchases]);
 
   const monthlyChartData = useMemo(() => {
+    if (selectedYear === null) return [];
+    
     const data = Array.from({ length: 12 }, (_, i) => ({
       month: format(new Date(selectedYear, i), 'LLL', { locale: ptBR }),
       income: 0,
@@ -124,6 +129,8 @@ export default function DashboardPage() {
 
     return data;
   }, [events, purchases, selectedYear]);
+
+  if (selectedYear === null) return null;
 
   return (
     <div className="space-y-8">
