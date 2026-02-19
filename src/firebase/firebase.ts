@@ -7,7 +7,7 @@ import { firebaseConfig } from './config';
 
 /**
  * Singleton initialization for Firebase.
- * Ensures that the app is only initialized once, even during HMR or Server-Side Rendering.
+ * Ensures that the app is only initialized once.
  */
 function getFirebaseApp(): FirebaseApp {
   if (getApps().length > 0) {
