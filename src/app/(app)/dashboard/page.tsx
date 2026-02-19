@@ -44,7 +44,6 @@ const statusColors: Record<EventStatus, string> = {
   Cancelado: 'bg-red-400/20 text-red-600 border-red-400/30',
 };
 
-
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -58,7 +57,6 @@ export default function DashboardPage() {
   
   const purchasesRef = useMemoFirebase(() => user ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: purchases } = useCollection<Purchase>(purchasesRef);
-
 
   const { totalIncome, totalOutcome, netProfit } = useMemo(() => {
     const income = events
@@ -101,7 +99,6 @@ export default function DashboardPage() {
     return Array.from(years).sort((a, b) => b - a);
   }, [events, purchases]);
 
-
   const monthlyChartData = useMemo(() => {
     const data = Array.from({ length: 12 }, (_, i) => ({
       month: format(new Date(selectedYear, i), 'LLL', { locale: ptBR }),
@@ -141,7 +138,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R${totalIncome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-green-800 dark:text-green-300/80">+20.1% do último mês</p>
+            <p className="text-xs text-green-800 dark:text-green-300/80">Acumulado geral</p>
           </CardContent>
         </Card>
         <Card className="bg-red-500/10 border-red-500/20 text-red-900 dark:text-red-200">
@@ -151,7 +148,7 @@ export default function DashboardPage() {
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R${totalOutcome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-red-800 dark:text-red-300/80">+10.5% do último mês</p>
+            <p className="text-xs text-red-800 dark:text-red-300/80">Acumulado geral</p>
           </CardContent>
         </Card>
         <Card className="bg-accent/10 border-accent/20">
