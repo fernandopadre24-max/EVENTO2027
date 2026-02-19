@@ -17,15 +17,6 @@ import {
   Cell,
   Legend,
 } from 'recharts';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Badge } from '@/components/ui/badge';
 import { Loader2, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
@@ -48,14 +39,6 @@ const COLORS = [
   '#8b5cf6',
 ];
 
-type UnifiedTransaction = {
-  id: string;
-  type: 'Receita' | 'Despesa';
-  description: string;
-  date: string;
-  amount: number;
-};
-
 export default function ReportsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -69,32 +52,13 @@ export default function ReportsPage() {
   const purchasesRef = useMemoFirebase(() => user ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: purchases, isLoading: isLoadingPurchases } = useCollection<Purchase>(purchasesRef);
 
-  const { totalIncome, totalExpense, netBalance, recentTransactions } = useMemo(() => {
+  const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     const income = events?.filter(e => e.paymentStatus === 'Pago').reduce((sum, e) => sum + e.payment, 0) || 0;
     const expense = purchases?.filter(p => p.status === 'Pago').reduce((sum, p) => sum + p.amount, 0) || 0;
-
-    const unified: UnifiedTransaction[] = [
-      ...(events || []).filter(e => e.paymentStatus === 'Pago').map(e => ({
-          id: e.id,
-          type: 'Receita' as const,
-          description: `Evento em ${e.local}`,
-          date: e.date,
-          amount: e.payment,
-      })),
-      ...(purchases || []).filter(p => p.status === 'Pago').map(p => ({
-          id: p.id,
-          type: 'Despesa' as const,
-          description: p.description,
-          date: p.date,
-          amount: p.amount,
-      })),
-    ];
-    
     return {
       totalIncome: income,
       totalExpense: expense,
       netBalance: income - expense,
-      recentTransactions: unified.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).slice(0, 10),
     };
   }, [events, purchases]);
 

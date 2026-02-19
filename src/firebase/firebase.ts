@@ -16,9 +16,9 @@ function getFirebaseApp(): FirebaseApp {
   return initializeApp(firebaseConfig);
 }
 
-const firebaseApp = getFirebaseApp();
-const auth = getAuth(firebaseApp);
-const firestore = getFirestore(firebaseApp);
-const storage = getStorage(firebaseApp);
+const app = getFirebaseApp();
+const auth = getAuth(app);
+const firestore = getFirestore(app);
+const storage = getStorage(app);
 
-export { firebaseApp, auth, firestore, storage };
+export { app as firebaseApp, auth, firestore, storage };

@@ -60,9 +60,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
-import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { Checkbox } from '@/components/ui/checkbox';
-import { Switch } from '@/components/ui/switch';
 
 const statusColors: Record<EventStatus, string> = {
   Pendente: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
@@ -78,7 +75,6 @@ const initialNewEventState = {
   local: '',
   artistIds: [] as string[],
   payment: 0,
-  hasSound: false,
 };
 
 export default function EventsPage() {
@@ -92,19 +88,12 @@ export default function EventsPage() {
   const { data: clients, isLoading: isLoadingClients } = useCollection<Client>(clientsRef);
 
   const artistsRef = useMemoFirebase(() => user ? query(collection(firestore, 'artists'), where('userId', '==', user.uid)) : null, [firestore, user]);
-  const { data: artists, isLoading: isLoadingArtists } = useCollection<Artist>(artistsRef);
+  const { data: artists } = useCollection<Artist>(artistsRef);
 
   const [isAddOpen, setAddOpen] = useState(false);
-  const [isEditOpen, setEditOpen] = useState(false);
   const [newEvent, setNewEvent] = useState(initialNewEventState);
-  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<EventStatus | 'all'>('all');
-  const [paymentStatusFilter, setPaymentStatusFilter] = useState<PaymentStatus | 'all'>('all');
-  const [startDateFilter, setStartDateFilter] = useState<Date | undefined>();
-  const [endDateFilter, setEndDateFilter] = useState<Date | undefined>();
-  
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
 
@@ -113,67 +102,33 @@ export default function EventsPage() {
       ?.filter(event => {
         const client = clients?.find(c => c.id === event.clientId);
         const searchLower = searchTerm.toLowerCase();
-
         const clientMatch = client?.name.toLowerCase().includes(searchLower);
         const localMatch = event.local.toLowerCase().includes(searchLower);
-        
-        const statusMatch = statusFilter === 'all' || event.status === statusFilter;
-        const paymentStatusMatch = paymentStatusFilter === 'all' || event.paymentStatus === paymentStatusFilter;
-
-        const eventDate = parseISO(event.date);
-        const dateMatch =
-          (!startDateFilter || eventDate >= startOfDay(startDateFilter)) &&
-          (!endDateFilter || eventDate <= endOfDay(endDateFilter));
-
-        return (clientMatch || localMatch) && statusMatch && paymentStatusMatch && dateMatch;
+        return clientMatch || localMatch;
       })
       .sort((a, b) => {
         const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
         const dateB = new Date(`${b.date}T${b.time || '00:00'}`);
         return dateB.getTime() - dateA.getTime();
       }) || [];
-  }, [events, clients, searchTerm, statusFilter, paymentStatusFilter, startDateFilter, endDateFilter]);
+  }, [events, clients, searchTerm]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
-    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
-    targetState(prev => ({ ...prev!, [id]: id === 'payment' ? Number(value) : value }));
+    setNewEvent(prev => ({ ...prev, [id]: id === 'payment' ? Number(value) : value }));
   };
   
   const handleSelectChange = (id: string) => (value: string) => {
-    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
-    targetState(prev => ({ ...prev!, [id]: value }));
+    setNewEvent(prev => ({ ...prev, [id]: value }));
   };
 
   const handleDateChange = (date: Date | undefined) => {
-    if(date) {
-      const targetState = isEditOpen ? setEditingEvent : setNewEvent;
-      targetState(prev => ({ ...prev!, date: isEditOpen ? format(date, 'yyyy-MM-dd') : date }));
-    }
-  };
-
-  const handleArtistSelection = (artistId: string) => {
-    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
-    targetState(prev => {
-      const currentArtistIds = prev!.artistIds || [];
-      const newArtistIds = currentArtistIds.includes(artistId)
-        ? currentArtistIds.filter(id => id !== artistId)
-        : [...currentArtistIds, artistId];
-      return { ...prev!, artistIds: newArtistIds };
-    });
-  };
-
-  const handleSoundToggle = (checked: boolean) => {
-    const targetState = isEditOpen ? setEditingEvent : setNewEvent;
-    targetState(prev => ({ ...prev!, hasSound: checked }));
+    if(date) setNewEvent(prev => ({ ...prev, date }));
   };
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!firestore || !user || !newEvent.clientId || newEvent.artistIds.length === 0) {
-      alert('Por favor, preencha todos os campos obrigatórios.');
-      return;
-    }
+    if (!firestore || !user || !newEvent.clientId) return;
     const eventsCollectionRef = collection(firestore, 'events');
     const newEventData = {
       ...newEvent,
@@ -181,29 +136,11 @@ export default function EventsPage() {
       status: 'Pendente' as EventStatus,
       paymentStatus: 'Não Pago' as PaymentStatus,
       userId: user.uid,
+      artistIds: [], // Placeholder
     };
     addDocumentNonBlocking(eventsCollectionRef, newEventData);
     setAddOpen(false);
     setNewEvent(initialNewEventState);
-  };
-  
-  const handleEditSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    if (!firestore || !editingEvent) return;
-    const eventDocRef = doc(firestore, 'events', editingEvent.id);
-    const { id, ...eventData } = editingEvent;
-    updateDocumentNonBlocking(eventDocRef, {
-        ...eventData,
-        date: typeof editingEvent.date === 'string' ? editingEvent.date : format(editingEvent.date, 'yyyy-MM-dd'),
-    });
-    setEditOpen(false);
-    setEditingEvent(null);
-  };
-
-  const openEditDialog = (event: Event) => {
-    const eventDate = typeof event.date === 'string' ? parseISO(event.date) : event.date;
-    setEditingEvent({ ...event, date: format(eventDate, 'yyyy-MM-dd') });
-    setEditOpen(true);
   };
 
   const updateEventStatus = (eventId: string, status: EventStatus) => {
