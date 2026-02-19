@@ -80,7 +80,6 @@ export default function DashboardPage() {
     return events
       .filter(e => parseISO(e.date) >= today && e.status !== 'Cancelado')
       .sort((a, b) => {
-        // Combine date and time for accurate sorting
         const dateA = new Date(`${a.date}T${a.time || '00:00:00'}`);
         const dateB = new Date(`${b.date}T${b.time || '00:00:00'}`);
         return dateA.getTime() - dateB.getTime();
@@ -99,7 +98,7 @@ export default function DashboardPage() {
     if (years.size === 0) {
       return [new Date().getFullYear()];
     }
-    return Array.from(years).sort((a, b) => b - a); // Sort descending
+    return Array.from(years).sort((a, b) => b - a);
   }, [events, purchases]);
 
 
@@ -178,7 +177,7 @@ export default function DashboardPage() {
               </div>
               <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
                 <SelectTrigger className="w-full sm:w-[120px] mt-2 sm:mt-0">
-                  <SelectValue placeholder="Selecione o ano" />
+                  <SelectValue placeholder="Ano" />
                 </SelectTrigger>
                 <SelectContent>
                   {availableYears.map(year => (

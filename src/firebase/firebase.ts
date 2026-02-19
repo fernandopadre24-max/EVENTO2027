@@ -6,22 +6,19 @@ import { getStorage, FirebaseStorage } from 'firebase/storage';
 import { firebaseConfig } from './config';
 
 /**
- * Singleton initialization for Firebase to prevent multiple initialization errors.
- * Next.js App Router can execute this multiple times during build and HMR.
+ * Singleton initialization for Firebase.
+ * Ensures that the app is only initialized once, even during HMR or Server-Side Rendering.
  */
-let firebaseApp: FirebaseApp;
-let auth: Auth;
-let firestore: Firestore;
-let storage: FirebaseStorage;
-
-if (getApps().length === 0) {
-  firebaseApp = initializeApp(firebaseConfig);
-} else {
-  firebaseApp = getApp();
+function getFirebaseApp(): FirebaseApp {
+  if (getApps().length > 0) {
+    return getApp();
+  }
+  return initializeApp(firebaseConfig);
 }
 
-auth = getAuth(firebaseApp);
-firestore = getFirestore(firebaseApp);
-storage = getStorage(firebaseApp);
+const firebaseApp = getFirebaseApp();
+const auth = getAuth(firebaseApp);
+const firestore = getFirestore(firebaseApp);
+const storage = getStorage(firebaseApp);
 
 export { firebaseApp, auth, firestore, storage };

@@ -31,7 +31,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import type { Event, EventStatus, PaymentStatus, Client, Artist } from '@/lib/types';
-import { format, parse, parseISO, isWithinInterval, startOfDay, endOfDay } from 'date-fns';
+import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
 import { cn } from '@/lib/utils';
 import { ptBR } from 'date-fns/locale';
 import {
@@ -199,7 +199,6 @@ export default function EventsPage() {
     };
     addDocumentNonBlocking(eventsCollectionRef, newEventData);
     setAddOpen(false);
-    // Reset only client, date, and local, keeping the rest for the next entry
     setNewEvent(prev => ({
       ...initialNewEventState,
       time: prev.time,
@@ -401,7 +400,7 @@ export default function EventsPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                     <Label htmlFor="hasSound" className="text-right">
-                        Com ou Sem Som
+                        Com Som
                     </Label>
                     <Switch
                         id="hasSound"
@@ -411,7 +410,7 @@ export default function EventsPage() {
                 </div>
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label htmlFor="payment" className="text-right">
-                    Pagamento (R$)
+                    Valor (R$)
                   </Label>
                   <Input id="payment" type="number" value={currentData.payment || ''} onChange={handleInputChange} placeholder="2000" className="col-span-3" />
                 </div>
@@ -432,18 +431,18 @@ export default function EventsPage() {
         <div className='flex gap-2'>
           <Button variant="outline" onClick={handleExportPDF}>
             <FileDown className="w-4 h-4 mr-2" />
-            Exportar PDF
+            PDF
           </Button>
           <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
               <Button>
                 <PlusCircle className="w-4 h-4 mr-2" />
-                Adicionar Evento
+                Novo Evento
               </Button>
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg">
               <DialogHeader>
-                <DialogTitle>Adicionar Novo Evento</DialogTitle>
+                <DialogTitle>Novo Evento</DialogTitle>
                 <DialogDescription>
                   Preencha os detalhes do novo evento.
                 </DialogDescription>
@@ -471,8 +470,7 @@ export default function EventsPage() {
             <AlertDialogHeader>
               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente o evento
-                e removerá seus dados de nossos servidores.
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente o evento.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -497,7 +495,7 @@ export default function EventsPage() {
             <div className="flex flex-col sm:flex-row gap-4">
                 <Select value={statusFilter} onValueChange={(value) => setStatusFilter(value as EventStatus | 'all')}>
                     <SelectTrigger className="w-full sm:w-[180px]">
-                        <SelectValue placeholder="Filtrar por Status" />
+                        <SelectValue placeholder="Status" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos os Status</SelectItem>
@@ -509,7 +507,7 @@ export default function EventsPage() {
                 </Select>
                 <Select value={paymentStatusFilter} onValueChange={(value) => setPaymentStatusFilter(value as PaymentStatus | 'all')}>
                     <SelectTrigger className="w-full sm:w-[180px]">
-                        <SelectValue placeholder="Filtrar por Pagamento" />
+                        <SelectValue placeholder="Pagamento" />
                     </SelectTrigger>
                     <SelectContent>
                         <SelectItem value="all">Todos os Pagamentos</SelectItem>
@@ -519,65 +517,28 @@ export default function EventsPage() {
                 </Select>
             </div>
         </div>
-        <div className="flex flex-col sm:flex-row gap-4 items-center">
-            <div className="flex w-full sm:w-auto gap-4">
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        className={cn("w-full justify-start text-left font-normal", !startDateFilter && "text-muted-foreground")}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDateFilter ? format(startDateFilter, "dd/MM/yy") : <span>De</span>}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={startDateFilter} onSelect={setStartDateFilter} initialFocus locale={ptBR}/>
-                    </PopoverContent>
-                </Popover>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button
-                        variant={"outline"}
-                        className={cn("w-full justify-start text-left font-normal", !endDateFilter && "text-muted-foreground")}
-                    >
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDateFilter ? format(endDateFilter, "dd/MM/yy") : <span>Até</span>}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0">
-                    <Calendar mode="single" selected={endDateFilter} onSelect={setEndDateFilter} initialFocus locale={ptBR}/>
-                    </PopoverContent>
-                </Popover>
-            </div>
-            <Button variant="ghost" onClick={clearFilters} className="w-full sm:w-auto">
-                <X className="mr-2 h-4 w-4" />
-                Limpar Filtros
-            </Button>
-        </div>
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>Agenda de Eventos</CardTitle>
+          <CardTitle>Agenda</CardTitle>
           <CardDescription>
-            Uma lista de todos os seus eventos agendados.
+            Lista de eventos agendados.
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {(isLoadingEvents || isLoadingClients || isLoadingArtists) && <p>Carregando eventos...</p>}
+          {(isLoadingEvents || isLoadingClients || isLoadingArtists) && <p>Carregando...</p>}
            <div className="overflow-x-auto">
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Cliente</TableHead>
-                  <TableHead className="hidden sm:table-cell">Data e Hora</TableHead>
+                  <TableHead className="hidden sm:table-cell">Data</TableHead>
                   <TableHead className="hidden md:table-cell">Local</TableHead>
                   <TableHead className="hidden lg:table-cell">Artistas</TableHead>
-                  <TableHead className="hidden xl:table-cell">Som</TableHead>
-                  <TableHead className="hidden sm:table-cell">Pagamento</TableHead>
+                  <TableHead>Som</TableHead>
+                  <TableHead className="hidden sm:table-cell">Valor</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead className="hidden lg:table-cell">Pagamento</TableHead>
                   <TableHead>
                     <span className="sr-only">Ações</span>
                   </TableHead>
@@ -591,20 +552,16 @@ export default function EventsPage() {
                     <TableRow key={event.id}>
                       <TableCell>
                         <div className="font-medium">{client?.name}</div>
-                        <div className="text-sm text-muted-foreground sm:hidden">
-                            {format(parseISO(event.date), 'dd/MM/yy')} às {event.time}
-                        </div>
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">
-                        {format(parseISO(event.date), 'dd MMM, yyyy', { locale: ptBR })} às {event.time}
+                        {format(parseISO(event.date), 'dd/MM/yy')} às {event.time}
                       </TableCell>
                       <TableCell className="hidden md:table-cell">{event.local}</TableCell>
                       <TableCell className="hidden lg:table-cell">{eventArtists?.map(a => a.name).join(', ')}</TableCell>
-                      <TableCell className="hidden xl:table-cell">
+                      <TableCell>
                           <Switch
                               checked={event.hasSound}
                               onCheckedChange={() => toggleSoundStatus(event)}
-                              aria-label="Status do som"
                           />
                       </TableCell>
                       <TableCell className="hidden sm:table-cell">R${event.payment.toLocaleString('pt-BR')}</TableCell>
@@ -613,42 +570,20 @@ export default function EventsPage() {
                           {event.status}
                         </Badge>
                       </TableCell>
-                      <TableCell className="hidden lg:table-cell">
-                        <Badge variant="outline" className={cn('font-semibold', paymentStatusColors[event.paymentStatus])}>
-                          {event.paymentStatus}
-                        </Badge>
-                      </TableCell>
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button aria-haspopup="true" size="icon" variant="ghost">
+                            <Button size="icon" variant="ghost">
                               <MoreHorizontal className="w-4 h-4" />
-                              <span className="sr-only">Alternar menu</span>
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end">
-                            <DropdownMenuLabel>Ações</DropdownMenuLabel>
                             <DropdownMenuItem onClick={() => openEditDialog(event)}>Editar</DropdownMenuItem>
-                             <DropdownMenuItem onClick={() => toggleSoundStatus(event)}>
-                              {event.hasSound ? 'Marcar Sem Som' : 'Marcar Com Som'}
-                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')}>Confirmar</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>Concluir</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updatePaymentStatus(event, 'Pago')}>Marcar Pago</DropdownMenuItem>
                             <DropdownMenuSeparator />
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')}>
-                              Marcar como Confirmado
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>
-                              Marcar como Concluído
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updatePaymentStatus(event, 'Pago')}>
-                              Marcar como Pago
-                            </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Cancelado')}>
-                              Cancelar Evento
-                            </DropdownMenuItem>
-                             <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(event)}>
-                                Excluir
-                            </DropdownMenuItem>
+                            <DropdownMenuItem className="text-destructive" onClick={() => openDeleteAlert(event)}>Excluir</DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
@@ -663,5 +598,3 @@ export default function EventsPage() {
     </div>
   );
 }
-
-    

@@ -41,8 +41,11 @@ const COLORS = [
   'hsl(var(--chart-3))',
   'hsl(var(--chart-4))',
   'hsl(var(--chart-5))',
-  'hsl(var(--primary))',
-  'hsl(var(--accent))',
+  '#f59e0b',
+  '#10b981',
+  '#3b82f6',
+  '#ef4444',
+  '#8b5cf6',
 ];
 
 type UnifiedTransaction = {
@@ -74,17 +77,15 @@ export default function ReportsPage() {
       ?.filter(e => e.paymentStatus === 'Pago')
       .reduce((sum, e) => sum + e.payment, 0) || 0;
       
-    const expenseFromPurchases = purchases
+    const expense = purchases
       ?.filter(p => p.status === 'Pago')
       .reduce((sum, p) => sum + p.amount, 0) || 0;
-    
-    const expense = expenseFromPurchases;
 
     const unifiedTransactions: UnifiedTransaction[] = [
       ...(events || []).filter(e => e.paymentStatus === 'Pago').map(e => ({
           id: e.id,
           type: 'Receita' as 'Receita',
-          description: `Pagamento do evento em ${e.local}`,
+          description: `Evento em ${e.local}`,
           date: e.date,
           amount: e.payment,
       })),
@@ -109,7 +110,6 @@ export default function ReportsPage() {
 
 
   const monthlyData = useMemo(() => {
-    if (!events && !purchases) return [];
     const monthlySummary = Array.from({ length: 12 }, (_, i) => ({
       name: format(new Date(0, i), 'LLL', { locale: ptBR }),
       income: 0,
@@ -132,29 +132,6 @@ export default function ReportsPage() {
 
     return monthlySummary;
   }, [events, purchases]);
-
-  const revenueByArtistData = useMemo(() => {
-    if (!events || !artists) return [];
-    
-    const artistRevenue: Record<string, number> = {};
-    
-    events.forEach(event => {
-      if (event.paymentStatus === 'Pago') {
-        event.artistIds.forEach(artistId => {
-          if (!artistRevenue[artistId]) {
-            artistRevenue[artistId] = 0;
-          }
-          artistRevenue[artistId] += event.payment / event.artistIds.length; // Evenly split payment
-        });
-      }
-    });
-
-    return artists.map(artist => ({
-      name: artist.name,
-      value: artistRevenue[artist.id] || 0
-    })).filter(d => d.value > 0);
-
-  }, [events, artists]);
 
   const artistPerformanceData = useMemo(() => {
     if (!events || !artists) return [];
@@ -183,20 +160,17 @@ export default function ReportsPage() {
     <div className="space-y-8">
       <h1 className="text-3xl font-bold tracking-tight font-headline">Relatórios</h1>
       
-       {isLoading && (
+       {isLoading ? (
           <div className="flex items-center justify-center h-64">
-            <Loader2 className="w-8 h-8 mr-2 animate-spin text-muted-foreground" />
-            <p className="text-muted-foreground">Carregando relatórios...</p>
+            <Loader2 className="w-8 h-8 animate-spin text-muted-foreground" />
           </div>
-        )}
-
-      {!isLoading && (
+        ) : (
         <>
            <div className="grid gap-6 md:grid-cols-3">
             <Card>
               <CardHeader>
-                <CardTitle>Receita Total</CardTitle>
-                <CardDescription>Soma de todos os pagamentos de eventos.</CardDescription>
+                <CardTitle>Receita</CardTitle>
+                <CardDescription>Soma dos eventos pagos.</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-green-600">R${totalIncome.toLocaleString('pt-BR')}</p>
@@ -204,8 +178,8 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Despesa Total</CardTitle>
-                 <CardDescription>Soma de todas as compras pagas.</CardDescription>
+                <CardTitle>Despesa</CardTitle>
+                 <CardDescription>Soma das compras pagas.</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p>
@@ -213,8 +187,8 @@ export default function ReportsPage() {
             </Card>
             <Card>
               <CardHeader>
-                <CardTitle>Saldo Líquido</CardTitle>
-                <CardDescription>Receitas menos despesas.</CardDescription>
+                <CardTitle>Saldo</CardTitle>
+                <CardDescription>Receitas - Despesas.</CardDescription>
               </CardHeader>
               <CardContent>
                 <p className={`text-3xl font-bold ${netBalance >= 0 ? 'text-foreground' : 'text-red-600'}`}>
@@ -224,71 +198,43 @@ export default function ReportsPage() {
             </Card>
           </div>
 
-          <div className="grid gap-6 lg:grid-cols-2">
-            <Card>
-              <CardHeader>
-                <CardTitle>Desempenho Mensal</CardTitle>
-                <CardDescription>Receitas vs. Despesas este ano.</CardDescription>
-              </CardHeader>
-              <CardContent>
+          <Card>
+            <CardHeader>
+                <CardTitle>Performance Mensal</CardTitle>
+            </CardHeader>
+            <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={monthlyData}>
-                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} tickFormatter={(v) => `R$${v/1000}k`} />
-                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`} />
+                    <XAxis dataKey="name" stroke="#888888" fontSize={12} />
+                    <YAxis stroke="#888888" fontSize={12} tickFormatter={(v) => `R$${v/1000}k`} />
+                    <Tooltip formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`} />
                     <Legend />
                     <Line type="monotone" dataKey="income" stroke="hsl(var(--primary))" strokeWidth={2} name="Receita" />
                     <Line type="monotone" dataKey="expenses" stroke="hsl(var(--accent))" strokeWidth={2} name="Despesas" />
                   </LineChart>
                 </ResponsiveContainer>
-              </CardContent>
-            </Card>
-            <Card>
-              <CardHeader>
-                <CardTitle>Receita por Artista</CardTitle>
-                <CardDescription>Detalhamento da receita por artista em eventos pagos.</CardDescription>
-              </CardHeader>
-              <CardContent>
-                <ResponsiveContainer width="100%" height={300}>
-                  <PieChart>
-                    <Pie data={revenueByArtistData} cx="50%" cy="50%" labelLine={false} outerRadius={100} dataKey="value" nameKey="name">
-                      {revenueByArtistData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                      ))}
-                    </Pie>
-                    <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`} />
-                    <Legend />
-                  </PieChart>
-                </ResponsiveContainer>
-              </CardContent>
-            </Card>
-          </div>
+            </CardContent>
+          </Card>
 
           <Card>
             <Tabs defaultValue="bar" className="w-full">
               <CardHeader className="flex flex-row items-center justify-between space-y-0">
                 <div>
-                  <CardTitle>Desempenho do Artista</CardTitle>
-                  <CardDescription>Número de eventos realizados por artista.</CardDescription>
+                  <CardTitle>Desempenho por Artista</CardTitle>
+                  <CardDescription>Número de eventos realizados.</CardDescription>
                 </div>
                 <TabsList>
-                  <TabsTrigger value="bar" className="gap-2">
-                    <BarChart2 className="w-4 h-4" />
-                    Barras
-                  </TabsTrigger>
-                  <TabsTrigger value="pie" className="gap-2">
-                    <PieChartIcon className="w-4 h-4" />
-                    Pizza
-                  </TabsTrigger>
+                  <TabsTrigger value="bar"><BarChart2 className="w-4 h-4" /></TabsTrigger>
+                  <TabsTrigger value="pie"><PieChartIcon className="w-4 h-4" /></TabsTrigger>
                 </TabsList>
               </CardHeader>
               <CardContent>
                 <TabsContent value="bar" className="mt-0">
                   <ResponsiveContainer width="100%" height={350}>
                     <BarChart data={artistPerformanceData}>
-                      <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} angle={-15} textAnchor="end" height={60} />
-                      <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} allowDecimals={false} />
-                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} cursor={{fill: 'hsl(var(--muted))'}} />
+                      <XAxis dataKey="name" fontSize={12} height={60} />
+                      <YAxis allowDecimals={false} />
+                      <Tooltip />
                       <Bar dataKey="events" radius={[4, 4, 0, 0]} name="Eventos">
                         {artistPerformanceData.map((entry, index) => (
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -313,7 +259,7 @@ export default function ReportsPage() {
                           <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                         ))}
                       </Pie>
-                      <Tooltip contentStyle={{ backgroundColor: 'hsl(var(--background))' }} />
+                      <Tooltip />
                       <Legend />
                     </PieChart>
                   </ResponsiveContainer>
@@ -325,9 +271,6 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Atividade Recente</CardTitle>
-              <CardDescription>
-                As 10 transações financeiras mais recentes (receitas de eventos e compras pagas).
-              </CardDescription>
             </CardHeader>
             <CardContent>
              <div className="overflow-x-auto">
@@ -345,17 +288,11 @@ export default function ReportsPage() {
                     <TableRow key={transaction.id}>
                       <TableCell>
                         <Badge variant="outline" className={cn('font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
-                          {transaction.type === 'Receita' ? <ArrowUpCircle className="w-4 h-4 mr-2" /> : <ArrowDownCircle className="w-4 h-4 mr-2" />}
                           {transaction.type}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <div className="font-medium">{transaction.description}</div>
-                        <div className="text-sm text-muted-foreground sm:hidden">
-                            {format(parseISO(transaction.date), 'dd/MM/yy', { locale: ptBR })}
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd MMM, yyyy', { locale: ptBR })}</TableCell>
+                      <TableCell>{transaction.description}</TableCell>
+                      <TableCell className="hidden sm:table-cell">{format(parseISO(transaction.date), 'dd/MM/yyyy')}</TableCell>
                       <TableCell className={cn('text-right font-semibold', transaction.type === 'Receita' ? 'text-green-600' : 'text-red-600')}>
                         {transaction.type === 'Receita' ? '+' : '-'}R${transaction.amount.toLocaleString('pt-BR')}
                       </TableCell>
