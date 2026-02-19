@@ -9,7 +9,6 @@ import { FirebaseStorage } from 'firebase/storage';
 import { FirebaseErrorListener } from '@/components/FirebaseErrorListener';
 import { auth, firestore, storage, firebaseApp } from './firebase';
 
-// Interfaces
 export interface FirebaseServices {
   firebaseApp: FirebaseApp;
   firestore: Firestore;
@@ -29,10 +28,8 @@ export interface UserHookResult {
   userError: Error | null;
 }
 
-// Context
 export const FirebaseContext = createContext<FirebaseContextState | undefined>(undefined);
 
-// Provider
 export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   children,
 }) => {
@@ -41,9 +38,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   const [userError, setUserError] = useState<Error | null>(null);
 
   useEffect(() => {
-    // Garante que a escuta de autenticação só ocorra no cliente
-    if (typeof window === 'undefined') return;
-
+    // Escuta mudanças no estado de autenticação apenas no lado do cliente
     const unsubscribe = onAuthStateChanged(
       auth,
       (firebaseUser) => {
@@ -78,9 +73,7 @@ export const FirebaseProvider: React.FC<{ children: ReactNode }> = ({
   );
 };
 
-
-// Hooks
-const useFirebase = (): FirebaseContextState => {
+export const useFirebase = (): FirebaseContextState => {
   const context = useContext(FirebaseContext);
   if (context === undefined) {
     throw new Error('useFirebase must be used within a FirebaseProvider.');
@@ -96,7 +89,6 @@ export const useUser = (): UserHookResult => {
   return { user, isUserLoading, userError };
 };
 
-// Memoization Helper
 export function useMemoFirebase<T>(factory: () => T, deps: React.DependencyList): T {
   return useMemo(factory, deps);
 }

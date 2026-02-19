@@ -1,5 +1,6 @@
+
 {
-  "name": "nextn",
+  "name": "bandmate",
   "version": "0.1.0",
   "private": true,
   "scripts": {
@@ -42,9 +43,8 @@
     "jspdf": "^2.5.1",
     "jspdf-autotable": "^3.8.2",
     "lucide-react": "^0.408.0",
-    "next": "^16.2.0-canary.38",
-    "next-themes": "^0.3.0",
-    "patch-package": "^8.0.0",
+    "next": "15.1.0",
+    "next-themes": "^0.4.4",
     "react": "19.0.0",
     "react-day-picker": "^8.10.1",
     "react-dom": "19.0.0",
@@ -61,5 +61,8 @@
     "tailwindcss": "3.4.7",
     "typescript": "^5"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "overrides": {
+    "react": "19.0.0",
+    "react-dom": "19.0.0"
+  }
 }
