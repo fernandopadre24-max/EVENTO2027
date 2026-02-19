@@ -26,17 +26,20 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
+// Definindo uma paleta de cores mais vibrante e diversificada para os artistas
 const COLORS = [
-  'hsl(var(--chart-1))',
-  'hsl(var(--chart-2))',
-  'hsl(var(--chart-3))',
-  'hsl(var(--chart-4))',
-  'hsl(var(--chart-5))',
-  '#f59e0b',
-  '#10b981',
-  '#3b82f6',
-  '#ef4444',
-  '#8b5cf6',
+  '#3b82f6', // blue-500
+  '#10b981', // emerald-500
+  '#f59e0b', // amber-500
+  '#ef4444', // red-500
+  '#8b5cf6', // violet-500
+  '#ec4899', // pink-500
+  '#06b6d4', // cyan-500
+  '#f97316', // orange-500
+  '#14b8a6', // teal-500
+  '#6366f1', // indigo-500
+  '#a855f7', // purple-500
+  '#eab308', // yellow-500
 ];
 
 export default function ReportsPage() {
@@ -114,13 +117,39 @@ export default function ReportsPage() {
       ) : (
         <>
           <div className="grid gap-6 md:grid-cols-3">
-            <Card className="bg-green-500/5"><CardHeader><CardTitle className="text-sm">Receita Total</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-green-600">R${totalIncome.toLocaleString('pt-BR')}</p></CardContent></Card>
-            <Card className="bg-red-500/5"><CardHeader><CardTitle className="text-sm">Despesa Total</CardTitle></CardHeader><CardContent><p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p></CardContent></Card>
-            <Card><CardHeader><CardTitle className="text-sm">Saldo Atual</CardTitle></CardHeader><CardContent><p className={cn("text-3xl font-bold", netBalance >= 0 ? "text-primary" : "text-red-600")}>R${netBalance.toLocaleString('pt-BR')}</p></CardContent></Card>
+            <Card className="bg-green-500/5">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-green-600">R${totalIncome.toLocaleString('pt-BR')}</p>
+              </CardContent>
+            </Card>
+            <Card className="bg-red-500/5">
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Despesa Total</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p>
+              </CardContent>
+            </Card>
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-sm font-medium">Saldo Atual</CardTitle>
+              </CardHeader>
+              <CardContent>
+                <p className={cn("text-3xl font-bold", netBalance >= 0 ? "text-primary" : "text-red-600")}>
+                  R${netBalance.toLocaleString('pt-BR')}
+                </p>
+              </CardContent>
+            </Card>
           </div>
 
           <Card>
-            <CardHeader><CardTitle>Performance Mensal</CardTitle><CardDescription>Fluxo de caixa ao longo do ano.</CardDescription></CardHeader>
+            <CardHeader>
+              <CardTitle>Performance Mensal</CardTitle>
+              <CardDescription>Fluxo de caixa ao longo do ano.</CardDescription>
+            </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
                   <LineChart data={monthlyData}>
