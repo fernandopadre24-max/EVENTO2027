@@ -25,6 +25,7 @@ import {
   Legend,
   Bar,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
 import { ArrowUp, DollarSign, Calendar as CalendarIcon, ArrowDown } from 'lucide-react';
 import { format, parseISO, getMonth, startOfDay } from 'date-fns';
@@ -41,6 +42,12 @@ const statusColors: Record<EventStatus, string> = {
   Confirmado: 'bg-blue-400/20 text-blue-600 border-blue-400/30',
   Concluído: 'bg-green-400/20 text-green-600 border-green-400/30',
   Cancelado: 'bg-red-400/20 text-red-600 border-red-400/30',
+};
+
+// Cores vibrantes para o gráfico financeiro
+const FINANCIAL_COLORS = {
+  income: '#10b981', // emerald-500
+  outcome: '#f43f5e', // rose-500
 };
 
 export default function DashboardPage() {
@@ -215,8 +222,8 @@ export default function DashboardPage() {
                   formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`}
                 />
                 <Legend iconSize={10} />
-                <Bar dataKey="income" fill="hsl(var(--primary))" name="Receita" radius={[4, 4, 0, 0]} />
-                <Bar dataKey="outcome" fill="hsl(var(--accent))" name="Despesa" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="income" fill={FINANCIAL_COLORS.income} name="Receita" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="outcome" fill={FINANCIAL_COLORS.outcome} name="Despesa" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
