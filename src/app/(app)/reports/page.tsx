@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useMemo, useState, useEffect } from 'react';
@@ -26,8 +25,8 @@ import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 
-// Definindo uma paleta de cores mais vibrante e diversificada para os artistas
-const COLORS = [
+// Paleta de cores vibrantes para os artistas
+const ARTIST_COLORS = [
   '#3b82f6', // blue-500
   '#10b981', // emerald-500
   '#f59e0b', // amber-500
@@ -122,7 +121,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-green-600">R${totalIncome.toLocaleString('pt-BR')}</p>
+                <p className="text-3xl font-bold text-emerald-600">R${totalIncome.toLocaleString('pt-BR')}</p>
               </CardContent>
             </Card>
             <Card className="bg-red-500/5">
@@ -130,7 +129,7 @@ export default function ReportsPage() {
                 <CardTitle className="text-sm font-medium">Despesa Total</CardTitle>
               </CardHeader>
               <CardContent>
-                <p className="text-3xl font-bold text-red-600">R${totalExpense.toLocaleString('pt-BR')}</p>
+                <p className="text-3xl font-bold text-rose-600">R${totalExpense.toLocaleString('pt-BR')}</p>
               </CardContent>
             </Card>
             <Card>
@@ -148,7 +147,7 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Performance Mensal</CardTitle>
-              <CardDescription>Fluxo de caixa ao longo do ano.</CardDescription>
+              <CardDescription>Fluxo de caixa ao longo do ano (Receitas vs Despesas).</CardDescription>
             </CardHeader>
             <CardContent>
                 <ResponsiveContainer width="100%" height={300}>
@@ -160,8 +159,8 @@ export default function ReportsPage() {
                       formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`} 
                     />
                     <Legend />
-                    <Line type="monotone" dataKey="income" stroke="hsl(var(--primary))" strokeWidth={3} name="Receita" dot={{ r: 4 }} />
-                    <Line type="monotone" dataKey="expenses" stroke="hsl(var(--accent))" strokeWidth={3} name="Despesas" dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="income" stroke="#10b981" strokeWidth={3} name="Receita" dot={{ r: 4 }} />
+                    <Line type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={3} name="Despesas" dot={{ r: 4 }} />
                   </LineChart>
                 </ResponsiveContainer>
             </CardContent>
@@ -172,7 +171,7 @@ export default function ReportsPage() {
               <CardHeader className="flex flex-row items-center justify-between">
                 <div>
                   <CardTitle>Desempenho por Artista</CardTitle>
-                  <CardDescription>Quantidade de eventos realizados.</CardDescription>
+                  <CardDescription>Quantidade de eventos realizados por artista.</CardDescription>
                 </div>
                 <TabsList>
                   <TabsTrigger value="bar"><BarChart2 className="w-4 h-4" /></TabsTrigger>
@@ -189,7 +188,7 @@ export default function ReportsPage() {
                          contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}
                       />
                       <Bar dataKey="events" radius={[4, 4, 0, 0]} name="Eventos">
-                        {artistPerformanceData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
+                        {artistPerformanceData.map((_, i) => <Cell key={`cell-${i}`} fill={ARTIST_COLORS[i % ARTIST_COLORS.length]} />)}
                       </Bar>
                     </BarChart>
                   </ResponsiveContainer>
@@ -206,7 +205,7 @@ export default function ReportsPage() {
                         outerRadius={120} 
                         label={({ name, percent }) => `${name} (${(percent * 100).toFixed(0)}%)`}
                       >
-                        {artistPerformanceData.map((_, i) => <Cell key={`cell-${i}`} fill={COLORS[i % COLORS.length]} />)}
+                        {artistPerformanceData.map((_, i) => <Cell key={`cell-${i}`} fill={ARTIST_COLORS[i % ARTIST_COLORS.length]} />)}
                       </Pie>
                       <Tooltip 
                          contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }}

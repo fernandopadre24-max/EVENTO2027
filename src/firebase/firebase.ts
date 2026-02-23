@@ -1,4 +1,3 @@
-
 import { initializeApp, getApps, getApp, FirebaseApp } from 'firebase/app';
 import { getFirestore, Firestore } from 'firebase/firestore';
 import { getAuth, Auth } from 'firebase/auth';
@@ -7,18 +6,11 @@ import { firebaseConfig } from './config';
 
 /**
  * Singleton initialization for Firebase.
- * Ensures that the app is only initialized once.
+ * Robust check to handle Next.js hot-reloading and build process.
  */
-function getFirebaseApp(): FirebaseApp {
-  if (getApps().length > 0) {
-    return getApp();
-  }
-  return initializeApp(firebaseConfig);
-}
-
-const app = getFirebaseApp();
-const auth = getAuth(app);
-const firestore = getFirestore(app);
-const storage = getStorage(app);
+const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const auth: Auth = getAuth(app);
+const firestore: Firestore = getFirestore(app);
+const storage: FirebaseStorage = getStorage(app);
 
 export { app as firebaseApp, auth, firestore, storage };
