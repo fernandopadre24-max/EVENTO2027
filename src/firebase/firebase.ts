@@ -7,9 +7,8 @@ import { firebaseConfig } from './config';
 /**
  * Singleton initialization for Firebase.
  * Robust check to handle Next.js hot-reloading and build process.
- * Verifies if config is present to avoid app/no-options error on Vercel.
  */
-const isConfigValid = firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "";
+const isConfigValid = !!(firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "placeholder-id");
 
 const app: FirebaseApp = getApps().length > 0 
   ? getApp() 
