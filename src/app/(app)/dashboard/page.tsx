@@ -25,7 +25,6 @@ import {
   Legend,
   Bar,
   ResponsiveContainer,
-  Cell,
 } from 'recharts';
 import { ArrowUp, DollarSign, Calendar as CalendarIcon, ArrowDown } from 'lucide-react';
 import { format, parseISO, getMonth, startOfDay } from 'date-fns';
