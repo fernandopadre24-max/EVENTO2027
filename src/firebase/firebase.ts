@@ -7,8 +7,21 @@ import { firebaseConfig } from './config';
 /**
  * Singleton initialization for Firebase.
  * Robust check to handle Next.js hot-reloading and build process.
+ * Verifies if config is present to avoid app/no-options error on Vercel.
  */
-const app: FirebaseApp = getApps().length > 0 ? getApp() : initializeApp(firebaseConfig);
+const isConfigValid = firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "";
+
+const app: FirebaseApp = getApps().length > 0 
+  ? getApp() 
+  : initializeApp(isConfigValid ? firebaseConfig : {
+      apiKey: "placeholder",
+      authDomain: "placeholder",
+      projectId: "placeholder-id",
+      storageBucket: "placeholder",
+      messagingSenderId: "placeholder",
+      appId: "placeholder"
+    });
+
 const auth: Auth = getAuth(app);
 const firestore: Firestore = getFirestore(app);
 const storage: FirebaseStorage = getStorage(app);
