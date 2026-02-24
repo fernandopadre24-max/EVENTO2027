@@ -7,7 +7,7 @@ import { firebaseConfig } from './config';
 
 /**
  * Inicialização segura do Firebase para ambientes de build (Vercel/CI).
- * Garante que o app sempre receba uma configuração válida para evitar o erro app/no-options.
+ * Garante que o app receba uma configuração mínima válida para evitar o erro app/no-options.
  */
 const isConfigValid = !!(
   firebaseConfig && 
@@ -16,7 +16,7 @@ const isConfigValid = !!(
   firebaseConfig.projectId !== "placeholder-id"
 );
 
-// Configuração de fallback para evitar erros fatais durante o build estático
+// Configuração de fallback para evitar erros fatais durante o build estático do Next.js
 const fallbackConfig = {
   apiKey: "dummy-api-key-for-build",
   authDomain: "dummy.firebaseapp.com",
