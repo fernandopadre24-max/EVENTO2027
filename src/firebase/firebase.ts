@@ -10,6 +10,7 @@ import { firebaseConfig } from './config';
  */
 const isConfigValid = !!(firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "placeholder-id");
 
+// Safe initialization for both Client and Server/Build environments
 const app: FirebaseApp = getApps().length > 0 
   ? getApp() 
   : initializeApp(isConfigValid ? firebaseConfig : {
