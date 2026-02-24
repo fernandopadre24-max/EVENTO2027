@@ -7,15 +7,20 @@ import { firebaseConfig } from './config';
 /**
  * Singleton initialization for Firebase.
  * Robust check to handle Next.js build process and Vercel environment.
- * Provides a fallback config to prevent 'app/no-options' errors during static generation.
  */
-const isConfigValid = !!(firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "studio-2880807235-e930f" && firebaseConfig.projectId !== "placeholder-id");
+const isConfigValid = !!(
+  firebaseConfig && 
+  firebaseConfig.apiKey && 
+  firebaseConfig.apiKey.startsWith("AIza") &&
+  firebaseConfig.projectId && 
+  firebaseConfig.projectId !== "placeholder-id"
+);
 
-// Configuração mínima de fallback para evitar erro app/no-options no build estático
+// Fallback config for static build processes where env vars might be missing
 const fallbackConfig = {
-  apiKey: "dummy-key",
+  apiKey: "dummy-api-key-for-build",
   authDomain: "dummy.firebaseapp.com",
-  projectId: "dummy-id",
+  projectId: "dummy-project-id",
   storageBucket: "dummy.appspot.com",
   messagingSenderId: "123456789",
   appId: "1:123456789:web:dummy"

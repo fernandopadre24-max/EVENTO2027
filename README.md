@@ -9,5 +9,5 @@ Gerenciamento de eventos para grupos musicais.
 - Controle Financeiro (Receitas e Despesas)
 - Relatórios com Gráficos
 - Exportação de PDF
-# eventoX
-# eventoX
+# evento
+# evento
