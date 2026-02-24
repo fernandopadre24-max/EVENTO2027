@@ -9,8 +9,9 @@ import { firebaseConfig } from './config';
  * Robust check to handle Next.js build process and Vercel environment.
  * Provides a fallback config to prevent 'app/no-options' errors during static generation.
  */
-const isConfigValid = !!(firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "placeholder-id");
+const isConfigValid = !!(firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "studio-2880807235-e930f" && firebaseConfig.projectId !== "placeholder-id");
 
+// Configuração mínima de fallback para evitar erro app/no-options no build estático
 const fallbackConfig = {
   apiKey: "dummy-key",
   authDomain: "dummy.firebaseapp.com",

@@ -43,7 +43,7 @@ const statusColors: Record<EventStatus, string> = {
   Cancelado: 'bg-red-400/20 text-red-600 border-red-400/30',
 };
 
-// Cores vibrantes para o gráfico financeiro
+// Cores vibrantes solicitadas: Esmeralda para Receita, Coral/Rosa para Despesa
 const FINANCIAL_COLORS = {
   income: '#10b981', // emerald-500
   outcome: '#f43f5e', // rose-500
@@ -144,24 +144,24 @@ export default function DashboardPage() {
         Painel
       </h1>
       <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="bg-green-500/10 border-green-500/20 text-green-900 dark:text-green-200">
+        <Card className="bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Receita Total</CardTitle>
-            <ArrowUp className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <ArrowUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R${totalIncome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-green-800 dark:text-green-300/80">Acumulado geral</p>
+            <p className="text-xs text-emerald-800 dark:text-emerald-300/80">Acumulado geral</p>
           </CardContent>
         </Card>
-        <Card className="bg-red-500/10 border-red-500/20 text-red-900 dark:text-red-200">
+        <Card className="bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Despesa Total</CardTitle>
-            <ArrowDown className="w-4 h-4 text-red-600 dark:text-red-400" />
+            <ArrowDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">R${totalOutcome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-red-800 dark:text-red-300/80">Acumulado geral</p>
+            <p className="text-xs text-rose-800 dark:text-rose-300/80">Acumulado geral</p>
           </CardContent>
         </Card>
         <Card className="bg-accent/10 border-accent/20">
@@ -170,7 +170,7 @@ export default function DashboardPage() {
             <DollarSign className="w-4 h-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-green-600' : 'text-red-600'}`}>
+            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
               R${netProfit.toLocaleString('pt-BR')}
             </div>
             <p className="text-xs text-muted-foreground">Análise do lucro geral</p>
