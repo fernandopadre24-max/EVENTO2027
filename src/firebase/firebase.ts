@@ -6,11 +6,11 @@ import { firebaseConfig } from './config';
 
 /**
  * Singleton initialization for Firebase.
- * Robust check to handle Next.js build process and SSR.
+ * Robust check to handle Next.js build process and Vercel environment.
+ * Provides a fallback config to prevent 'app/no-options' errors during static generation.
  */
 const isConfigValid = !!(firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "placeholder-id");
 
-// Defina uma configuração de fallback para evitar erro app/no-options durante o build na Vercel
 const fallbackConfig = {
   apiKey: "dummy-key",
   authDomain: "dummy.firebaseapp.com",
