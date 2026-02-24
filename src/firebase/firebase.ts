@@ -6,21 +6,23 @@ import { firebaseConfig } from './config';
 
 /**
  * Singleton initialization for Firebase.
- * Robust check to handle Next.js hot-reloading and build process.
+ * Robust check to handle Next.js build process and SSR.
  */
 const isConfigValid = !!(firebaseConfig && firebaseConfig.projectId && firebaseConfig.projectId !== "placeholder-id");
 
-// Safe initialization for both Client and Server/Build environments
+// Defina uma configuração de fallback para evitar erro app/no-options durante o build na Vercel
+const fallbackConfig = {
+  apiKey: "dummy-key",
+  authDomain: "dummy.firebaseapp.com",
+  projectId: "dummy-id",
+  storageBucket: "dummy.appspot.com",
+  messagingSenderId: "123456789",
+  appId: "1:123456789:web:dummy"
+};
+
 const app: FirebaseApp = getApps().length > 0 
   ? getApp() 
-  : initializeApp(isConfigValid ? firebaseConfig : {
-      apiKey: "placeholder",
-      authDomain: "placeholder",
-      projectId: "placeholder-id",
-      storageBucket: "placeholder",
-      messagingSenderId: "placeholder",
-      appId: "placeholder"
-    });
+  : initializeApp(isConfigValid ? firebaseConfig : fallbackConfig);
 
 const auth: Auth = getAuth(app);
 const firestore: Firestore = getFirestore(app);
