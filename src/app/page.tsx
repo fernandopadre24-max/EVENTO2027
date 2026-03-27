@@ -1,21 +1,21 @@
-
 'use client';
 import { useUser } from '@/firebase';
-import { redirect } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { useEffect } from 'react';
 
 export default function RootPage() {
   const { user, isUserLoading } = useUser();
+  const router = useRouter();
 
   useEffect(() => {
     if (!isUserLoading) {
       if (user) {
-        redirect('/dashboard');
+        router.push('/dashboard');
       } else {
-        redirect('/login');
+        router.push('/login');
       }
     }
-  }, [user, isUserLoading]);
+  }, [user, isUserLoading, router]);
 
   return null; // or a loading spinner
 }
