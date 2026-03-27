@@ -88,13 +88,19 @@ export default function PurchasesPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    const targetState = isEditOpen ? setSelectedPurchase : setNewPurchase;
-    targetState(prev => prev ? ({ ...prev, [id]: id === 'amount' || id === 'installments' ? Number(value) : value }) : null);
+    if (isEditOpen) {
+      setSelectedPurchase(prev => prev ? ({ ...prev, [id]: id === 'amount' || id === 'installments' ? Number(value) : value }) : null);
+    } else {
+      setNewPurchase(prev => ({ ...prev, [id]: id === 'amount' || id === 'installments' ? Number(value) : value }));
+    }
   };
   
   const handleSelectChange = (id: string) => (value: string) => {
-    const targetState = isEditOpen ? setSelectedPurchase : setNewPurchase;
-    targetState(prev => prev ? ({ ...prev, [id]: value }) : null);
+    if (isEditOpen) {
+      setSelectedPurchase(prev => prev ? ({ ...prev, [id]: value }) : null);
+    } else {
+      setNewPurchase(prev => ({ ...prev, [id]: value }));
+    }
   };
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -319,7 +325,7 @@ export default function PurchasesPage() {
               <TableBody>
                 {purchases?.map((purchase) => {
                   const hasInstallments = purchase.installments && purchase.installments > 1;
-                  const installmentValue = hasInstallments ? purchase.amount / purchase.installments : 0;
+                  const installmentValue = (hasInstallments && purchase.installments) ? purchase.amount / purchase.installments : 0;
 
                   return (
                     <TableRow key={purchase.id}>

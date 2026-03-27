@@ -135,19 +135,28 @@ export default function PurchasesPage() {
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { id, value } = e.target;
-    const targetState = isEditOpen ? setSelectedPurchase : setNewPurchase;
-    targetState(prev => prev ? ({ ...prev, [id]: id === 'amount' || id === 'installments' ? Number(value) : value }) : null);
+    if (isEditOpen) {
+      setSelectedPurchase(prev => prev ? ({ ...prev, [id]: id === 'amount' || id === 'installments' ? Number(value) : value }) : null);
+    } else {
+      setNewPurchase(prev => ({ ...prev, [id]: id === 'amount' || id === 'installments' ? Number(value) : value }));
+    }
   };
   
   const handleSelectChange = (id: string) => (value: string) => {
-    const targetState = isEditOpen ? setSelectedPurchase : setNewPurchase;
     const finalValue = value === 'none' ? '' : value;
-    targetState(prev => prev ? ({ ...prev, [id]: finalValue }) : null);
+    if (isEditOpen) {
+      setSelectedPurchase(prev => prev ? ({ ...prev, [id]: finalValue }) : null);
+    } else {
+      setNewPurchase(prev => ({ ...prev, [id]: finalValue }));
+    }
   };
   
   const handleStatusToggle = (checked: boolean) => {
-    const targetState = isEditOpen ? setSelectedPurchase : setNewPurchase;
-    targetState(prev => prev ? ({ ...prev, status: checked ? 'Pago' : 'Não Pago' }) : null);
+    if (isEditOpen) {
+      setSelectedPurchase(prev => prev ? ({ ...prev, status: checked ? 'Pago' : 'Não Pago' }) : null);
+    } else {
+      setNewPurchase(prev => ({ ...prev, status: checked ? 'Pago' : 'Não Pago' }));
+    }
   }
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
@@ -395,7 +404,7 @@ export default function PurchasesPage() {
             <TableBody>
                 {purchasesList.sort((a, b) => parseISO(b.date).getTime() - parseISO(a.date).getTime()).map((purchase) => {
                     const hasInstallments = purchase.installments && purchase.installments > 1;
-                    const installmentValue = hasInstallments ? purchase.amount / purchase.installments : 0;
+                    const installmentValue = (hasInstallments && purchase.installments) ? purchase.amount / purchase.installments : 0;
                     const artistPaid = artists?.find(a => a.id === purchase.artistId);
 
                     return (
