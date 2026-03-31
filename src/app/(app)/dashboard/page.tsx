@@ -31,7 +31,7 @@ import { format, parseISO, getMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Event, Client, Purchase, EventStatus } from '@/lib/types';
+import type { Event, Client, Purchase, EventStatus, Loan } from '@/lib/types';
 import { Badge } from '@/components/ui/badge';
 import { cn } from '@/lib/utils';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -67,6 +67,19 @@ export default function DashboardPage() {
   const purchasesRef = useMemoFirebase(() => user ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: purchases } = useCollection<Purchase>(purchasesRef);
 
+  const loansRef = useMemoFirebase(() => user ? query(collection(firestore, 'loans'), where('userId', '==', user.uid)) : null, [firestore, user]);
+  const { data: loans } = useCollection<Loan>(loansRef);
+
+  const calculateTotalWithInterest = (principal: number, rate: number, installments: number, type: 'Simples' | 'Composto') => {
+    if (principal <= 0) return 0;
+    if (rate <= 0) return principal;
+    if (type === 'Simples') {
+      return principal + (principal * (rate / 100) * installments);
+    } else {
+      return principal * Math.pow(1 + (rate / 100), installments);
+    }
+  };
+
   const { totalIncome, totalOutcome, netProfit } = useMemo(() => {
     const income = events
     ?.filter((e) => e.paymentStatus === 'Pago')
@@ -76,10 +89,16 @@ export default function DashboardPage() {
     ?.filter(p => p.status === 'Pago')
     .reduce((sum, p) => sum + p.amount, 0) || 0;
 
-    const outcome = purchaseOutcome;
+    const loanOutcome = loans?.reduce((sum, loan) => {
+        const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
+        const installmentValue = totalAmount / loan.installments;
+        return sum + (installmentValue * loan.paidInstallments);
+    }, 0) || 0;
+
+    const outcome = purchaseOutcome + loanOutcome;
 
     return { totalIncome: income, totalOutcome: outcome, netProfit: income - outcome };
-  }, [events, purchases]);
+  }, [events, purchases, loans]);
 
   const upcomingEvents = useMemo(() => {
     if (!events) return [];
@@ -133,8 +152,22 @@ export default function DashboardPage() {
         }
     });
 
+    loans?.forEach(loan => {
+        const startDate = parseISO(loan.startDate);
+        const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
+        const installmentValue = totalAmount / loan.installments;
+
+        for (let i = 0; i < loan.paidInstallments; i++) {
+            const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+            if (paymentDate.getFullYear() === selectedYear) {
+                const monthIndex = paymentDate.getMonth();
+                data[monthIndex].outcome += installmentValue;
+            }
+        }
+    });
+
     return data;
-  }, [events, purchases, selectedYear]);
+  }, [events, purchases, loans, selectedYear]);
 
   if (selectedYear === null) return null;
 

@@ -19,7 +19,7 @@ import {
 import { Loader2, BarChart2, PieChart as PieChartIcon } from 'lucide-react';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
-import type { Event, Artist, Purchase } from '@/lib/types';
+import type { Event, Artist, Purchase, Loan } from '@/lib/types';
 import { format, parseISO, getMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
@@ -59,15 +59,37 @@ export default function ReportsPage() {
   const purchasesRef = useMemoFirebase(() => user ? query(collection(firestore, 'purchases'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: purchases, isLoading: isLoadingPurchases } = useCollection<Purchase>(purchasesRef);
 
+  const loansRef = useMemoFirebase(() => user ? query(collection(firestore, 'loans'), where('userId', '==', user.uid)) : null, [firestore, user]);
+  const { data: loans, isLoading: isLoadingLoans } = useCollection<Loan>(loansRef);
+
+  const calculateTotalWithInterest = (principal: number, rate: number, installments: number, type: 'Simples' | 'Composto') => {
+    if (principal <= 0) return 0;
+    if (rate <= 0) return principal;
+    if (type === 'Simples') {
+      return principal + (principal * (rate / 100) * installments);
+    } else {
+      return principal * Math.pow(1 + (rate / 100), installments);
+    }
+  };
+
   const { totalIncome, totalExpense, netBalance } = useMemo(() => {
     const income = events?.filter(e => e.paymentStatus === 'Pago').reduce((sum, e) => sum + e.payment, 0) || 0;
-    const expense = purchases?.filter(p => p.status === 'Pago').reduce((sum, p) => sum + p.amount, 0) || 0;
+    const purchaseExpense = purchases?.filter(p => p.status === 'Pago').reduce((sum, p) => sum + p.amount, 0) || 0;
+    
+    const loanExpense = loans?.reduce((sum, loan) => {
+        const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
+        const installmentValue = totalAmount / loan.installments;
+        return sum + (installmentValue * loan.paidInstallments);
+    }, 0) || 0;
+
+    const expense = purchaseExpense + loanExpense;
+
     return {
       totalIncome: income,
       totalExpense: expense,
       netBalance: income - expense,
     };
-  }, [events, purchases]);
+  }, [events, purchases, loans]);
 
   const monthlyData = useMemo(() => {
     if (!mounted) return [];
@@ -88,8 +110,21 @@ export default function ReportsPage() {
         if (data[month]) data[month].expenses += p.amount;
       }
     });
+    loans?.forEach(loan => {
+        const startDate = parseISO(loan.startDate);
+        const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
+        const installmentValue = totalAmount / loan.installments;
+
+        for (let i = 0; i < loan.paidInstallments; i++) {
+            const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+            const monthIndex = paymentDate.getMonth();
+            if (data[monthIndex]) {
+                data[monthIndex].expenses += installmentValue;
+            }
+        }
+    });
     return data;
-  }, [events, purchases, mounted]);
+  }, [events, purchases, loans, mounted]);
 
   const artistPerformanceData = useMemo(() => {
     if (!events || !artists) return [];
@@ -104,7 +139,7 @@ export default function ReportsPage() {
     return artists.map(a => ({ name: a.name, events: counts[a.id] || 0 })).filter(a => a.events > 0);
   }, [events, artists]);
   
-  const isLoading = isLoadingEvents || isLoadingArtists || isLoadingPurchases;
+  const isLoading = isLoadingEvents || isLoadingArtists || isLoadingPurchases || isLoadingLoans;
 
   if (!mounted) return null;
 
