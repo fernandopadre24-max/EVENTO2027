@@ -23,7 +23,8 @@ const topLevelRoutes = [
   '/reports',
   '/calendar',
   '/profile',
-  '/settings'
+  '/settings',
+  '/loans'
 ];
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {

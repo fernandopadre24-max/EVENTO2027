@@ -42,6 +42,22 @@ export interface Event {
 export type PaymentMethod = 'Dinheiro' | 'PIX' | 'Cartão de Crédito' | 'Cartão de Débito';
 
 export type PurchaseStatus = 'Pago' | 'Não Pago';
+export type LoanStatus = 'Ativo' | 'Quitado' | 'Em Atraso';
+
+export interface Loan {
+  id: string;
+  description: string;
+  lender: string;
+  amount: number;
+  interestRate: number; // in percentage
+  interestType: 'Simples' | 'Composto';
+  startDate: string;
+  installments: number;
+  paidInstallments: number;
+  status: LoanStatus;
+  userId: string;
+  details?: string;
+}
 
 export interface Purchase {
   id: string;
