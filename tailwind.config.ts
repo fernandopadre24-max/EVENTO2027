@@ -13,6 +13,7 @@ const config: Config = {
         body: ['PT Sans', 'sans-serif'],
         headline: ['PT Sans', 'sans-serif'],
         code: ['monospace'],
+        w2k: ['Tahoma', 'MS Sans Serif', 'Arial', 'sans-serif'],
       },
       colors: {
         background: 'hsl(var(--background))',
