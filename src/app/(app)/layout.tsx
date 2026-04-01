@@ -41,6 +41,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     }
   }, [user, isUserLoading, router]);
 
+  useEffect(() => {
+    document.title = appName;
+  }, [appName]);
+
   // While loading, you can show a loader or null
   if (isUserLoading || !user) {
     return (
