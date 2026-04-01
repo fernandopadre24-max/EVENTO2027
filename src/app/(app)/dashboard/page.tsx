@@ -66,7 +66,7 @@ const STATUS_COLORS_CHART: Record<string, string> = {
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
+  const [selectedYear, setSelectedYear] = useState<number | 'all'>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [selectedArtistId, setSelectedArtistId] = useState<string>('all');
@@ -102,7 +102,7 @@ export default function DashboardPage() {
     if (!events) return [];
     return events.filter(event => {
       const date = parseISO(event.date);
-      const yearMatch = date.getFullYear() === selectedYear;
+      const yearMatch = selectedYear === 'all' || date.getFullYear() === selectedYear;
       const monthMatch = selectedMonth === 'all' || getMonth(date) === Number(selectedMonth);
       const clientMatch = selectedClientId === 'all' || event.clientId === selectedClientId;
       const artistMatch = selectedArtistId === 'all' || event.artistIds?.includes(selectedArtistId);
@@ -114,7 +114,7 @@ export default function DashboardPage() {
     if (!purchases) return [];
     return purchases.filter(purchase => {
       const date = parseISO(purchase.date);
-      const yearMatch = date.getFullYear() === selectedYear;
+      const yearMatch = selectedYear === 'all' || date.getFullYear() === selectedYear;
       const monthMatch = selectedMonth === 'all' || getMonth(date) === Number(selectedMonth);
       return yearMatch && monthMatch;
     });
@@ -137,7 +137,9 @@ export default function DashboardPage() {
         let localOutcome = 0;
         for (let i = 0; i < loan.paidInstallments; i++) {
           const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
-          if (paymentDate.getFullYear() === selectedYear && (selectedMonth === 'all' || paymentDate.getMonth() === Number(selectedMonth))) {
+          const yearMatch = selectedYear === 'all' || paymentDate.getFullYear() === selectedYear;
+          const monthMatch = selectedMonth === 'all' || paymentDate.getMonth() === Number(selectedMonth);
+          if (yearMatch && monthMatch) {
             localOutcome += installmentValue;
           }
         }
@@ -176,49 +178,90 @@ export default function DashboardPage() {
     return Array.from(years).sort((a, b) => b - a);
   }, [events, purchases]);
 
-  const monthlyChartData = useMemo(() => {
-    const data = Array.from({ length: 12 }, (_, i) => ({
-      month: format(new Date(selectedYear, i), 'LLL', { locale: ptBR }),
-      income: 0,
-      outcome: 0,
-    }));
+  const chartData = useMemo(() => {
+    // Casos Base: Se filtrado por um ano específico, mostra meses. Se filtrado por "Todos", mostra anos.
+    if (selectedYear !== 'all') {
+      const data = Array.from({ length: 12 }, (_, i) => ({
+        label: format(new Date(selectedYear, i), 'LLL', { locale: ptBR }),
+        income: 0,
+        outcome: 0,
+      }));
 
-    const baseEvents = events?.filter(e => {
-        const d = parseISO(e.date);
-        return d.getFullYear() === selectedYear && 
-               (selectedClientId === 'all' || e.clientId === selectedClientId) &&
-               (selectedArtistId === 'all' || e.artistIds?.includes(selectedArtistId));
-    });
+      const baseEvents = events?.filter(e => {
+          const d = parseISO(e.date);
+          return d.getFullYear() === selectedYear && 
+                 (selectedClientId === 'all' || e.clientId === selectedClientId) &&
+                 (selectedArtistId === 'all' || e.artistIds?.includes(selectedArtistId));
+      });
 
-    baseEvents?.forEach(event => {
-      if (event.paymentStatus === 'Pago') {
-        const monthIndex = getMonth(parseISO(event.date));
-        data[monthIndex].income += event.payment;
-      }
-    });
-    
-    purchases?.forEach(purchase => {
-        const d = parseISO(purchase.date);
-        if(d.getFullYear() === selectedYear && purchase.status === 'Pago') {
-            data[getMonth(d)].outcome += purchase.amount;
+      baseEvents?.forEach(event => {
+        if (event.paymentStatus === 'Pago') {
+          const monthIndex = getMonth(parseISO(event.date));
+          data[monthIndex].income += event.payment;
         }
-    });
+      });
+      
+      purchases?.forEach(purchase => {
+          const d = parseISO(purchase.date);
+          if(d.getFullYear() === selectedYear && purchase.status === 'Pago') {
+              data[getMonth(d)].outcome += purchase.amount;
+          }
+      });
 
-    loans?.forEach(loan => {
-        const startDate = parseISO(loan.startDate);
-        const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
-        const installmentValue = totalAmount / loan.installments;
+      loans?.forEach(loan => {
+          const startDate = parseISO(loan.startDate);
+          const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
+          const installmentValue = totalAmount / loan.installments;
+          for (let i = 0; i < loan.paidInstallments; i++) {
+              const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+              if (paymentDate.getFullYear() === selectedYear) {
+                  data[paymentDate.getMonth()].outcome += installmentValue;
+              }
+          }
+      });
+      return data;
+    } else {
+      // Agrupamento por Ano
+      const yearMap: Record<number, { label: string, income: number, outcome: number }> = {};
+      
+      const years = availableYears.sort((a, b) => a - b);
+      years.forEach(y => {
+        yearMap[y] = { label: String(y), income: 0, outcome: 0 };
+      });
 
-        for (let i = 0; i < loan.paidInstallments; i++) {
-            const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
-            if (paymentDate.getFullYear() === selectedYear) {
-                data[paymentDate.getMonth()].outcome += installmentValue;
-            }
+      const baseEvents = events?.filter(e => 
+        (selectedClientId === 'all' || e.clientId === selectedClientId) &&
+        (selectedArtistId === 'all' || e.artistIds?.includes(selectedArtistId))
+      );
+
+      baseEvents?.forEach(event => {
+        if (event.paymentStatus === 'Pago') {
+          const y = parseISO(event.date).getFullYear();
+          if (yearMap[y]) yearMap[y].income += event.payment;
         }
-    });
+      });
 
-    return data;
-  }, [events, purchases, loans, selectedYear, selectedClientId, selectedArtistId]);
+      purchases?.forEach(purchase => {
+        if (purchase.status === 'Pago') {
+          const y = parseISO(purchase.date).getFullYear();
+          if (yearMap[y]) yearMap[y].outcome += purchase.amount;
+        }
+      });
+
+      loans?.forEach(loan => {
+          const startDate = parseISO(loan.startDate);
+          const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
+          const installmentValue = totalAmount / loan.installments;
+          for (let i = 0; i < loan.paidInstallments; i++) {
+              const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+              const y = paymentDate.getFullYear();
+              if (yearMap[y]) yearMap[y].outcome += installmentValue;
+          }
+      });
+
+      return Object.values(yearMap);
+    }
+  }, [events, purchases, loans, selectedYear, selectedClientId, selectedArtistId, availableYears]);
 
   const statusChartData = useMemo(() => {
     const counts: Record<string, number> = {};
@@ -277,18 +320,21 @@ export default function DashboardPage() {
         </h1>
         
         <div className="flex flex-wrap gap-2">
-          <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
-            <SelectTrigger className="w-[100px]">
+          {/* Filtro Global de Ano */}
+          <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(value === 'all' ? 'all' : Number(value))}>
+            <SelectTrigger className="w-[120px]">
               <SelectValue placeholder="Ano" />
             </SelectTrigger>
             <SelectContent>
+              <SelectItem value="all">Todos os Anos</SelectItem>
               {availableYears.map(year => (
                 <SelectItem key={year} value={String(year)}>{year}</SelectItem>
               ))}
             </SelectContent>
           </Select>
 
-          <Select value={selectedMonth} onValueChange={setSelectedMonth}>
+          {/* Filtro de Mês (Desativado se "Todos os Anos" selecionado) */}
+          <Select value={selectedMonth} onValueChange={setSelectedMonth} disabled={selectedYear === 'all'}>
             <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Mês" />
             </SelectTrigger>
@@ -338,7 +384,7 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
               R${totalIncome.toLocaleString('pt-BR')}
             </div>
-            <p className="text-xs text-muted-foreground">No período selecionado</p>
+            <p className="text-xs text-muted-foreground">{selectedYear === 'all' ? 'Acumulado Total' : 'No período selecionado'}</p>
           </CardContent>
         </Card>
         
@@ -351,7 +397,7 @@ export default function DashboardPage() {
             <div className="text-2xl font-bold text-rose-700 dark:text-rose-400">
               R${totalOutcome.toLocaleString('pt-BR')}
             </div>
-            <p className="text-xs text-muted-foreground">No período selecionado</p>
+            <p className="text-xs text-muted-foreground">{selectedYear === 'all' ? 'Acumulado Total' : 'No período selecionado'}</p>
           </CardContent>
         </Card>
 
@@ -397,15 +443,34 @@ export default function DashboardPage() {
 
       <div className="grid gap-6 lg:grid-cols-6 lg:grid-flow-row-dense">
         <Card className="lg:col-span-4">
-          <CardHeader>
-            <CardTitle>Fluxo de Caixa Mensal</CardTitle>
-            <CardDescription>Visualização de receitas e despesas ao longo do ano.</CardDescription>
+          <CardHeader className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+            <div>
+              <CardTitle>Fluxo de Caixa Financeiro</CardTitle>
+              <CardDescription>
+                {selectedYear === 'all' 
+                  ? 'Comparação anual de receitas e despesas.' 
+                  : `Receitas e despesas mensais de ${selectedYear}.`
+                }
+              </CardDescription>
+            </div>
+            {/* Seletor Local de Ano */}
+            <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(value === 'all' ? 'all' : Number(value))}>
+              <SelectTrigger className="w-full sm:w-[150px]">
+                <SelectValue placeholder="Ano" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Ver Todos os Anos</SelectItem>
+                {availableYears.map(year => (
+                  <SelectItem key={year} value={String(year)}>{year}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={monthlyChartData}>
+              <BarChart data={chartData}>
                 <CartesianGrid strokeDasharray="3 3" vertical={false} />
-                <XAxis dataKey="month" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
+                <XAxis dataKey="label" stroke="#888888" fontSize={12} tickLine={false} axisLine={false} />
                 <YAxis stroke="#888888" fontSize={12} tickLine={false} axisLine={false} tickFormatter={(value) => `R$${value/1000}k`} />
                 <Tooltip cursor={{ fill: 'hsl(var(--muted))' }} contentStyle={{ backgroundColor: 'hsl(var(--background))', border: '1px solid hsl(var(--border))' }} formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`} />
                 <Legend iconSize={10} />
@@ -419,7 +484,7 @@ export default function DashboardPage() {
         <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Eventos por Status</CardTitle>
-            <CardDescription>Distribuição atual.</CardDescription>
+            <CardDescription>Distribuição no período.</CardDescription>
           </CardHeader>
           <CardContent className="flex justify-center">
             <ResponsiveContainer width="100%" height={300}>
