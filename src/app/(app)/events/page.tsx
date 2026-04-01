@@ -169,7 +169,7 @@ export default function EventsPage() {
   const handleExportPDF = () => {
     const doc = new jsPDF();
     doc.text('Lista de Eventos', 14, 16);
-    const tableColumn = ["Cliente", "Data", "Hora", "Local", "Artistas", "Valor"];
+    const tableColumn = ["Cliente", "Data", "Hora", "Local", "Artistas", "Som", "Valor"];
     const tableRows: any[] = [];
     filteredEvents.forEach(event => {
         const client = clients?.find(c => c.id === event.clientId);
@@ -180,6 +180,7 @@ export default function EventsPage() {
             event.time,
             event.local,
             eventArtists?.map(a => a.name).join(', ') || 'N/A',
+            event.hasSound ? 'Com Som' : 'Sem Som',
             `R$ ${event.payment.toLocaleString('pt-BR')}`
         ];
         tableRows.push(eventData);
@@ -332,7 +333,7 @@ export default function EventsPage() {
                   <TableHead className="text-slate-400 font-medium whitespace-nowrap">Data e Hora</TableHead>
                   <TableHead className="text-slate-400 font-medium">Local</TableHead>
                   <TableHead className="text-slate-400 font-medium">Artistas</TableHead>
-                  <TableHead className="text-slate-400 font-medium">Som</TableHead>
+                  <TableHead className="text-slate-400 font-medium whitespace-nowrap">Com/Sem Som</TableHead>
                   <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
                   <TableHead className="text-slate-400 font-medium">Status</TableHead>
                   <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
@@ -352,12 +353,15 @@ export default function EventsPage() {
                       <TableCell className="text-slate-400">
                         {artists?.filter(a => event.artistIds.includes(a.id)).map(a => a.name).join(', ') || '-'}
                       </TableCell>
-                      <TableCell>
-                        <Switch 
-                          checked={event.hasSound} 
-                          disabled 
-                          className="scale-75 data-[state=checked]:bg-[#00e5ff] opacity-70"
-                        />
+                      <TableCell className="whitespace-nowrap">
+                        <div className="flex items-center gap-2">
+                          <Switch 
+                            checked={event.hasSound} 
+                            disabled 
+                            className="scale-75 data-[state=checked]:bg-[#00e5ff] opacity-70"
+                          />
+                          <span className="text-xs text-slate-400">{event.hasSound ? 'Com Som' : 'Sem Som'}</span>
+                        </div>
                       </TableCell>
                       <TableCell className="text-slate-200 font-medium whitespace-nowrap">R$ {event.payment.toLocaleString('pt-BR')}</TableCell>
                       <TableCell>
