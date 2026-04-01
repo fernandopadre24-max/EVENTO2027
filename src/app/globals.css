@@ -126,6 +126,12 @@
   body {
     @apply bg-background text-foreground;
   }
+
+  /* Windows 2000 / XP retro style helpers */
+  .font-w2k {
+    font-family: Tahoma, 'MS Sans Serif', Arial, sans-serif;
+    font-size: 11px;
+  }
   .rdp-day_event {
     @apply bg-primary/20 text-primary-foreground rounded-md;
   }

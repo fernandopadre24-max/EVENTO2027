@@ -3,23 +3,10 @@
 import { useState, useMemo } from 'react';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from '@/components/ui/card';
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from '@/components/ui/table';
-import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, FileDown, Clock, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
+import type { Event, EventStatus, PaymentStatus, Client, Artist } from '@/lib/types';
+import { format, parseISO } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -29,11 +16,6 @@ import {
   DropdownMenuTrigger,
   DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
-import { Badge } from '@/components/ui/badge';
-import type { Event, EventStatus, PaymentStatus, Client, Artist } from '@/lib/types';
-import { format, parseISO, startOfDay, endOfDay } from 'date-fns';
-import { cn } from '@/lib/utils';
-import { ptBR } from 'date-fns/locale';
 import {
   Dialog,
   DialogContent,
@@ -41,7 +23,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-  DialogFooter,
 } from '@/components/ui/dialog';
 import {
   AlertDialog,
@@ -52,28 +33,239 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-} from "@/components/ui/alert-dialog"
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
+} from "@/components/ui/alert-dialog";
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Switch } from '@/components/ui/switch';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
+import { ChevronDown, CalendarIcon } from 'lucide-react';
 
-const statusColors: Record<EventStatus, string> = {
-  Pendente: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
-  Confirmado: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
-  Concluído: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  Cancelado: 'bg-red-500/10 text-red-500 border-red-500/20',
+/* ── Win2000 token palette ─────────────────────────────────────────────────
+   Silver (#d4d0c8), Luna blue (#0a246a / #a6b5d7), white, near-black (#000)
+   Accent: classic teal-green for active/selected state.
+──────────────────────────────────────────────────────────────────────────── */
+
+// ---------- tiny primitives so we don't repeat ourselves ----------
+
+function W2kButton({
+  children,
+  onClick,
+  type = 'button',
+  className = '',
+  small = false,
+  primary = false,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  type?: 'button' | 'submit' | 'reset';
+  className?: string;
+  small?: boolean;
+  primary?: boolean;
+}) {
+  return (
+    <button
+      type={type}
+      onClick={onClick}
+      className={cn(
+        'select-none font-w2k text-[#000000] cursor-default active:translate-y-px',
+        'border border-t-[#ffffff] border-l-[#ffffff] border-b-[#808080] border-r-[#808080]',
+        'outline-1 outline outline-[#404040]',
+        small ? 'px-2 py-0.5 text-xs' : 'px-4 py-1 text-sm',
+        primary
+          ? 'bg-[#d4d0c8] border-2 border-t-[#ffffff] border-l-[#ffffff] border-b-[#808080] border-r-[#808080]'
+          : 'bg-[#d4d0c8]',
+        className
+      )}
+    >
+      {children}
+    </button>
+  );
+}
+
+function W2kInput({
+  id,
+  type = 'text',
+  value,
+  onChange,
+  placeholder = '',
+  className = '',
+}: {
+  id?: string;
+  type?: string;
+  value: string | number;
+  onChange: (e: React.ChangeEvent<HTMLInputElement>) => void;
+  placeholder?: string;
+  className?: string;
+}) {
+  return (
+    <input
+      id={id}
+      type={type}
+      value={value}
+      onChange={onChange}
+      placeholder={placeholder}
+      className={cn(
+        'font-w2k text-sm text-[#000000] bg-[#ffffff]',
+        'border border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff]',
+        'outline-1 outline outline-[#404040]',
+        'px-2 py-0.5 h-7',
+        className
+      )}
+    />
+  );
+}
+
+function W2kLabel({ children, htmlFor, className = '' }: { children: React.ReactNode; htmlFor?: string; className?: string }) {
+  return (
+    <label htmlFor={htmlFor} className={cn('font-w2k text-sm text-[#000000] select-none whitespace-nowrap', className)}>
+      {children}
+    </label>
+  );
+}
+
+function W2kPanel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'bg-[#d4d0c8]',
+        'border border-t-[#ffffff] border-l-[#ffffff] border-b-[#808080] border-r-[#808080]',
+        'outline-1 outline outline-[#404040]',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function W2kInsetPanel({ children, className = '' }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div
+      className={cn(
+        'bg-[#ffffff]',
+        'border border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff]',
+        'outline-1 outline outline-[#404040]',
+        className
+      )}
+    >
+      {children}
+    </div>
+  );
+}
+
+function W2kTitleBar({ title }: { title: string }) {
+  return (
+    <div className="flex items-center justify-between px-2 py-0.5 bg-gradient-to-r from-[#0a246a] via-[#3a6ea5] to-[#a6b5d7] select-none">
+      <span className="font-w2k text-sm font-bold text-[#ffffff] drop-shadow">{title}</span>
+      <div className="flex gap-1">
+        {['_', '□', '✕'].map((c, i) => (
+          <button
+            key={i}
+            className="w-5 h-5 bg-[#d4d0c8] border border-t-[#ffffff] border-l-[#ffffff] border-b-[#808080] border-r-[#808080] outline-1 outline outline-[#404040] text-[#000000] text-xs flex items-center justify-center font-w2k"
+          >
+            {c}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+function W2kSectionTitle({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="flex items-center gap-2 mb-1">
+      <div className="h-px flex-1 bg-[#808080]" />
+      <span className="font-w2k text-xs text-[#444444] px-1 select-none uppercase tracking-wide">{children}</span>
+      <div className="h-px flex-1 bg-[#808080]" />
+    </div>
+  );
+}
+
+// ---------- status pill (classic flat badge) ----------
+
+const statusBg: Record<EventStatus, string> = {
+  Pendente: 'bg-[#ffff00] text-[#000000]',
+  Confirmado: 'bg-[#0000ff] text-[#ffffff]',
+  'Concluído': 'bg-[#008000] text-[#ffffff]',
+  Cancelado: 'bg-[#ff0000] text-[#ffffff]',
+};
+const payBg: Record<PaymentStatus, string> = {
+  Pago: 'bg-[#008000] text-[#ffffff]',
+  'Não Pago': 'bg-[#808080] text-[#ffffff]',
 };
 
-const paymentStatusColors: Record<PaymentStatus, string> = {
-  'Pago': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
-  'Não Pago': 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
-};
+function StatusPill({ label, map }: { label: string; map: Record<string, string> }) {
+  const cls = map[label] ?? 'bg-[#d4d0c8] text-[#000000]';
+  return (
+    <span className={cn('font-w2k text-xs px-2 py-0.5 border border-[#808080]', cls)}>
+      {label}
+    </span>
+  );
+}
 
+// ─────────────────────────────────────────────────
+// Win2000 Select (uses a native <select> styled classically)
+// ─────────────────────────────────────────────────
+function W2kSelect({
+  value,
+  onChange,
+  children,
+  className = '',
+}: {
+  value: string;
+  onChange: (val: string) => void;
+  children: React.ReactNode;
+  className?: string;
+}) {
+  return (
+    <select
+      value={value}
+      onChange={e => onChange(e.target.value)}
+      className={cn(
+        'font-w2k text-sm text-[#000000] bg-[#ffffff] h-7',
+        'border border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff]',
+        'outline-1 outline outline-[#404040]',
+        'px-1',
+        className
+      )}
+    >
+      {children}
+    </select>
+  );
+}
+
+// ─────────────────────────────────────────────────
+// Stat Card (Win2000 group-box style)
+// ─────────────────────────────────────────────────
+function StatCard({
+  title,
+  value,
+  icon,
+  accent = false,
+  danger = false,
+}: {
+  title: string;
+  value: string | number;
+  icon: React.ReactNode;
+  accent?: boolean;
+  danger?: boolean;
+}) {
+  return (
+    <W2kPanel className="p-3 flex flex-col gap-1">
+      <div className="flex items-center justify-between mb-1">
+        <span className="font-w2k text-xs text-[#444444] uppercase tracking-wide">{title}</span>
+        <span className={cn('text-base', accent ? 'text-[#008000]' : danger ? 'text-[#cc0000]' : 'text-[#0a246a]')}>{icon}</span>
+      </div>
+      <W2kInsetPanel className="px-3 py-2">
+        <span className={cn('font-w2k text-lg font-bold', accent ? 'text-[#006400]' : danger ? 'text-[#cc0000]' : 'text-[#000000]')}>
+          {value}
+        </span>
+      </W2kInsetPanel>
+    </W2kPanel>
+  );
+}
+
+// ─────────────────────────────────────────────────
 const initialNewEventState = {
   clientId: '',
   date: new Date(),
@@ -84,6 +276,9 @@ const initialNewEventState = {
   withSound: false,
 };
 
+// ─────────────────────────────────────────────────
+// Main Page
+// ─────────────────────────────────────────────────
 export default function EventsPage() {
   const firestore = useFirestore();
   const { user } = useUser();
@@ -100,7 +295,6 @@ export default function EventsPage() {
   const [isAddOpen, setAddOpen] = useState(false);
   const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState(initialNewEventState);
-
   const [searchTerm, setSearchTerm] = useState('');
   const [isDeleteAlertOpen, setDeleteAlertOpen] = useState(false);
   const [eventToDelete, setEventToDelete] = useState<Event | null>(null);
@@ -110,9 +304,10 @@ export default function EventsPage() {
       ?.filter(event => {
         const client = clients?.find(c => c.id === event.clientId);
         const searchLower = searchTerm.toLowerCase();
-        const clientMatch = client?.name.toLowerCase().includes(searchLower);
-        const localMatch = event.local.toLowerCase().includes(searchLower);
-        return clientMatch || localMatch;
+        return (
+          client?.name.toLowerCase().includes(searchLower) ||
+          event.local.toLowerCase().includes(searchLower)
+        );
       })
       .sort((a, b) => {
         const dateA = new Date(`${a.date}T${a.time || '00:00'}`);
@@ -121,53 +316,34 @@ export default function EventsPage() {
       }) || [];
   }, [events, clients, searchTerm]);
 
-  // Nova lógica de somatória
   const totals = useMemo(() => {
-    const totalValue = filteredEvents.reduce((sum, e) => sum + e.payment, 0);
-    const paidValue = filteredEvents.filter(e => e.paymentStatus === 'Pago').reduce((sum, e) => sum + e.payment, 0);
-    const pendingValue = totalValue - paidValue;
-    return {
-      count: filteredEvents.length,
-      total: totalValue,
-      paid: paidValue,
-      pending: pendingValue
-    };
+    const total = filteredEvents.reduce((sum, e) => sum + e.payment, 0);
+    const paid = filteredEvents.filter(e => e.paymentStatus === 'Pago').reduce((sum, e) => sum + e.payment, 0);
+    return { count: filteredEvents.length, total, paid, pending: total - paid };
   }, [filteredEvents]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
     setNewEvent(prev => ({ ...prev, [id]: id === 'payment' ? Number(value) : value }));
   };
-  
-  const handleSelectChange = (id: string) => (value: string) => {
-    setNewEvent(prev => ({ ...prev, [id]: value }));
-  };
-
-  const handleDateChange = (date: Date | undefined) => {
-    if(date) setNewEvent(prev => ({ ...prev, date }));
-  };
 
   const handleAddSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!firestore || !user || !newEvent.clientId) return;
-    const eventsCollectionRef = collection(firestore, 'events');
-    const newEventData = {
+    const col = collection(firestore, 'events');
+    const data = {
       ...newEvent,
       date: format(newEvent.date, 'yyyy-MM-dd'),
       status: 'Pendente' as EventStatus,
       paymentStatus: 'Não Pago' as PaymentStatus,
       userId: user.uid,
-      artistIds: newEvent.artistIds,
       hasSound: newEvent.withSound,
     };
-    
     if (editingEventId) {
-      const eventDocRef = doc(firestore, 'events', editingEventId);
-      updateDocumentNonBlocking(eventDocRef, newEventData);
+      updateDocumentNonBlocking(doc(firestore, 'events', editingEventId), data);
     } else {
-      addDocumentNonBlocking(eventsCollectionRef, { ...newEventData, status: 'Pendente' as EventStatus, paymentStatus: 'Não Pago' as PaymentStatus });
+      addDocumentNonBlocking(col, data);
     }
-    
     setAddOpen(false);
     setEditingEventId(null);
     setNewEvent(initialNewEventState);
@@ -189,353 +365,397 @@ export default function EventsPage() {
 
   const updateEventStatus = (eventId: string, status: EventStatus) => {
     if (!firestore) return;
-    const eventDocRef = doc(firestore, 'events', eventId);
-    updateDocumentNonBlocking(eventDocRef, { status });
+    updateDocumentNonBlocking(doc(firestore, 'events', eventId), { status });
   };
 
   const updatePaymentStatus = (eventId: string, paymentStatus: PaymentStatus) => {
     if (!firestore) return;
-    const eventDocRef = doc(firestore, 'events', eventId);
-    updateDocumentNonBlocking(eventDocRef, { paymentStatus });
+    updateDocumentNonBlocking(doc(firestore, 'events', eventId), { paymentStatus });
   };
 
   const toggleSoundStatus = (event: Event) => {
     if (!firestore) return;
-    const eventDocRef = doc(firestore, 'events', event.id);
-    updateDocumentNonBlocking(eventDocRef, { hasSound: !event.hasSound });
+    updateDocumentNonBlocking(doc(firestore, 'events', event.id), { hasSound: !event.hasSound });
   };
 
   const handleDeleteEvent = () => {
     if (!firestore || !eventToDelete) return;
-    const eventDocRef = doc(firestore, 'events', eventToDelete.id);
-    deleteDocumentNonBlocking(eventDocRef);
+    deleteDocumentNonBlocking(doc(firestore, 'events', eventToDelete.id));
     setDeleteAlertOpen(false);
     setEventToDelete(null);
   };
 
   const handleExportPDF = () => {
-    const doc = new jsPDF();
-    doc.text('Lista de Eventos', 14, 16);
-    const tableColumn = ["Cliente", "Data", "Hora", "Local", "Artistas", "Som", "Valor"];
-    const tableRows: any[] = [];
-    filteredEvents.forEach(event => {
-        const client = clients?.find(c => c.id === event.clientId);
-        const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
-        const eventData = [
-            client?.name || 'N/A',
-            format(parseISO(event.date), 'dd/MM/yyyy'),
-            event.time,
-            event.local,
-            eventArtists?.map(a => a.name).join(', ') || 'N/A',
-            event.hasSound ? 'Com Som' : 'Sem Som',
-            `R$ ${event.payment.toLocaleString('pt-BR')}`
-        ];
-        tableRows.push(eventData);
+    const d = new jsPDF();
+    d.text('Lista de Eventos', 14, 16);
+    const cols = ["Cliente", "Data", "Hora", "Local", "Artistas", "Som", "Valor"];
+    const rows: any[] = [];
+    filteredEvents.forEach(ev => {
+      const client = clients?.find(c => c.id === ev.clientId);
+      const evArtists = artists?.filter(a => ev.artistIds.includes(a.id));
+      rows.push([
+        client?.name || 'N/A',
+        format(parseISO(ev.date), 'dd/MM/yyyy'),
+        ev.time,
+        ev.local,
+        evArtists?.map(a => a.name).join(', ') || 'N/A',
+        ev.hasSound ? 'Com Som' : 'Sem Som',
+        `R$ ${ev.payment.toLocaleString('pt-BR')}`,
+      ]);
     });
-    (doc as any).autoTable({
-        head: [tableColumn],
-        body: tableRows,
-        startY: 32, // Começa mais baixo para não sobrepor o texto de resumo opcional
-    });
-    doc.save('eventos.pdf');
+    (d as any).autoTable({ head: [cols], body: rows, startY: 32 });
+    d.save('eventos.pdf');
   };
 
   return (
-    <div className="space-y-8 pb-10">
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <h1 className="text-3xl font-bold tracking-tight font-headline">Eventos</h1>
-        <div className="flex flex-wrap gap-2">
-          {/* Barra de Pesquisa */}
-          <div className="relative w-full md:w-64">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
-            <Input 
-              placeholder="Pesquisar cliente ou local..." 
-              value={searchTerm} 
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10 bg-slate-900/50 border-slate-800"
+    // Page bg: classic Win2k silver
+    <div className="min-h-screen bg-[#d4d0c8] font-w2k p-4 space-y-3">
+
+      {/* ── Window chrome ───────────────────────────────────────── */}
+      <W2kPanel className="overflow-hidden">
+        <W2kTitleBar title="Eventos — BandMate" />
+
+        {/* Menu bar */}
+        <div className="flex items-center gap-0 bg-[#d4d0c8] border-b border-[#808080] px-1 py-0.5 select-none">
+          {['Arquivo', 'Editar', 'Exibir', 'Ferramentas', 'Ajuda'].map(m => (
+            <button
+              key={m}
+              className="px-3 py-0.5 text-xs text-[#000000] font-w2k hover:bg-[#0a246a] hover:text-[#ffffff] focus:bg-[#0a246a] focus:text-[#ffffff]"
+            >
+              {m}
+            </button>
+          ))}
+        </div>
+
+        {/* Toolbar */}
+        <div className="flex flex-wrap items-center gap-2 bg-[#d4d0c8] border-b border-[#808080] px-2 py-1">
+          {/* Search */}
+          <div className="flex items-center gap-1">
+            <W2kLabel>🔍</W2kLabel>
+            <W2kInput
+              value={searchTerm}
+              onChange={e => setSearchTerm(e.target.value)}
+              placeholder="Pesquisar cliente ou local..."
+              className="w-56"
             />
           </div>
-          <Button variant="outline" onClick={handleExportPDF} className="bg-slate-900/50 border-slate-800">
-            <FileDown className="w-4 h-4 mr-2" />
-            PDF
-          </Button>
+
+          <div className="w-px h-5 bg-[#808080]" />
+
+          <W2kButton onClick={handleExportPDF} small>
+            💾 Exportar PDF
+          </W2kButton>
+
           <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-[#00e5ff] hover:bg-[#00b8cc] text-black font-semibold">
-                <PlusCircle className="w-4 h-4 mr-2" />
-                Adicionar Evento
-              </Button>
+              <W2kButton small primary>
+                ➕ Adicionar Evento
+              </W2kButton>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg bg-[#0f172a] text-slate-200 border-slate-800 p-8 shadow-2xl">
-              <DialogHeader className="space-y-1">
-                <DialogTitle className="text-2xl font-bold tracking-tight">
-                  {editingEventId ? 'Editar Evento' : 'Adicionar Novo Evento'}
-                </DialogTitle>
-                <DialogDescription className="text-slate-400 text-sm">
-                  {editingEventId ? 'Altere os detalhes do evento selecionado.' : 'Preencha os detalhes do novo evento.'}
-                </DialogDescription>
-              </DialogHeader>
-              <form onSubmit={handleAddSubmit} className="space-y-6 pt-6">
-                <div className="flex items-center">
-                  <Label htmlFor="clientId" className="w-32 text-right pr-6 text-slate-300 text-sm">Cliente</Label>
-                  <Select value={newEvent.clientId} onValueChange={handleSelectChange('clientId')}>
-                    <SelectTrigger className="flex-1 bg-transparent border-slate-700 text-slate-200 h-10 ring-offset-transparent focus:ring-1 focus:ring-[#00e5ff] rounded-md transition-all">
-                      <SelectValue placeholder="Selecione um cliente" />
-                    </SelectTrigger>
-                    <SelectContent className="bg-[#0f172a] border-slate-700 text-slate-200">
-                      {clients?.map(client => (
-                        <SelectItem key={client.id} value={client.id} className="hover:bg-slate-800 cursor-pointer">{client.name}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
 
-                <div className="flex items-center">
-                  <Label className="w-32 text-right pr-6 text-slate-300 text-sm">Data</Label>
-                  <Popover>
-                    <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal bg-transparent border-slate-700 text-slate-200 hover:bg-[#1e293b] hover:text-white transition-all", !newEvent.date && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4 text-[#00e5ff]" />
-                        {newEvent.date ? format(newEvent.date, "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
-                      </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-[#0f172a] border-slate-800 shadow-2xl shadow-black">
-                      <Calendar mode="single" selected={newEvent.date} onSelect={handleDateChange} locale={ptBR} initialFocus className="bg-transparent text-slate-200" />
-                    </PopoverContent>
-                  </Popover>
-                </div>
+            {/* ── Win2k Dialog ────────────────────────────── */}
+            <DialogContent className="p-0 border-0 bg-transparent shadow-none max-w-lg w-full">
+              <W2kPanel className="overflow-hidden w-full">
+                <W2kTitleBar title={editingEventId ? 'Editar Evento' : 'Novo Evento'} />
+                <div className="p-4 space-y-3">
+                  <DialogHeader className="hidden">
+                    <DialogTitle>{editingEventId ? 'Editar Evento' : 'Adicionar Novo Evento'}</DialogTitle>
+                    <DialogDescription>Preencha os campos abaixo.</DialogDescription>
+                  </DialogHeader>
 
-                <div className="flex items-center">
-                  <Label htmlFor="time" className="w-32 text-right pr-6 text-slate-300 text-sm">Hora</Label>
-                  <div className="relative flex-1">
-                    <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="w-full bg-transparent border-slate-700 text-slate-200 pr-10 focus-visible:ring-1 focus-visible:ring-[#00e5ff]" />
-                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
-                  </div>
-                </div>
+                  <form onSubmit={handleAddSubmit} className="space-y-2">
 
-                <div className="flex items-center">
-                  <Label htmlFor="local" className="w-32 text-right pr-6 text-slate-300 text-sm">Local</Label>
-                  <Input id="local" placeholder="Local do evento" value={newEvent.local} onChange={handleInputChange} className="flex-1 bg-transparent border-slate-700 text-slate-200 focus-visible:ring-1 focus-visible:ring-[#00e5ff]" />
-                </div>
+                    <div className="flex items-center gap-2">
+                      <W2kLabel htmlFor="clientId" className="w-32 text-right">Cliente:</W2kLabel>
+                      <W2kSelect
+                        value={newEvent.clientId}
+                        onChange={val => setNewEvent(prev => ({ ...prev, clientId: val }))}
+                        className="flex-1"
+                      >
+                        <option value="">-- Selecione --</option>
+                        {clients?.map(c => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </W2kSelect>
+                    </div>
 
-                <div className="flex items-center">
-                  <Label className="w-32 text-right pr-6 text-slate-300 text-sm">Artistas</Label>
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="flex-1 justify-between bg-transparent border-slate-700 text-slate-200 hover:bg-[#1e293b] hover:text-white font-normal transition-all">
-                        {newEvent.artistIds.length > 0 
-                          ? `${newEvent.artistIds.length} selecionado(s)` 
-                          : "Selecione artistas"}
-                        <ChevronDown className="h-4 w-4 opacity-50" />
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 bg-[#0f172a] border-slate-700 text-slate-200">
-                      {artists?.map(artist => (
-                        <DropdownMenuCheckboxItem
-                          key={artist.id}
-                          checked={newEvent.artistIds.includes(artist.id)}
-                          onCheckedChange={(checked) => {
-                            setNewEvent(prev => ({
-                              ...prev,
-                              artistIds: checked 
-                                ? [...prev.artistIds, artist.id]
-                                : prev.artistIds.filter(id => id !== artist.id)
-                            }))
-                          }}
-                          className="hover:bg-slate-800 focus:bg-slate-800"
-                        >
-                          {artist.name}
-                        </DropdownMenuCheckboxItem>
-                      ))}
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </div>
+                    <div className="flex items-center gap-2">
+                      <W2kLabel className="w-32 text-right">Data:</W2kLabel>
+                      <Popover>
+                        <PopoverTrigger asChild>
+                          <button
+                            type="button"
+                            className={cn(
+                              'flex-1 font-w2k text-sm text-[#000000] bg-[#ffffff] h-7 px-2 text-left',
+                              'border border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff]',
+                              'outline-1 outline outline-[#404040]',
+                              'flex items-center gap-2'
+                            )}
+                          >
+                            <CalendarIcon className="w-3 h-3" />
+                            {newEvent.date
+                              ? format(newEvent.date, "d 'de' MMMM 'de' yyyy", { locale: ptBR })
+                              : 'Escolha uma data'}
+                          </button>
+                        </PopoverTrigger>
+                        <PopoverContent className="w-auto p-0 bg-[#d4d0c8] border border-[#808080]">
+                          <Calendar
+                            mode="single"
+                            selected={newEvent.date}
+                            onSelect={d => { if (d) setNewEvent(prev => ({ ...prev, date: d })); }}
+                            locale={ptBR}
+                            initialFocus
+                            className="bg-[#d4d0c8] text-[#000000]"
+                          />
+                        </PopoverContent>
+                      </Popover>
+                    </div>
 
-                <div className="flex items-center">
-                  <div className="w-32 text-right pr-6">
-                    <Label className="text-slate-300 text-sm">Com ou Sem Som</Label>
-                  </div>
-                  <div className="flex items-center gap-3 flex-1 h-10">
-                    <span className="text-sm text-slate-300">Som</span>
-                    <Switch 
-                      checked={newEvent.withSound} 
-                      onCheckedChange={(checked) => setNewEvent(prev => ({ ...prev, withSound: checked }))} 
-                      className="data-[state=checked]:bg-[#00e5ff]"
-                    />
-                  </div>
-                </div>
+                    <div className="flex items-center gap-2">
+                      <W2kLabel htmlFor="time" className="w-32 text-right">Hora:</W2kLabel>
+                      <W2kInput id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="flex-1" />
+                    </div>
 
-                <div className="flex items-center">
-                  <Label htmlFor="payment" className="w-32 text-right pr-6 text-slate-300 text-sm">Pagamento (R$)</Label>
-                  <Input id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} className="flex-1 bg-transparent border-slate-700 text-slate-200 focus-visible:ring-1 focus-visible:ring-[#00e5ff]" />
-                </div>
+                    <div className="flex items-center gap-2">
+                      <W2kLabel htmlFor="local" className="w-32 text-right">Local:</W2kLabel>
+                      <W2kInput id="local" value={newEvent.local} onChange={handleInputChange} placeholder="Local do evento" className="flex-1" />
+                    </div>
 
-                <div className="flex justify-end pt-4">
-                  <Button type="submit" className="bg-[#b2ebf2] hover:bg-[#80deea] text-[#006064] font-bold px-8 transition-colors">Salvar</Button>
+                    <div className="flex items-center gap-2">
+                      <W2kLabel className="w-32 text-right">Artistas:</W2kLabel>
+                      <DropdownMenu>
+                        <DropdownMenuTrigger asChild>
+                          <button
+                            type="button"
+                            className={cn(
+                              'flex-1 font-w2k text-sm text-[#000000] bg-[#ffffff] h-7 px-2',
+                              'border border-t-[#808080] border-l-[#808080] border-b-[#ffffff] border-r-[#ffffff]',
+                              'outline-1 outline outline-[#404040]',
+                              'flex items-center justify-between'
+                            )}
+                          >
+                            <span>
+                              {newEvent.artistIds.length > 0
+                                ? `${newEvent.artistIds.length} selecionado(s)`
+                                : 'Selecione artistas'}
+                            </span>
+                            <ChevronDown className="w-3 h-3" />
+                          </button>
+                        </DropdownMenuTrigger>
+                        <DropdownMenuContent className="bg-[#d4d0c8] border border-[#808080] text-[#000000] font-w2k text-sm">
+                          {artists?.map(a => (
+                            <DropdownMenuCheckboxItem
+                              key={a.id}
+                              checked={newEvent.artistIds.includes(a.id)}
+                              onCheckedChange={checked => {
+                                setNewEvent(prev => ({
+                                  ...prev,
+                                  artistIds: checked
+                                    ? [...prev.artistIds, a.id]
+                                    : prev.artistIds.filter(id => id !== a.id),
+                                }));
+                              }}
+                              className="hover:bg-[#0a246a] hover:text-[#ffffff] focus:bg-[#0a246a] focus:text-[#ffffff]"
+                            >
+                              {a.name}
+                            </DropdownMenuCheckboxItem>
+                          ))}
+                        </DropdownMenuContent>
+                      </DropdownMenu>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <W2kLabel className="w-32 text-right">Com Som:</W2kLabel>
+                      <div className="flex items-center gap-2 h-7">
+                        <input
+                          type="checkbox"
+                          checked={newEvent.withSound}
+                          onChange={e => setNewEvent(prev => ({ ...prev, withSound: e.target.checked }))}
+                          className="w-4 h-4 cursor-default"
+                        />
+                        <span className="font-w2k text-sm text-[#000000]">
+                          {newEvent.withSound ? 'Sim' : 'Não'}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <W2kLabel htmlFor="payment" className="w-32 text-right">Pagamento (R$):</W2kLabel>
+                      <W2kInput id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} className="flex-1" />
+                    </div>
+
+                    {/* Footer buttons */}
+                    <div className="flex justify-end gap-2 pt-3 border-t border-[#808080]">
+                      <W2kButton type="submit" primary>OK</W2kButton>
+                      <W2kButton type="button" onClick={() => { setAddOpen(false); setEditingEventId(null); setNewEvent(initialNewEventState); }}>Cancelar</W2kButton>
+                    </div>
+                  </form>
                 </div>
-              </form>
+              </W2kPanel>
             </DialogContent>
           </Dialog>
         </div>
-      </div>
 
-      {/* Cartões de Somatória (Resumo) no Topo */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-slate-900/50 border-slate-800">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Total de Eventos</CardTitle>
-            <CalendarIcon className="w-4 h-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-200">{totals.count}</div>
-            <p className="text-xs text-slate-500">Eventos sendo listados</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-slate-900/50 border-slate-800">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-slate-400">Valor Total</CardTitle>
-            <DollarSign className="w-4 h-4 text-blue-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-slate-200">R${totals.total.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-slate-500">Soma de todos os eventos</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-emerald-500/10 border-emerald-500/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-emerald-500">Valor Pago</CardTitle>
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-emerald-400">R${totals.paid.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-emerald-600/70">Total recebido</p>
-          </CardContent>
-        </Card>
-        <Card className="bg-rose-500/10 border-rose-500/20">
-          <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium text-rose-500">Valor Pendente</CardTitle>
-            <AlertCircle className="w-4 h-4 text-rose-500" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold text-rose-400">R${totals.pending.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-rose-600/70">Aguardando pagamento</p>
-          </CardContent>
-        </Card>
-      </div>
-      
-      <Card className="bg-slate-900/30 border-slate-800/50">
-        <CardHeader>
-          <CardTitle>Agenda Completa</CardTitle>
-          <CardDescription>Gerencie todos os seus eventos agendados.</CardDescription>
-        </CardHeader>
-        <CardContent>
-          {(isLoadingEvents || isLoadingClients) && <p className="text-slate-500 animate-pulse">Carregando eventos...</p>}
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="hover:bg-transparent border-slate-800 px-4">
-                  <TableHead className="text-slate-400 font-medium">Cliente</TableHead>
-                  <TableHead className="text-slate-400 font-medium whitespace-nowrap">Data e Hora</TableHead>
-                  <TableHead className="text-slate-400 font-medium">Local</TableHead>
-                  <TableHead className="text-slate-400 font-medium">Artistas</TableHead>
-                  <TableHead className="text-slate-400 font-medium whitespace-nowrap text-center">Som</TableHead>
-                  <TableHead className="text-slate-400 font-medium text-right">Valor</TableHead>
-                  <TableHead className="text-slate-400 font-medium text-center">Status</TableHead>
-                  <TableHead className="text-slate-400 font-medium text-center">Pagam.</TableHead>
-                  <TableHead className="sr-only">Ações</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredEvents.map((event) => {
+        {/* ── Status bar + Stat Cards ───────────────────────────────── */}
+        <div className="p-3">
+          <W2kSectionTitle>Resumo dos Eventos</W2kSectionTitle>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-3">
+            <StatCard title="Total de Eventos" value={totals.count} icon="📅" />
+            <StatCard title="Valor Total" value={`R$ ${totals.total.toLocaleString('pt-BR')}`} icon="💵" />
+            <StatCard title="Valor Pago" value={`R$ ${totals.paid.toLocaleString('pt-BR')}`} icon="✅" accent />
+            <StatCard title="Valor Pendente" value={`R$ ${totals.pending.toLocaleString('pt-BR')}`} icon="⚠️" danger />
+          </div>
+
+          {/* ── Table ───────────────────────────────────────────────── */}
+          <W2kSectionTitle>Agenda Completa</W2kSectionTitle>
+          <W2kInsetPanel className="overflow-x-auto">
+            {(isLoadingEvents || isLoadingClients) && (
+              <p className="font-w2k text-sm text-[#444444] p-4 animate-pulse">Carregando eventos...</p>
+            )}
+            <table className="w-full text-xs font-w2k border-collapse min-w-[700px]">
+              <thead>
+                <tr className="bg-[#0a246a] text-[#ffffff]">
+                  {['Cliente', 'Data e Hora', 'Local', 'Artistas', 'Som', 'Valor', 'Status', 'Pagam.', 'Ações'].map(h => (
+                    <th
+                      key={h}
+                      className="px-2 py-1 text-left font-bold border-r border-[#3a6ea5] last:border-r-0 whitespace-nowrap"
+                    >
+                      {h}
+                    </th>
+                  ))}
+                </tr>
+              </thead>
+              <tbody>
+                {filteredEvents.map((event, i) => {
                   const client = clients?.find(c => c.id === event.clientId);
+                  const eventArtists = artists?.filter(a => event.artistIds.includes(a.id));
                   return (
-                    <TableRow key={event.id} className="hover:bg-slate-800/30 border-slate-800 group px-4 transition-colors">
-                      <TableCell className="font-medium text-slate-200 whitespace-nowrap">
+                    <tr
+                      key={event.id}
+                      className={cn(
+                        'border-b border-[#d4d0c8] hover:bg-[#316ac5] hover:text-[#ffffff] transition-colors group',
+                        i % 2 === 0 ? 'bg-[#ffffff]' : 'bg-[#f0f0f0]'
+                      )}
+                    >
+                      <td className="px-2 py-1 whitespace-nowrap font-semibold border-r border-[#d4d0c8]">
                         {client?.name || 'Evento Privado'}
-                      </TableCell>
-                      <TableCell className="text-slate-400 whitespace-nowrap">
-                        {format(parseISO(event.date), "d MMM, yyyy", { locale: ptBR })} às {event.time || '00:00'}
-                      </TableCell>
-                      <TableCell className="text-slate-400 max-w-[150px] truncate">{event.local}</TableCell>
-                      <TableCell className="text-slate-400 max-w-[150px] truncate">
-                        {artists?.filter(a => event.artistIds.includes(a.id)).map(a => a.name).join(', ') || '-'}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <div className="flex justify-center">
-                           <Badge variant="ghost" className={cn("p-1.5 rounded-full border border-slate-800", event.hasSound ? "text-[#00e5ff]" : "text-slate-600")}>
-                             {event.hasSound ? <CheckCircle2 className="w-4 h-4" /> : <X className="w-4 h-4" />}
-                           </Badge>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-slate-200 font-semibold whitespace-nowrap text-right">
+                      </td>
+                      <td className="px-2 py-1 whitespace-nowrap border-r border-[#d4d0c8]">
+                        {format(parseISO(event.date), "dd/MM/yyyy", { locale: ptBR })} {event.time || '00:00'}
+                      </td>
+                      <td className="px-2 py-1 max-w-[120px] truncate border-r border-[#d4d0c8]">{event.local}</td>
+                      <td className="px-2 py-1 max-w-[120px] truncate border-r border-[#d4d0c8]">
+                        {eventArtists?.map(a => a.name).join(', ') || '-'}
+                      </td>
+                      <td className="px-2 py-1 text-center border-r border-[#d4d0c8]">
+                        {event.hasSound ? '🔊' : '🔇'}
+                      </td>
+                      <td className="px-2 py-1 text-right whitespace-nowrap border-r border-[#d4d0c8] font-semibold">
                         R$ {event.payment.toLocaleString('pt-BR')}
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap mx-auto', statusColors[event.status])}>
-                          {event.status}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-center">
-                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap mx-auto', paymentStatusColors[event.paymentStatus])}>
-                          {event.paymentStatus}
-                        </Badge>
-                      </TableCell>
-                      <TableCell className="text-right">
+                      </td>
+                      <td className="px-2 py-1 text-center border-r border-[#d4d0c8]">
+                        <StatusPill label={event.status} map={statusBg} />
+                      </td>
+                      <td className="px-2 py-1 text-center border-r border-[#d4d0c8]">
+                        <StatusPill label={event.paymentStatus} map={payBg} />
+                      </td>
+                      <td className="px-2 py-1">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost" className="hover:bg-slate-800 transition-colors">
-                              <MoreHorizontal className="w-4 h-4 text-slate-400" />
-                            </Button>
+                            <button className="font-w2k text-xs bg-[#d4d0c8] text-[#000000] px-2 py-0.5 border border-t-[#ffffff] border-l-[#ffffff] border-b-[#808080] border-r-[#808080] outline-1 outline outline-[#404040] group-hover:bg-[#c0c0c0]">
+                              Ações ▼
+                            </button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end" className="w-56 bg-[#0f172a] border-slate-800 text-slate-200 shadow-2xl py-2">
-                            <DropdownMenuLabel className="text-slate-400 px-4 py-2 text-xs font-bold uppercase tracking-wider">Ações Rapidas</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditOpen(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
-                              Editar Detalhes
+                          <DropdownMenuContent align="end" className="bg-[#d4d0c8] border border-[#808080] text-[#000000] font-w2k text-xs shadow-md min-w-[180px]">
+                            <DropdownMenuLabel className="text-[#000080] px-2 py-0.5 font-bold text-xs uppercase">Ações Rápidas</DropdownMenuLabel>
+                            <DropdownMenuSeparator className="bg-[#808080] my-0.5" />
+                            <DropdownMenuItem onClick={() => handleEditOpen(event)} className="px-2 py-1 hover:bg-[#0a246a] hover:text-[#ffffff] focus:bg-[#0a246a] focus:text-[#ffffff] cursor-default">
+                              ✏️ Editar Detalhes
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => toggleSoundStatus(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
-                              Alterar Status do Som
+                            <DropdownMenuItem onClick={() => toggleSoundStatus(event)} className="px-2 py-1 hover:bg-[#0a246a] hover:text-[#ffffff] focus:bg-[#0a246a] focus:text-[#ffffff] cursor-default">
+                              🔊 Alterar Status do Som
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-slate-800 my-1 mx-2" />
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
-                              Confirmar Agenda
+                            <DropdownMenuSeparator className="bg-[#808080] my-0.5" />
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')} className="px-2 py-1 hover:bg-[#0a246a] hover:text-[#ffffff] focus:bg-[#0a246a] focus:text-[#ffffff] cursor-default">
+                              📌 Confirmar Agenda
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
-                              Finalizar Evento
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')} className="px-2 py-1 hover:bg-[#0a246a] hover:text-[#ffffff] focus:bg-[#0a246a] focus:text-[#ffffff] cursor-default">
+                              ✅ Finalizar Evento
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updatePaymentStatus(event.id, 'Pago')} className="px-4 py-2 hover:bg-emerald-500/10 text-emerald-500 cursor-pointer transition-colors focus:bg-emerald-500/10">
-                              Marcar como Pago
+                            <DropdownMenuItem onClick={() => updatePaymentStatus(event.id, 'Pago')} className="px-2 py-1 hover:bg-[#006400] hover:text-[#ffffff] focus:bg-[#006400] focus:text-[#ffffff] cursor-default">
+                              💰 Marcar como Pago
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Cancelado')} className="px-4 py-2 hover:bg-red-500/10 text-red-400 cursor-pointer transition-colors focus:bg-red-500/10">
-                              Cancelar Evento
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Cancelado')} className="px-2 py-1 hover:bg-[#aa0000] hover:text-[#ffffff] focus:bg-[#aa0000] focus:text-[#ffffff] cursor-default">
+                              ❌ Cancelar Evento
                             </DropdownMenuItem>
-                            <DropdownMenuSeparator className="bg-slate-800 my-1 mx-2" />
-                            <DropdownMenuItem className="text-red-500 px-4 py-2 hover:bg-red-500/20 cursor-pointer transition-colors font-medium focus:bg-red-500/20" onClick={() => { setEventToDelete(event); setDeleteAlertOpen(true); }}>
-                              Excluir Permanentemente
+                            <DropdownMenuSeparator className="bg-[#808080] my-0.5" />
+                            <DropdownMenuItem
+                              className="text-[#cc0000] px-2 py-1 hover:bg-[#cc0000] hover:text-[#ffffff] focus:bg-[#cc0000] focus:text-[#ffffff] cursor-default font-bold"
+                              onClick={() => { setEventToDelete(event); setDeleteAlertOpen(true); }}
+                            >
+                              🗑️ Excluir Permanentemente
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
-                      </TableCell>
-                    </TableRow>
+                      </td>
+                    </tr>
                   );
                 })}
-              </TableBody>
-            </Table>
-          </div>
-        </CardContent>
-      </Card>
-      
+
+                {!isLoadingEvents && filteredEvents.length === 0 && (
+                  <tr>
+                    <td colSpan={9} className="px-4 py-6 text-center font-w2k text-sm text-[#808080]">
+                      Nenhum evento encontrado.
+                    </td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </W2kInsetPanel>
+        </div>
+
+        {/* Status bar */}
+        <div className="flex items-center gap-4 px-2 py-0.5 bg-[#d4d0c8] border-t border-[#808080]">
+          <W2kInsetPanel className="px-2 py-0.5 flex-1">
+            <span className="font-w2k text-xs text-[#000000]">
+              {totals.count} evento(s) encontrado(s)
+            </span>
+          </W2kInsetPanel>
+          <W2kInsetPanel className="px-2 py-0.5">
+            <span className="font-w2k text-xs text-[#000000]">BandMate v1.0</span>
+          </W2kInsetPanel>
+        </div>
+      </W2kPanel>
+
+      {/* ── Delete Confirm Dialog ───────────────────────────────── */}
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
-        <AlertDialogContent className="bg-[#0f172a] border-slate-800 text-slate-200">
-          <AlertDialogHeader>
-            <AlertDialogTitle>Você tem absoluta certeza?</AlertDialogTitle>
-            <AlertDialogDescription className="text-slate-400">
-              Esta ação excluirá permanentemente o evento selecionado. Esta ação não pode ser desfeita.
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel className="bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteEvent} className="bg-red-600 hover:bg-red-700 text-white">Sim, Excluir</AlertDialogAction>
-          </AlertDialogFooter>
+        <AlertDialogContent className="p-0 border-0 bg-transparent shadow-none max-w-sm w-full">
+          <W2kPanel className="overflow-hidden">
+            <W2kTitleBar title="Confirmar Exclusão" />
+            <div className="p-4 space-y-4">
+              <AlertDialogHeader>
+                <div className="flex items-start gap-3">
+                  <span className="text-3xl">⚠️</span>
+                  <div>
+                    <AlertDialogTitle className="font-w2k text-sm font-bold text-[#000000]">
+                      Você tem absoluta certeza?
+                    </AlertDialogTitle>
+                    <AlertDialogDescription className="font-w2k text-xs text-[#444444] mt-1">
+                      Esta ação excluirá permanentemente o evento selecionado. Esta ação não pode ser desfeita.
+                    </AlertDialogDescription>
+                  </div>
+                </div>
+              </AlertDialogHeader>
+              <AlertDialogFooter className="flex justify-end gap-2 pt-2 border-t border-[#808080]">
+                <AlertDialogAction asChild>
+                  <W2kButton onClick={handleDeleteEvent} primary>Sim, Excluir</W2kButton>
+                </AlertDialogAction>
+                <AlertDialogCancel asChild>
+                  <W2kButton>Cancelar</W2kButton>
+                </AlertDialogCancel>
+              </AlertDialogFooter>
+            </div>
+          </W2kPanel>
         </AlertDialogContent>
       </AlertDialog>
     </div>
