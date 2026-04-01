@@ -20,7 +20,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, FileDown } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, FileDown, Clock } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -64,10 +64,15 @@ import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, u
 import { collection, doc, query, where } from 'firebase/firestore';
 
 const statusColors: Record<EventStatus, string> = {
-  Pendente: 'bg-yellow-400/20 text-yellow-600 border-yellow-400/30',
-  Confirmado: 'bg-blue-400/20 text-blue-600 border-blue-400/30',
-  Concluído: 'bg-green-400/20 text-green-600 border-green-400/30',
-  Cancelado: 'bg-red-400/20 text-red-600 border-red-400/30',
+  Pendente: 'bg-yellow-500/10 text-yellow-500 border-yellow-500/20',
+  Confirmado: 'bg-blue-500/10 text-blue-500 border-blue-500/20',
+  Concluído: 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  Cancelado: 'bg-red-500/10 text-red-500 border-red-500/20',
+};
+
+const paymentStatusColors: Record<PaymentStatus, string> = {
+  'Pago': 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20',
+  'Não Pago': 'bg-zinc-500/10 text-zinc-400 border-zinc-500/20',
 };
 
 const initialNewEventState = {
@@ -198,68 +203,71 @@ export default function EventsPage() {
           </Button>
           <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button className="bg-cyan-500 hover:bg-cyan-600 text-white">
+              <Button className="bg-[#00e5ff] hover:bg-[#00b8cc] text-black font-semibold">
                 <PlusCircle className="w-4 h-4 mr-2" />
                 Adicionar Evento
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg bg-[#1a1f2e] text-slate-200 border-slate-800">
-              <DialogHeader>
-                <DialogTitle className="text-xl font-bold">Adicionar Novo Evento</DialogTitle>
-                <DialogDescription className="text-slate-400">Preencha os detalhes do novo evento.</DialogDescription>
+            <DialogContent className="sm:max-w-lg bg-[#0f172a] text-slate-200 border-slate-800 p-8 shadow-2xl">
+              <DialogHeader className="space-y-1">
+                <DialogTitle className="text-2xl font-bold tracking-tight">Adicionar Novo Evento</DialogTitle>
+                <DialogDescription className="text-slate-400 text-sm">Preencha os detalhes do novo evento.</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddSubmit} className="space-y-4 pt-4">
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <Label htmlFor="clientId" className="text-right text-slate-300">Cliente</Label>
+              <form onSubmit={handleAddSubmit} className="space-y-6 pt-6">
+                <div className="flex items-center">
+                  <Label htmlFor="clientId" className="w-32 text-right pr-6 text-slate-300 text-sm">Cliente</Label>
                   <Select value={newEvent.clientId} onValueChange={handleSelectChange('clientId')}>
-                    <SelectTrigger className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200">
+                    <SelectTrigger className="flex-1 bg-transparent border-slate-700 text-slate-200 h-10 ring-offset-transparent focus:ring-1 focus:ring-[#00e5ff] rounded-md transition-all">
                       <SelectValue placeholder="Selecione um cliente" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#1a1f2e] border-slate-700 text-slate-200">
+                    <SelectContent className="bg-[#0f172a] border-slate-700 text-slate-200">
                       {clients?.map(client => (
-                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                        <SelectItem key={client.id} value={client.id} className="hover:bg-slate-800 cursor-pointer">{client.name}</SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
 
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <Label className="text-right text-slate-300">Data</Label>
+                <div className="flex items-center">
+                  <Label className="w-32 text-right pr-6 text-slate-300 text-sm">Data</Label>
                   <Popover>
                     <PopoverTrigger asChild>
-                      <Button variant="outline" className={cn("col-span-2 justify-start text-left font-normal bg-[#2d3748] border-slate-700 text-slate-200 hover:bg-[#323d4f] hover:text-white", !newEvent.date && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
+                      <Button variant="outline" className={cn("flex-1 justify-start text-left font-normal bg-transparent border-slate-700 text-slate-200 hover:bg-[#1e293b] hover:text-white transition-all", !newEvent.date && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4 text-[#00e5ff]" />
                         {newEvent.date ? format(newEvent.date, "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
                       </Button>
                     </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0 bg-[#1a1f2e] border-slate-700">
-                      <Calendar mode="single" selected={newEvent.date} onSelect={handleDateChange} locale={ptBR} initialFocus />
+                    <PopoverContent className="w-auto p-0 bg-[#0f172a] border-slate-800 shadow-2xl shadow-black">
+                      <Calendar mode="single" selected={newEvent.date} onSelect={handleDateChange} locale={ptBR} initialFocus className="bg-transparent text-slate-200" />
                     </PopoverContent>
                   </Popover>
                 </div>
 
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <Label htmlFor="time" className="text-right text-slate-300">Hora</Label>
-                  <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200" />
+                <div className="flex items-center">
+                  <Label htmlFor="time" className="w-32 text-right pr-6 text-slate-300 text-sm">Hora</Label>
+                  <div className="relative flex-1">
+                    <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="w-full bg-transparent border-slate-700 text-slate-200 pr-10 focus-visible:ring-1 focus-visible:ring-[#00e5ff]" />
+                    <Clock className="absolute right-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500 pointer-events-none" />
+                  </div>
                 </div>
 
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <Label htmlFor="local" className="text-right text-slate-300">Local</Label>
-                  <Input id="local" placeholder="Local do evento" value={newEvent.local} onChange={handleInputChange} className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200" />
+                <div className="flex items-center">
+                  <Label htmlFor="local" className="w-32 text-right pr-6 text-slate-300 text-sm">Local</Label>
+                  <Input id="local" placeholder="Local do evento" value={newEvent.local} onChange={handleInputChange} className="flex-1 bg-transparent border-slate-700 text-slate-200 focus-visible:ring-1 focus-visible:ring-[#00e5ff]" />
                 </div>
 
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <Label className="text-right text-slate-300">Artistas</Label>
+                <div className="flex items-center">
+                  <Label className="w-32 text-right pr-6 text-slate-300 text-sm">Artistas</Label>
                   <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                      <Button variant="outline" className="col-span-2 justify-between bg-[#2d3748] border-slate-700 text-slate-200 hover:bg-[#323d4f] hover:text-white font-normal">
+                      <Button variant="outline" className="flex-1 justify-between bg-transparent border-slate-700 text-slate-200 hover:bg-[#1e293b] hover:text-white font-normal transition-all">
                         {newEvent.artistIds.length > 0 
                           ? `${newEvent.artistIds.length} selecionado(s)` 
                           : "Selecione artistas"}
                         <ChevronDown className="h-4 w-4 opacity-50" />
                       </Button>
                     </DropdownMenuTrigger>
-                    <DropdownMenuContent className="w-56 bg-[#1a1f2e] border-slate-700 text-slate-200">
+                    <DropdownMenuContent className="w-56 bg-[#0f172a] border-slate-700 text-slate-200">
                       {artists?.map(artist => (
                         <DropdownMenuCheckboxItem
                           key={artist.id}
@@ -281,26 +289,28 @@ export default function EventsPage() {
                   </DropdownMenu>
                 </div>
 
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <Label className="text-right text-slate-300">Com ou Sem Som</Label>
-                  <div className="flex items-center gap-2 col-span-2">
-                    <span className="text-xs text-slate-500">Sem Som</span>
+                <div className="flex items-center">
+                  <div className="w-32 text-right pr-6">
+                    <Label className="text-slate-300 text-sm">Com ou Sem Som</Label>
+                  </div>
+                  <div className="flex items-center gap-3 flex-1 h-10">
+                    <span className="text-sm text-slate-300">Som</span>
                     <Switch 
                       checked={newEvent.withSound} 
                       onCheckedChange={(checked) => setNewEvent(prev => ({ ...prev, withSound: checked }))} 
+                      className="data-[state=checked]:bg-[#00e5ff]"
                     />
-                    <span className="text-xs text-slate-500">Com Som</span>
                   </div>
                 </div>
 
-                <div className="grid grid-cols-3 items-center gap-4">
-                  <Label htmlFor="payment" className="text-right text-slate-300">Pagamento (R$)</Label>
-                  <Input id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200" />
+                <div className="flex items-center">
+                  <Label htmlFor="payment" className="w-32 text-right pr-6 text-slate-300 text-sm">Pagamento (R$)</Label>
+                  <Input id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} className="flex-1 bg-transparent border-slate-700 text-slate-200 focus-visible:ring-1 focus-visible:ring-[#00e5ff]" />
                 </div>
 
-                <DialogFooter className="pt-4">
-                  <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white w-24">Salvar</Button>
-                </DialogFooter>
+                <div className="flex justify-end pt-4">
+                  <Button type="submit" className="bg-[#b2ebf2] hover:bg-[#80deea] text-[#006064] font-bold px-8 transition-colors">Salvar</Button>
+                </div>
               </form>
             </DialogContent>
           </Dialog>
@@ -317,12 +327,13 @@ export default function EventsPage() {
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow>
-                  <TableHead>Cliente</TableHead>
-                  <TableHead>Data</TableHead>
-                  <TableHead>Local</TableHead>
-                  <TableHead>Valor</TableHead>
-                  <TableHead>Status</TableHead>
+                <TableRow className="hover:bg-slate-800/10 border-slate-800 px-4">
+                  <TableHead className="text-slate-400 font-medium">Cliente</TableHead>
+                  <TableHead className="text-slate-400 font-medium whitespace-nowrap">Data e Hora</TableHead>
+                  <TableHead className="text-slate-400 font-medium">Local</TableHead>
+                  <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
+                  <TableHead className="text-slate-400 font-medium">Status</TableHead>
+                  <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
                   <TableHead className="sr-only">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -330,14 +341,21 @@ export default function EventsPage() {
                 {filteredEvents.map((event) => {
                   const client = clients?.find(c => c.id === event.clientId);
                   return (
-                    <TableRow key={event.id}>
-                      <TableCell className="font-medium">{client?.name}</TableCell>
-                      <TableCell>{format(parseISO(event.date), 'dd/MM/yy')} às {event.time}</TableCell>
-                      <TableCell>{event.local}</TableCell>
-                      <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
+                    <TableRow key={event.id} className="hover:bg-slate-800/20 border-slate-800 group px-4">
+                      <TableCell className="font-medium text-slate-200">{client?.name || 'Evento Privado'}</TableCell>
+                      <TableCell className="text-slate-400">
+                        {format(parseISO(event.date), "d MMM, yyyy", { locale: ptBR })} às {event.time || '00:00'}
+                      </TableCell>
+                      <TableCell className="text-slate-400">{event.local}</TableCell>
+                      <TableCell className="text-slate-200 font-medium">R$ {event.payment.toLocaleString('pt-BR')}</TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn('font-semibold', statusColors[event.status])}>
+                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs', statusColors[event.status])}>
                           {event.status}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs', paymentStatusColors[event.paymentStatus])}>
+                          {event.paymentStatus}
                         </Badge>
                       </TableCell>
                       <TableCell>
