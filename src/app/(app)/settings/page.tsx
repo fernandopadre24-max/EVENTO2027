@@ -1,14 +1,16 @@
 
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useTheme } from 'next-themes';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { useToast } from '@/hooks/use-toast';
+import { useAppSettings, DEFAULT_APP_NAME } from '@/hooks/use-app-settings';
 import {
   Palette,
   Bell,
@@ -19,6 +21,9 @@ import {
   Moon,
   Sun,
   Monitor,
+  AppWindow,
+  Loader2,
+  CheckCircle2,
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -40,6 +45,15 @@ export default function SettingsPage() {
   const { toast } = useToast();
   const auth = useAuth();
   const router = useRouter();
+  const { appName, saveAppName, isSaving } = useAppSettings();
+
+  const [nameInput, setNameInput] = useState('');
+  const [nameSaved, setNameSaved] = useState(false);
+
+  // Sync input with loaded app name
+  useEffect(() => {
+    setNameInput(appName);
+  }, [appName]);
 
   const [notifications, setNotifications] = useState({
     events: true,
@@ -49,24 +63,19 @@ export default function SettingsPage() {
   });
 
   const handleNotificationChange = (key: keyof typeof notifications) => {
-    setNotifications((prev) => ({
-      ...prev,
-      [key]: !prev[key],
-    }));
-    toast({
-      title: 'Preferência atualizada',
-      description: 'Suas configurações de notificação foram salvas.',
-    });
+    setNotifications((prev) => ({ ...prev, [key]: !prev[key] }));
+    toast({ title: 'Preferência atualizada', description: 'Configuração de notificação salva.' });
   };
 
-  const handleExportData = () => {
-    toast({
-      title: 'Exportação iniciada',
-      description: 'Seus dados serão preparados para download em breve.',
-    });
+  const handleSaveAppName = async (e: React.FormEvent) => {
+    e.preventDefault();
+    await saveAppName(nameInput);
+    setNameSaved(true);
+    toast({ title: '✅ Nome atualizado!', description: `O app agora se chama "${nameInput || DEFAULT_APP_NAME}".` });
+    setTimeout(() => setNameSaved(false), 3000);
   };
 
-  const handleDeleteAccount = async () => {
+  const handleSignOut = async () => {
     if (auth) {
       await signOut(auth);
       router.push('/login');
@@ -82,6 +91,45 @@ export default function SettingsPage() {
   return (
     <div className="space-y-8 max-w-2xl">
       <h1 className="text-3xl font-bold tracking-tight font-headline">Configurações</h1>
+
+      {/* Nome do Aplicativo */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center gap-2">
+            <AppWindow className="h-5 w-5 text-primary" />
+            <CardTitle>Nome do Aplicativo</CardTitle>
+          </div>
+          <CardDescription>
+            Personalize o nome exibido no cabeçalho e na navegação.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSaveAppName} className="flex gap-3 items-end">
+            <div className="flex-1 space-y-2">
+              <Label htmlFor="appName">Nome</Label>
+              <Input
+                id="appName"
+                value={nameInput}
+                onChange={(e) => setNameInput(e.target.value)}
+                placeholder={DEFAULT_APP_NAME}
+                maxLength={30}
+              />
+              <p className="text-xs text-muted-foreground">
+                Padrão: <span className="font-medium">{DEFAULT_APP_NAME}</span>
+              </p>
+            </div>
+            <Button type="submit" disabled={isSaving || nameInput === appName} className="mb-6">
+              {isSaving ? (
+                <><Loader2 className="mr-2 h-4 w-4 animate-spin" />Salvando...</>
+              ) : nameSaved ? (
+                <><CheckCircle2 className="mr-2 h-4 w-4 text-emerald-400" />Salvo!</>
+              ) : (
+                'Salvar'
+              )}
+            </Button>
+          </form>
+        </CardContent>
+      </Card>
 
       {/* Aparência */}
       <Card>
@@ -136,10 +184,7 @@ export default function SettingsPage() {
                 <p className="text-sm font-medium">{label}</p>
                 <p className="text-xs text-muted-foreground">{desc}</p>
               </div>
-              <Switch
-                checked={notifications[key]}
-                onCheckedChange={() => handleNotificationChange(key)}
-              />
+              <Switch checked={notifications[key]} onCheckedChange={() => handleNotificationChange(key)} />
             </div>
           ))}
         </CardContent>
@@ -160,7 +205,9 @@ export default function SettingsPage() {
               <p className="text-sm font-medium">Exportar Meus Dados</p>
               <p className="text-xs text-muted-foreground">Baixe uma cópia de todos os seus dados</p>
             </div>
-            <Button variant="outline" size="sm" onClick={handleExportData}>
+            <Button variant="outline" size="sm" onClick={() =>
+              toast({ title: 'Exportação iniciada', description: 'Seus dados serão preparados em breve.' })
+            }>
               <Download className="mr-2 h-4 w-4" />
               Exportar
             </Button>
@@ -187,9 +234,7 @@ export default function SettingsPage() {
                 </AlertDialogHeader>
                 <AlertDialogFooter>
                   <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                  <AlertDialogAction onClick={handleDeleteAccount}>
-                    Confirmar
-                  </AlertDialogAction>
+                  <AlertDialogAction onClick={handleSignOut}>Confirmar</AlertDialogAction>
                 </AlertDialogFooter>
               </AlertDialogContent>
             </AlertDialog>
@@ -207,8 +252,8 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <div className="flex justify-between">
-            <span>Aplicação</span>
-            <span className="font-medium text-foreground">BandMate / EVENTO2027</span>
+            <span>Nome atual</span>
+            <span className="font-medium text-foreground">{appName}</span>
           </div>
           <div className="flex justify-between">
             <span>Versão</span>

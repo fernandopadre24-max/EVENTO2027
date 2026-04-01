@@ -9,6 +9,7 @@ import { Calculator } from '@/components/calculator';
 import { ThemeToggle } from '@/components/theme-toggle';
 import { BandMateLogo } from '@/components/icons';
 import { useUser } from '@/firebase';
+import { useAppSettings } from '@/hooks/use-app-settings';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { ArrowLeft, Calendar } from 'lucide-react';
@@ -31,7 +32,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const { user, isUserLoading } = useUser();
   const router = useRouter();
   const pathname = usePathname();
-  const title = 'BandMate';
+  const { appName } = useAppSettings();
 
   useEffect(() => {
     // If loading is finished and there's no user, redirect to login
@@ -67,7 +68,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Link href="/dashboard" className={cn("flex items-center gap-2", !isTopLevel && "hidden sm:flex")}>
                 <BandMateLogo className="w-8 h-8 text-primary" />
                 <span className="text-xl font-bold font-headline hidden sm:inline-block">
-                    {title}
+                    {appName}
                 </span>
             </Link>
           </div>
