@@ -99,6 +99,7 @@ export default function EventsPage() {
   const { data: artists } = useCollection<Artist>(artistsRef);
 
   const [isAddOpen, setAddOpen] = useState(false);
+  const [editingEventId, setEditingEventId] = useState<string | null>(null);
   const [newEvent, setNewEvent] = useState(initialNewEventState);
 
   const [searchTerm, setSearchTerm] = useState('');
@@ -147,15 +148,49 @@ export default function EventsPage() {
       artistIds: newEvent.artistIds,
       hasSound: newEvent.withSound,
     };
-    addDocumentNonBlocking(eventsCollectionRef, newEventData);
+    
+    if (editingEventId) {
+      const eventDocRef = doc(firestore, 'events', editingEventId);
+      updateDocumentNonBlocking(eventDocRef, newEventData);
+    } else {
+      addDocumentNonBlocking(eventsCollectionRef, { ...newEventData, status: 'Pendente' as EventStatus, paymentStatus: 'Não Pago' as PaymentStatus });
+    }
+    
     setAddOpen(false);
+    setEditingEventId(null);
     setNewEvent(initialNewEventState);
+  };
+
+  const handleEditOpen = (event: Event) => {
+    setEditingEventId(event.id);
+    setNewEvent({
+      clientId: event.clientId,
+      date: parseISO(event.date),
+      time: event.time,
+      local: event.local,
+      artistIds: event.artistIds,
+      payment: event.payment,
+      withSound: !!event.hasSound,
+    });
+    setAddOpen(true);
   };
 
   const updateEventStatus = (eventId: string, status: EventStatus) => {
     if (!firestore) return;
     const eventDocRef = doc(firestore, 'events', eventId);
     updateDocumentNonBlocking(eventDocRef, { status });
+  };
+
+  const updatePaymentStatus = (eventId: string, paymentStatus: PaymentStatus) => {
+    if (!firestore) return;
+    const eventDocRef = doc(firestore, 'events', eventId);
+    updateDocumentNonBlocking(eventDocRef, { paymentStatus });
+  };
+
+  const toggleSoundStatus = (event: Event) => {
+    if (!firestore) return;
+    const eventDocRef = doc(firestore, 'events', event.id);
+    updateDocumentNonBlocking(eventDocRef, { hasSound: !event.hasSound });
   };
 
   const handleDeleteEvent = () => {
@@ -211,8 +246,12 @@ export default function EventsPage() {
             </DialogTrigger>
             <DialogContent className="sm:max-w-lg bg-[#0f172a] text-slate-200 border-slate-800 p-8 shadow-2xl">
               <DialogHeader className="space-y-1">
-                <DialogTitle className="text-2xl font-bold tracking-tight">Adicionar Novo Evento</DialogTitle>
-                <DialogDescription className="text-slate-400 text-sm">Preencha os detalhes do novo evento.</DialogDescription>
+                <DialogTitle className="text-2xl font-bold tracking-tight">
+                  {editingEventId ? 'Editar Evento' : 'Adicionar Novo Evento'}
+                </DialogTitle>
+                <DialogDescription className="text-slate-400 text-sm">
+                  {editingEventId ? 'Altere os detalhes do evento selecionado.' : 'Preencha os detalhes do novo evento.'}
+                </DialogDescription>
               </DialogHeader>
               <form onSubmit={handleAddSubmit} className="space-y-6 pt-6">
                 <div className="flex items-center">
@@ -315,6 +354,7 @@ export default function EventsPage() {
               </form>
             </DialogContent>
           </Dialog>
+          <Button variant="ghost" size="icon" onClick={() => { setEditingEventId(null); setNewEvent(initialNewEventState); setAddOpen(false); }} className={cn("hidden", isAddOpen && "block")}><X className="w-4 h-4" /></Button>
         </div>
       </div>
       
@@ -377,13 +417,35 @@ export default function EventsPage() {
                       <TableCell>
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
-                            <Button size="icon" variant="ghost"><MoreHorizontal className="w-4 h-4" /></Button>
+                            <Button size="icon" variant="ghost" className="hover:bg-slate-800 transition-colors">
+                              <MoreHorizontal className="w-4 h-4 text-slate-400" />
+                            </Button>
                           </DropdownMenuTrigger>
-                          <DropdownMenuContent align="end">
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')}>Confirmar</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')}>Concluir</DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem className="text-destructive" onClick={() => { setEventToDelete(event); setDeleteAlertOpen(true); }}>Excluir</DropdownMenuItem>
+                          <DropdownMenuContent align="end" className="w-56 bg-[#0f172a] border-slate-800 text-slate-200 shadow-2xl py-2">
+                            <DropdownMenuLabel className="text-slate-400 px-4 py-2 text-xs font-bold uppercase tracking-wider">Ações</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditOpen(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                              Editar
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => toggleSoundStatus(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                              Marcar {event.hasSound ? 'Sem' : 'Com'} Som
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-slate-800 my-1 mx-2" />
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                              Marcar como Confirmado
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                              Marcar como Concluído
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updatePaymentStatus(event.id, 'Pago')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                              Marcar como Pago
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Cancelado')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                              Cancelar Evento
+                            </DropdownMenuItem>
+                            <DropdownMenuSeparator className="bg-slate-800 my-1 mx-2" />
+                            <DropdownMenuItem className="text-red-500 px-4 py-2 hover:bg-red-500/10 cursor-pointer transition-colors font-medium" onClick={() => { setEventToDelete(event); setDeleteAlertOpen(true); }}>
+                              Excluir
+                            </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
                       </TableCell>
