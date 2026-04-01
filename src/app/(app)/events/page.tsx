@@ -1,4 +1,3 @@
-
 'use client';
 
 import { useState, useMemo } from 'react';
@@ -20,7 +19,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
-import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, FileDown, Clock } from 'lucide-react';
+import { MoreHorizontal, PlusCircle, CalendarIcon, ChevronDown, Search, X, FileDown, Clock, DollarSign, CheckCircle2, AlertCircle } from 'lucide-react';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -121,6 +120,19 @@ export default function EventsPage() {
         return dateB.getTime() - dateA.getTime();
       }) || [];
   }, [events, clients, searchTerm]);
+
+  // Nova lógica de somatória
+  const totals = useMemo(() => {
+    const totalValue = filteredEvents.reduce((sum, e) => sum + e.payment, 0);
+    const paidValue = filteredEvents.filter(e => e.paymentStatus === 'Pago').reduce((sum, e) => sum + e.payment, 0);
+    const pendingValue = totalValue - paidValue;
+    return {
+      count: filteredEvents.length,
+      total: totalValue,
+      paid: paidValue,
+      pending: pendingValue
+    };
+  }, [filteredEvents]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { id, value } = e.target;
@@ -223,17 +235,27 @@ export default function EventsPage() {
     (doc as any).autoTable({
         head: [tableColumn],
         body: tableRows,
-        startY: 20,
+        startY: 32, // Começa mais baixo para não sobrepor o texto de resumo opcional
     });
     doc.save('eventos.pdf');
   };
 
   return (
-    <div className="space-y-8">
-      <div className="flex items-center justify-between">
+    <div className="space-y-8 pb-10">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <h1 className="text-3xl font-bold tracking-tight font-headline">Eventos</h1>
-        <div className="flex gap-2">
-          <Button variant="outline" onClick={handleExportPDF}>
+        <div className="flex flex-wrap gap-2">
+          {/* Barra de Pesquisa */}
+          <div className="relative w-full md:w-64">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-500" />
+            <Input 
+              placeholder="Pesquisar cliente ou local..." 
+              value={searchTerm} 
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 bg-slate-900/50 border-slate-800"
+            />
+          </div>
+          <Button variant="outline" onClick={handleExportPDF} className="bg-slate-900/50 border-slate-800">
             <FileDown className="w-4 h-4 mr-2" />
             PDF
           </Button>
@@ -354,29 +376,72 @@ export default function EventsPage() {
               </form>
             </DialogContent>
           </Dialog>
-          <Button variant="ghost" size="icon" onClick={() => { setEditingEventId(null); setNewEvent(initialNewEventState); setAddOpen(false); }} className={cn("hidden", isAddOpen && "block")}><X className="w-4 h-4" /></Button>
         </div>
       </div>
+
+      {/* Cartões de Somatória (Resumo) no Topo */}
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card className="bg-slate-900/50 border-slate-800">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-400">Total de Eventos</CardTitle>
+            <CalendarIcon className="w-4 h-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-200">{totals.count}</div>
+            <p className="text-xs text-slate-500">Eventos sendo listados</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-slate-900/50 border-slate-800">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-slate-400">Valor Total</CardTitle>
+            <DollarSign className="w-4 h-4 text-blue-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-slate-200">R${totals.total.toLocaleString('pt-BR')}</div>
+            <p className="text-xs text-slate-500">Soma de todos os eventos</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-emerald-500/10 border-emerald-500/20">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-emerald-500">Valor Pago</CardTitle>
+            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-emerald-400">R${totals.paid.toLocaleString('pt-BR')}</div>
+            <p className="text-xs text-emerald-600/70">Total recebido</p>
+          </CardContent>
+        </Card>
+        <Card className="bg-rose-500/10 border-rose-500/20">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium text-rose-500">Valor Pendente</CardTitle>
+            <AlertCircle className="w-4 h-4 text-rose-500" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold text-rose-400">R${totals.pending.toLocaleString('pt-BR')}</div>
+            <p className="text-xs text-rose-600/70">Aguardando pagamento</p>
+          </CardContent>
+        </Card>
+      </div>
       
-      <Card>
+      <Card className="bg-slate-900/30 border-slate-800/50">
         <CardHeader>
-          <CardTitle>Agenda</CardTitle>
-          <CardDescription>Lista de eventos agendados.</CardDescription>
+          <CardTitle>Agenda Completa</CardTitle>
+          <CardDescription>Gerencie todos os seus eventos agendados.</CardDescription>
         </CardHeader>
         <CardContent>
-          {(isLoadingEvents || isLoadingClients) && <p>Carregando...</p>}
+          {(isLoadingEvents || isLoadingClients) && <p className="text-slate-500 animate-pulse">Carregando eventos...</p>}
           <div className="overflow-x-auto">
             <Table>
               <TableHeader>
-                <TableRow className="hover:bg-slate-800/10 border-slate-800 px-4">
+                <TableRow className="hover:bg-transparent border-slate-800 px-4">
                   <TableHead className="text-slate-400 font-medium">Cliente</TableHead>
                   <TableHead className="text-slate-400 font-medium whitespace-nowrap">Data e Hora</TableHead>
                   <TableHead className="text-slate-400 font-medium">Local</TableHead>
                   <TableHead className="text-slate-400 font-medium">Artistas</TableHead>
-                  <TableHead className="text-slate-400 font-medium whitespace-nowrap">Com/Sem Som</TableHead>
-                  <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
-                  <TableHead className="text-slate-400 font-medium">Status</TableHead>
-                  <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
+                  <TableHead className="text-slate-400 font-medium whitespace-nowrap text-center">Som</TableHead>
+                  <TableHead className="text-slate-400 font-medium text-right">Valor</TableHead>
+                  <TableHead className="text-slate-400 font-medium text-center">Status</TableHead>
+                  <TableHead className="text-slate-400 font-medium text-center">Pagam.</TableHead>
                   <TableHead className="sr-only">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -384,37 +449,38 @@ export default function EventsPage() {
                 {filteredEvents.map((event) => {
                   const client = clients?.find(c => c.id === event.clientId);
                   return (
-                    <TableRow key={event.id} className="hover:bg-slate-800/20 border-slate-800 group px-4">
-                      <TableCell className="font-medium text-slate-200 whitespace-nowrap">{client?.name || 'Evento Privado'}</TableCell>
+                    <TableRow key={event.id} className="hover:bg-slate-800/30 border-slate-800 group px-4 transition-colors">
+                      <TableCell className="font-medium text-slate-200 whitespace-nowrap">
+                        {client?.name || 'Evento Privado'}
+                      </TableCell>
                       <TableCell className="text-slate-400 whitespace-nowrap">
                         {format(parseISO(event.date), "d MMM, yyyy", { locale: ptBR })} às {event.time || '00:00'}
                       </TableCell>
-                      <TableCell className="text-slate-400">{event.local}</TableCell>
-                      <TableCell className="text-slate-400">
+                      <TableCell className="text-slate-400 max-w-[150px] truncate">{event.local}</TableCell>
+                      <TableCell className="text-slate-400 max-w-[150px] truncate">
                         {artists?.filter(a => event.artistIds.includes(a.id)).map(a => a.name).join(', ') || '-'}
                       </TableCell>
-                      <TableCell className="whitespace-nowrap">
-                        <div className="flex items-center gap-2">
-                          <Switch 
-                            checked={event.hasSound} 
-                            disabled 
-                            className="scale-75 data-[state=checked]:bg-[#00e5ff] opacity-70"
-                          />
-                          <span className="text-xs text-slate-400">{event.hasSound ? 'Com Som' : 'Sem Som'}</span>
+                      <TableCell className="text-center">
+                        <div className="flex justify-center">
+                           <Badge variant="ghost" className={cn("p-1.5 rounded-full border border-slate-800", event.hasSound ? "text-[#00e5ff]" : "text-slate-600")}>
+                             {event.hasSound ? <CheckCircle2 className="w-4 h-4" /> : <X className="w-4 h-4" />}
+                           </Badge>
                         </div>
                       </TableCell>
-                      <TableCell className="text-slate-200 font-medium whitespace-nowrap">R$ {event.payment.toLocaleString('pt-BR')}</TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap', statusColors[event.status])}>
+                      <TableCell className="text-slate-200 font-semibold whitespace-nowrap text-right">
+                        R$ {event.payment.toLocaleString('pt-BR')}
+                      </TableCell>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap mx-auto', statusColors[event.status])}>
                           {event.status}
                         </Badge>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap', paymentStatusColors[event.paymentStatus])}>
+                      <TableCell className="text-center">
+                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap mx-auto', paymentStatusColors[event.paymentStatus])}>
                           {event.paymentStatus}
                         </Badge>
                       </TableCell>
-                      <TableCell>
+                      <TableCell className="text-right">
                         <DropdownMenu>
                           <DropdownMenuTrigger asChild>
                             <Button size="icon" variant="ghost" className="hover:bg-slate-800 transition-colors">
@@ -422,29 +488,29 @@ export default function EventsPage() {
                             </Button>
                           </DropdownMenuTrigger>
                           <DropdownMenuContent align="end" className="w-56 bg-[#0f172a] border-slate-800 text-slate-200 shadow-2xl py-2">
-                            <DropdownMenuLabel className="text-slate-400 px-4 py-2 text-xs font-bold uppercase tracking-wider">Ações</DropdownMenuLabel>
-                            <DropdownMenuItem onClick={() => handleEditOpen(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
-                              Editar
+                            <DropdownMenuLabel className="text-slate-400 px-4 py-2 text-xs font-bold uppercase tracking-wider">Ações Rapidas</DropdownMenuLabel>
+                            <DropdownMenuItem onClick={() => handleEditOpen(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
+                              Editar Detalhes
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => toggleSoundStatus(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
-                              Marcar {event.hasSound ? 'Sem' : 'Com'} Som
+                            <DropdownMenuItem onClick={() => toggleSoundStatus(event)} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
+                              Alterar Status do Som
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-slate-800 my-1 mx-2" />
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
-                              Marcar como Confirmado
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Confirmado')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
+                              Confirmar Agenda
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
-                              Marcar como Concluído
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Concluído')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors focus:bg-slate-800">
+                              Finalizar Evento
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updatePaymentStatus(event.id, 'Pago')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                            <DropdownMenuItem onClick={() => updatePaymentStatus(event.id, 'Pago')} className="px-4 py-2 hover:bg-emerald-500/10 text-emerald-500 cursor-pointer transition-colors focus:bg-emerald-500/10">
                               Marcar como Pago
                             </DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Cancelado')} className="px-4 py-2 hover:bg-slate-800 cursor-pointer transition-colors">
+                            <DropdownMenuItem onClick={() => updateEventStatus(event.id, 'Cancelado')} className="px-4 py-2 hover:bg-red-500/10 text-red-400 cursor-pointer transition-colors focus:bg-red-500/10">
                               Cancelar Evento
                             </DropdownMenuItem>
                             <DropdownMenuSeparator className="bg-slate-800 my-1 mx-2" />
-                            <DropdownMenuItem className="text-red-500 px-4 py-2 hover:bg-red-500/10 cursor-pointer transition-colors font-medium" onClick={() => { setEventToDelete(event); setDeleteAlertOpen(true); }}>
-                              Excluir
+                            <DropdownMenuItem className="text-red-500 px-4 py-2 hover:bg-red-500/20 cursor-pointer transition-colors font-medium focus:bg-red-500/20" onClick={() => { setEventToDelete(event); setDeleteAlertOpen(true); }}>
+                              Excluir Permanentemente
                             </DropdownMenuItem>
                           </DropdownMenuContent>
                         </DropdownMenu>
@@ -459,14 +525,16 @@ export default function EventsPage() {
       </Card>
       
       <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
-        <AlertDialogContent>
+        <AlertDialogContent className="bg-[#0f172a] border-slate-800 text-slate-200">
           <AlertDialogHeader>
-            <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-            <AlertDialogDescription>Esta ação não pode ser desfeita.</AlertDialogDescription>
+            <AlertDialogTitle>Você tem absoluta certeza?</AlertDialogTitle>
+            <AlertDialogDescription className="text-slate-400">
+              Esta ação excluirá permanentemente o evento selecionado. Esta ação não pode ser desfeita.
+            </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancelar</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteEvent}>Excluir</AlertDialogAction>
+            <AlertDialogCancel className="bg-transparent border-slate-700 text-slate-300 hover:bg-slate-800 hover:text-white">Cancelar</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteEvent} className="bg-red-600 hover:bg-red-700 text-white">Sim, Excluir</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
