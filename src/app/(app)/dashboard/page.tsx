@@ -29,19 +29,8 @@ import {
   Pie,
   Cell,
 } from 'recharts';
-import { 
-  ArrowUp, 
-  DollarSign, 
-  Calendar as CalendarIcon, 
-  ArrowDown, 
-  Users, 
-  Music, 
-  CheckCircle2, 
-  Clock, 
-  XCircle, 
-  AlertCircle 
-} from 'lucide-react';
-import { format, parseISO, getMonth, startOfDay, getYear } from 'date-fns';
+import { ArrowUp, DollarSign, Calendar as CalendarIcon, ArrowDown, Users, Music, CheckCircle2, Clock } from 'lucide-react';
+import { format, parseISO, getMonth, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { useCollection, useFirestore, useMemoFirebase, useUser } from '@/firebase';
 import { collection, query, where } from 'firebase/firestore';
@@ -57,36 +46,30 @@ const statusColors: Record<EventStatus, string> = {
   Cancelado: 'bg-red-400/20 text-red-600 border-red-400/30',
 };
 
-const PIE_COLORS = {
-  Pendente: '#fbbf24', // yellow-400
-  Confirmado: '#60a5fa', // blue-400
-  Concluído: '#10b981', // emerald-500
-  Cancelado: '#f43f5e', // rose-500
-  'Pago': '#10b981',
-  'Não Pago': '#f43f5e',
-};
-
+// Cores vibrantes sugeridas
 const FINANCIAL_COLORS = {
   income: '#10b981', // emerald-500
   outcome: '#f43f5e', // rose-500
 };
 
-const MONTHS = [
-  'Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
-  'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'
+const CHART_COLORS = [
+  '#3b82f6', '#10b981', '#f59e0b', '#ef4444', '#8b5cf6', '#06b6d4', '#ec4899'
 ];
+
+const STATUS_COLORS_CHART: Record<string, string> = {
+  Pendente: '#f59e0b', // amber-500
+  Confirmado: '#3b82f6', // blue-500
+  Concluído: '#10b981', // emerald-500
+  Cancelado: '#ef4444', // red-500
+};
 
 export default function DashboardPage() {
   const firestore = useFirestore();
   const { user } = useUser();
-  const [selectedYear, setSelectedYear] = useState<number | null>(null);
+  const [selectedYear, setSelectedYear] = useState<number>(new Date().getFullYear());
   const [selectedMonth, setSelectedMonth] = useState<string>('all');
   const [selectedClientId, setSelectedClientId] = useState<string>('all');
   const [selectedArtistId, setSelectedArtistId] = useState<string>('all');
-
-  useEffect(() => {
-    setSelectedYear(new Date().getFullYear());
-  }, []);
 
   const eventsRef = useMemoFirebase(() => user ? query(collection(firestore, 'events'), where('userId', '==', user.uid)) : null, [firestore, user]);
   const { data: events } = useCollection<Event>(eventsRef);
@@ -114,14 +97,15 @@ export default function DashboardPage() {
     }
   };
 
+  // Filtragem Global
   const filteredEvents = useMemo(() => {
     if (!events) return [];
     return events.filter(event => {
       const date = parseISO(event.date);
-      const yearMatch = selectedYear ? date.getFullYear() === selectedYear : true;
-      const monthMatch = selectedMonth === 'all' ? true : date.getMonth() === MONTHS.indexOf(selectedMonth);
-      const clientMatch = selectedClientId === 'all' ? true : event.clientId === selectedClientId;
-      const artistMatch = selectedArtistId === 'all' ? true : event.artistIds?.includes(selectedArtistId);
+      const yearMatch = date.getFullYear() === selectedYear;
+      const monthMatch = selectedMonth === 'all' || getMonth(date) === Number(selectedMonth);
+      const clientMatch = selectedClientId === 'all' || event.clientId === selectedClientId;
+      const artistMatch = selectedArtistId === 'all' || event.artistIds?.includes(selectedArtistId);
       return yearMatch && monthMatch && clientMatch && artistMatch;
     });
   }, [events, selectedYear, selectedMonth, selectedClientId, selectedArtistId]);
@@ -130,30 +114,35 @@ export default function DashboardPage() {
     if (!purchases) return [];
     return purchases.filter(purchase => {
       const date = parseISO(purchase.date);
-      const yearMatch = selectedYear ? date.getFullYear() === selectedYear : true;
-      const monthMatch = selectedMonth === 'all' ? true : date.getMonth() === MONTHS.indexOf(selectedMonth);
-      const artistMatch = selectedArtistId === 'all' ? true : purchase.artistId === selectedArtistId;
-      return yearMatch && monthMatch && artistMatch;
+      const yearMatch = date.getFullYear() === selectedYear;
+      const monthMatch = selectedMonth === 'all' || getMonth(date) === Number(selectedMonth);
+      return yearMatch && monthMatch;
     });
-  }, [purchases, selectedYear, selectedMonth, selectedArtistId]);
+  }, [purchases, selectedYear, selectedMonth]);
 
-  const { totalIncome, totalOutcome, netProfit, eventsCount } = useMemo(() => {
+  const { totalIncome, totalOutcome, netProfit, totalEventsCount, activeClientsCount } = useMemo(() => {
     const income = filteredEvents
-    ?.filter((e) => e.paymentStatus === 'Pago')
-    .reduce((sum, e) => sum + e.payment, 0) || 0;
+      ?.filter((e) => e.paymentStatus === 'Pago')
+      .reduce((sum, e) => sum + e.payment, 0) || 0;
     
     const purchaseOutcome = filteredPurchases
-    ?.filter(p => p.status === 'Pago')
-    .reduce((sum, p) => sum + p.amount, 0) || 0;
+      ?.filter(p => p.status === 'Pago')
+      .reduce((sum, p) => sum + p.amount, 0) || 0;
 
-    const loanOutcome = (loans || []).reduce((sum, loan) => {
+    const loanOutcome = loans?.reduce((sum, loan) => {
+        const startDate = parseISO(loan.startDate);
         const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
         const installmentValue = totalAmount / loan.installments;
         
-        // Filter loan installments by selected year/month if needed
-        // For simplicity, we'll keep the full paid installments unless specifically requested
-        return sum + (installmentValue * loan.paidInstallments);
-    }, 0);
+        let localOutcome = 0;
+        for (let i = 0; i < loan.paidInstallments; i++) {
+          const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+          if (paymentDate.getFullYear() === selectedYear && (selectedMonth === 'all' || paymentDate.getMonth() === Number(selectedMonth))) {
+            localOutcome += installmentValue;
+          }
+        }
+        return sum + localOutcome;
+    }, 0) || 0;
 
     const outcome = purchaseOutcome + loanOutcome;
 
@@ -161,9 +150,10 @@ export default function DashboardPage() {
       totalIncome: income, 
       totalOutcome: outcome, 
       netProfit: income - outcome,
-      eventsCount: filteredEvents.length
+      totalEventsCount: filteredEvents.length,
+      activeClientsCount: new Set(filteredEvents.map(e => e.clientId)).size
     };
-  }, [filteredEvents, filteredPurchases, loans]);
+  }, [filteredEvents, filteredPurchases, loans, selectedYear, selectedMonth]);
 
   const upcomingEvents = useMemo(() => {
     if (!events) return [];
@@ -187,67 +177,67 @@ export default function DashboardPage() {
   }, [events, purchases]);
 
   const monthlyChartData = useMemo(() => {
-    if (selectedYear === null) return [];
-    
     const data = Array.from({ length: 12 }, (_, i) => ({
       month: format(new Date(selectedYear, i), 'LLL', { locale: ptBR }),
       income: 0,
       outcome: 0,
     }));
 
-    filteredEvents.forEach(event => {
-      const eventDate = parseISO(event.date);
+    const baseEvents = events?.filter(e => {
+        const d = parseISO(e.date);
+        return d.getFullYear() === selectedYear && 
+               (selectedClientId === 'all' || e.clientId === selectedClientId) &&
+               (selectedArtistId === 'all' || e.artistIds?.includes(selectedArtistId));
+    });
+
+    baseEvents?.forEach(event => {
       if (event.paymentStatus === 'Pago') {
-        const monthIndex = getMonth(eventDate);
+        const monthIndex = getMonth(parseISO(event.date));
         data[monthIndex].income += event.payment;
       }
     });
     
-    filteredPurchases.forEach(purchase => {
-      const purchaseDate = parseISO(purchase.date);
-      if(purchase.status === 'Pago') {
-          const monthIndex = getMonth(purchaseDate);
-          data[monthIndex].outcome += purchase.amount;
-      }
+    purchases?.forEach(purchase => {
+        const d = parseISO(purchase.date);
+        if(d.getFullYear() === selectedYear && purchase.status === 'Pago') {
+            data[getMonth(d)].outcome += purchase.amount;
+        }
     });
 
-    if (selectedMonth === 'all') {
-      loans?.forEach(loan => {
-          const startDate = parseISO(loan.startDate);
-          const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
-          const installmentValue = totalAmount / loan.installments;
+    loans?.forEach(loan => {
+        const startDate = parseISO(loan.startDate);
+        const totalAmount = calculateTotalWithInterest(loan.amount, loan.interestRate, loan.installments, loan.interestType);
+        const installmentValue = totalAmount / loan.installments;
 
-          for (let i = 0; i < loan.paidInstallments; i++) {
-              const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
-              if (paymentDate.getFullYear() === selectedYear) {
-                  const monthIndex = paymentDate.getMonth();
-                  data[monthIndex].outcome += installmentValue;
-              }
-          }
-      });
-    }
+        for (let i = 0; i < loan.paidInstallments; i++) {
+            const paymentDate = new Date(startDate.getFullYear(), startDate.getMonth() + i, 1);
+            if (paymentDate.getFullYear() === selectedYear) {
+                data[paymentDate.getMonth()].outcome += installmentValue;
+            }
+        }
+    });
 
     return data;
-  }, [filteredEvents, filteredPurchases, loans, selectedYear, selectedMonth]);
+  }, [events, purchases, loans, selectedYear, selectedClientId, selectedArtistId]);
 
   const statusChartData = useMemo(() => {
-    const counts = filteredEvents.reduce((acc, event) => {
-      acc[event.status] = (acc[event.status] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
+    const counts: Record<string, number> = {};
+    filteredEvents.forEach(e => {
+      counts[e.status] = (counts[e.status] || 0) + 1;
+    });
     return Object.entries(counts).map(([name, value]) => ({ name, value }));
   }, [filteredEvents]);
 
   const topClientsData = useMemo(() => {
-    const revenueByClient = filteredEvents.reduce((acc, event) => {
-      acc[event.clientId] = (acc[event.clientId] || 0) + event.payment;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(revenueByClient)
-      .map(([clientId, revenue]) => ({
-        name: clients?.find(c => c.id === clientId)?.name || 'Desconhecido',
+    const clientRevenue: Record<string, number> = {};
+    filteredEvents.forEach(e => {
+      if (e.paymentStatus === 'Pago') {
+        clientRevenue[e.clientId] = (clientRevenue[e.clientId] || 0) + e.payment;
+      }
+    });
+    return Object.entries(clientRevenue)
+      .map(([id, revenue]) => ({
+        name: clients?.find(c => c.id === id)?.name || 'Desconhecido',
         revenue
       }))
       .sort((a, b) => b.revenue - a.revenue)
@@ -255,42 +245,40 @@ export default function DashboardPage() {
   }, [filteredEvents, clients]);
 
   const topArtistsData = useMemo(() => {
-    const frequencyByArtist = filteredEvents.reduce((acc, event) => {
-      event.artistIds?.forEach(id => {
-        acc[id] = (acc[id] || 0) + 1;
+    const artistBookings: Record<string, number> = {};
+    filteredEvents.forEach(e => {
+      e.artistIds?.forEach(aid => {
+        artistBookings[aid] = (artistBookings[aid] || 0) + 1;
       });
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(frequencyByArtist)
-      .map(([artistId, count]) => ({
-        name: artists?.find(a => a.id === artistId)?.name || 'Desconhecido',
-        count
+    });
+    return Object.entries(artistBookings)
+      .map(([id, bookings]) => ({
+        name: artists?.find(a => a.id === id)?.name || 'Desconhecido',
+        bookings
       }))
-      .sort((a, b) => b.count - a.count)
+      .sort((a, b) => b.bookings - a.bookings)
       .slice(0, 5);
   }, [filteredEvents, artists]);
 
   const paymentStatusData = useMemo(() => {
-    const counts = filteredEvents.reduce((acc, event) => {
-      acc[event.paymentStatus] = (acc[event.paymentStatus] || 0) + 1;
-      return acc;
-    }, {} as Record<string, number>);
-
-    return Object.entries(counts).map(([name, value]) => ({ name, value }));
+    const paid = filteredEvents.filter(e => e.paymentStatus === 'Pago').length;
+    const unpaid = filteredEvents.filter(e => e.paymentStatus === 'Não Pago').length;
+    return [
+      { name: 'Pago', value: paid },
+      { name: 'Pendente', value: unpaid }
+    ];
   }, [filteredEvents]);
 
-  if (selectedYear === null) return null;
-
   return (
-    <div className="space-y-8 pb-8">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+    <div className="space-y-8 pb-10">
+      <div className="flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
         <h1 className="text-3xl font-bold tracking-tight font-headline">
           Painel de Controle
         </h1>
+        
         <div className="flex flex-wrap gap-2">
           <Select value={String(selectedYear)} onValueChange={(value) => setSelectedYear(Number(value))}>
-            <SelectTrigger className="w-[100px] h-9">
+            <SelectTrigger className="w-[100px]">
               <SelectValue placeholder="Ano" />
             </SelectTrigger>
             <SelectContent>
@@ -301,19 +289,21 @@ export default function DashboardPage() {
           </Select>
 
           <Select value={selectedMonth} onValueChange={setSelectedMonth}>
-            <SelectTrigger className="w-[120px] h-9">
+            <SelectTrigger className="w-[130px]">
               <SelectValue placeholder="Mês" />
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">Todos os Meses</SelectItem>
-              {MONTHS.map(month => (
-                <SelectItem key={month} value={month}>{month}</SelectItem>
+              {Array.from({ length: 12 }, (_, i) => (
+                <SelectItem key={i} value={String(i)}>
+                  {format(new Date(2024, i, 1), 'MMMM', { locale: ptBR })}
+                </SelectItem>
               ))}
             </SelectContent>
           </Select>
 
           <Select value={selectedClientId} onValueChange={setSelectedClientId}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Cliente" />
             </SelectTrigger>
             <SelectContent>
@@ -325,7 +315,7 @@ export default function DashboardPage() {
           </Select>
 
           <Select value={selectedArtistId} onValueChange={setSelectedArtistId}>
-            <SelectTrigger className="w-[160px] h-9">
+            <SelectTrigger className="w-[180px]">
               <SelectValue placeholder="Artista" />
             </SelectTrigger>
             <SelectContent>
@@ -338,54 +328,78 @@ export default function DashboardPage() {
         </div>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-4">
-        <Card className="bg-emerald-500/10 border-emerald-500/20 text-emerald-900 dark:text-emerald-200">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-5">
+        <Card className="bg-emerald-500/10 border-emerald-500/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Receita</CardTitle>
-            <ArrowUp className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+            <ArrowUp className="w-4 h-4 text-emerald-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R${totalIncome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-emerald-800 dark:text-emerald-300/80">Filtrado</p>
+            <div className="text-2xl font-bold text-emerald-700 dark:text-emerald-400">
+              R${totalIncome.toLocaleString('pt-BR')}
+            </div>
+            <p className="text-xs text-muted-foreground">No período selecionado</p>
           </CardContent>
         </Card>
-        <Card className="bg-rose-500/10 border-rose-500/20 text-rose-900 dark:text-rose-200">
+        
+        <Card className="bg-rose-500/10 border-rose-500/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Despesa</CardTitle>
-            <ArrowDown className="w-4 h-4 text-rose-600 dark:text-rose-400" />
+            <ArrowDown className="w-4 h-4 text-rose-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">R${totalOutcome.toLocaleString('pt-BR')}</div>
-            <p className="text-xs text-rose-800 dark:text-rose-300/80">Filtrado</p>
+            <div className="text-2xl font-bold text-rose-700 dark:text-rose-400">
+              R${totalOutcome.toLocaleString('pt-BR')}
+            </div>
+            <p className="text-xs text-muted-foreground">No período selecionado</p>
           </CardContent>
         </Card>
-        <Card className="bg-blue-500/10 border-blue-500/20 text-blue-900 dark:text-blue-200">
+
+        <Card className="bg-blue-500/10 border-blue-500/20">
+          <CardHeader className="flex flex-row items-center justify-between pb-2">
+            <CardTitle className="text-sm font-medium">Lucro Líquido</CardTitle>
+            <DollarSign className="w-4 h-4 text-blue-600" />
+          </CardHeader>
+          <CardContent>
+            <div className={`text-2xl font-bold ${netProfit >= 0 ? 'text-blue-700 dark:text-blue-400' : 'text-rose-600'}`}>
+              R${netProfit.toLocaleString('pt-BR')}
+            </div>
+            <p className="text-xs text-muted-foreground">Receita - Despesa</p>
+          </CardContent>
+        </Card>
+
+        <Card className="bg-amber-500/10 border-amber-500/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
             <CardTitle className="text-sm font-medium">Eventos</CardTitle>
-            <CalendarIcon className="w-4 h-4 text-blue-600 dark:text-blue-400" />
+            <CalendarIcon className="w-4 h-4 text-amber-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{eventsCount}</div>
-            <p className="text-xs text-blue-800 dark:text-blue-300/80">Realizados/Agendados</p>
+            <div className="text-2xl font-bold text-amber-700 dark:text-amber-400">
+              {totalEventsCount}
+            </div>
+            <p className="text-xs text-muted-foreground">No período selecionado</p>
           </CardContent>
         </Card>
-        <Card className="bg-accent/10 border-accent/20">
+
+        <Card className="bg-purple-500/10 border-purple-500/20">
           <CardHeader className="flex flex-row items-center justify-between pb-2">
-            <CardTitle className="text-sm font-medium">Clientes</CardTitle>
-            <Users className="w-4 h-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Clientes Ativos</CardTitle>
+            <Users className="w-4 h-4 text-purple-600" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{clients?.length || 0}</div>
-            <p className="text-xs text-muted-foreground">Cadastrados</p>
+            <div className="text-2xl font-bold text-purple-700 dark:text-purple-400">
+              {activeClientsCount}
+            </div>
+            <p className="text-xs text-muted-foreground">Com eventos no período</p>
           </CardContent>
         </Card>
       </div>
 
-      <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
+      <div className="grid gap-6 lg:grid-cols-6 lg:grid-flow-row-dense">
+        <Card className="lg:col-span-4">
           <CardHeader>
-            <CardTitle>Fluxo Financeiro</CardTitle>
-            <CardDescription>Receitas vs. Despesas.</CardDescription>
+            <CardTitle>Fluxo de Caixa Mensal</CardTitle>
+            <CardDescription>Visualização de receitas e despesas ao longo do ano.</CardDescription>
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
@@ -402,7 +416,7 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-2">
           <CardHeader>
             <CardTitle>Eventos por Status</CardTitle>
             <CardDescription>Distribuição atual.</CardDescription>
@@ -412,95 +426,70 @@ export default function DashboardPage() {
               <PieChart>
                 <Pie
                   data={statusChartData}
-                  cx="50%"
-                  cy="50%"
+                  cx="50%" cy="50%"
                   innerRadius={60}
                   outerRadius={80}
                   paddingAngle={5}
                   dataKey="value"
                 >
                   {statusChartData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name as EventStatus] || '#8884d8'} />
+                    <Cell key={`cell-${index}`} fill={STATUS_COLORS_CHART[entry.name] || CHART_COLORS[index % CHART_COLORS.length]} />
                   ))}
                 </Pie>
                 <Tooltip />
-                <Legend />
+                <Legend layout="horizontal" verticalAlign="bottom" align="center" />
               </PieChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Top 5 Clientes</CardTitle>
-            <CardDescription>Por receita gerada.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <CheckCircle2 className="w-5 h-5 text-emerald-500" />
+              Top 5 Clientes (Receita)
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={topClientsData} layout="vertical" margin={{ left: 40 }}>
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={80} fontSize={10} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" fontSize={10} hide />
+                <YAxis dataKey="name" type="category" fontSize={11} tickLine={false} axisLine={false} width={100} />
                 <Tooltip formatter={(value: number) => `R$${value.toLocaleString('pt-BR')}`} />
-                <Bar dataKey="revenue" fill="#60a5fa" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="revenue" fill="#3b82f6" radius={[0, 4, 4, 0]} name="Receita" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="lg:col-span-3">
           <CardHeader>
-            <CardTitle>Artistas Populares</CardTitle>
-            <CardDescription>Frequência em eventos.</CardDescription>
+            <CardTitle className="flex items-center gap-2">
+              <Music className="w-5 h-5 text-purple-500" />
+              Artistas Mais Escalados
+            </CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={250}>
               <BarChart data={topArtistsData} layout="vertical" margin={{ left: 40 }}>
-                <XAxis type="number" hide />
-                <YAxis dataKey="name" type="category" width={80} fontSize={10} />
+                <CartesianGrid strokeDasharray="3 3" horizontal={false} />
+                <XAxis type="number" fontSize={10} hide />
+                <YAxis dataKey="name" type="category" fontSize={11} tickLine={false} axisLine={false} width={100} />
                 <Tooltip />
-                <Bar dataKey="count" fill="#fbbf24" radius={[0, 4, 4, 0]} />
+                <Bar dataKey="bookings" fill="#a855f7" radius={[0, 4, 4, 0]} name="Eventos" />
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Status de Pagamento</CardTitle>
-            <CardDescription>Pagos vs. Pendentes.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={paymentStatusData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
-                  dataKey="value"
-                >
-                  {paymentStatusData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={PIE_COLORS[entry.name as 'Pago' | 'Não Pago'] || '#8884d8'} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid gap-6 lg:grid-cols-1">
-        <Card>
+        <Card className="lg:col-span-4">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <CalendarIcon className="w-5 h-5" />
               Próximos Eventos
             </CardTitle>
-            <CardDescription>Seus próximos 5 eventos agendados.</CardDescription>
+            <CardDescription>Próximos 5 eventos agendados.</CardDescription>
           </CardHeader>
           <CardContent>
             <div className="overflow-x-auto">
@@ -522,7 +511,7 @@ export default function DashboardPage() {
                         <TableCell className="font-medium">
                             <div>{client?.name || 'N/A'}</div>
                         </TableCell>
-                        <TableCell>{format(parseISO(event.date), 'dd/MM/yyyy')}</TableCell>
+                        <TableCell>{format(parseISO(event.date), 'dd/MM/yy')}</TableCell>
                         <TableCell>{event.time}</TableCell>
                         <TableCell>R${event.payment.toLocaleString('pt-BR')}</TableCell>
                         <TableCell>
@@ -536,6 +525,34 @@ export default function DashboardPage() {
                 </TableBody>
               </Table>
             </div>
+          </CardContent>
+        </Card>
+
+        <Card className="lg:col-span-2">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Clock className="w-5 h-5 text-amber-500" />
+              Status de Pagamento
+            </CardTitle>
+            <CardDescription>Eventos Pagos vs Pendentes.</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ResponsiveContainer width="100%" height={200}>
+              <PieChart>
+                <Pie
+                  data={paymentStatusData}
+                  cx="50%" cy="50%"
+                  innerRadius={40}
+                  outerRadius={60}
+                  dataKey="value"
+                >
+                  <Cell fill="#10b981" />
+                  <Cell fill="#f43f5e" />
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
           </CardContent>
         </Card>
       </div>
