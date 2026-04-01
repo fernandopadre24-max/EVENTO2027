@@ -462,7 +462,7 @@ export default function EventsPage() {
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center">
-                           <Badge variant="ghost" className={cn("p-1.5 rounded-full border border-slate-800", event.hasSound ? "text-[#00e5ff]" : "text-slate-600")}>
+                           <Badge className={cn("p-1.5 rounded-full border border-slate-800 bg-transparent", event.hasSound ? "text-[#00e5ff]" : "text-slate-600")}>
                              {event.hasSound ? <CheckCircle2 className="w-4 h-4" /> : <X className="w-4 h-4" />}
                            </Badge>
                         </div>

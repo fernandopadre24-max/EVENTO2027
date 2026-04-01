@@ -25,6 +25,7 @@ const navItems = [
   { href: '/purchases', label: 'Pagar', icon: DollarSign },
   { href: '/loans', label: 'Empréstimos', icon: Banknote },
   { href: '/reports', label: 'Relatórios', icon: BarChart2 },
+  { href: '/settings', label: 'Config.', icon: Settings },
 ];
 
 export function MainNav() {
