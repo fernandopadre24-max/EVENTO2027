@@ -28,6 +28,7 @@ import {
   DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
+  DropdownMenuCheckboxItem,
 } from '@/components/ui/dropdown-menu';
 import { Badge } from '@/components/ui/badge';
 import type { Event, EventStatus, PaymentStatus, Client, Artist } from '@/lib/types';
@@ -58,6 +59,7 @@ import { Label } from '@/components/ui/label';
 import { Popover, PopoverTrigger, PopoverContent } from '@/components/ui/popover';
 import { Calendar } from '@/components/ui/calendar';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { Switch } from '@/components/ui/switch';
 import { useCollection, useFirestore, useMemoFirebase, addDocumentNonBlocking, updateDocumentNonBlocking, deleteDocumentNonBlocking, useUser } from '@/firebase';
 import { collection, doc, query, where } from 'firebase/firestore';
 
@@ -75,6 +77,7 @@ const initialNewEventState = {
   local: '',
   artistIds: [] as string[],
   payment: 0,
+  withSound: false,
 };
 
 export default function EventsPage() {
@@ -136,7 +139,8 @@ export default function EventsPage() {
       status: 'Pendente' as EventStatus,
       paymentStatus: 'Não Pago' as PaymentStatus,
       userId: user.uid,
-      artistIds: [], // Placeholder
+      artistIds: newEvent.artistIds,
+      hasSound: newEvent.withSound,
     };
     addDocumentNonBlocking(eventsCollectionRef, newEventData);
     setAddOpen(false);
@@ -194,60 +198,108 @@ export default function EventsPage() {
           </Button>
           <Dialog open={isAddOpen} onOpenChange={setAddOpen}>
             <DialogTrigger asChild>
-              <Button>
+              <Button className="bg-cyan-500 hover:bg-cyan-600 text-white">
                 <PlusCircle className="w-4 h-4 mr-2" />
-                Novo Evento
+                Adicionar Evento
               </Button>
             </DialogTrigger>
-            <DialogContent className="sm:max-w-lg">
+            <DialogContent className="sm:max-w-lg bg-[#1a1f2e] text-slate-200 border-slate-800">
               <DialogHeader>
-                <DialogTitle>Novo Evento</DialogTitle>
-                <DialogDescription>Preencha os detalhes do novo evento.</DialogDescription>
+                <DialogTitle className="text-xl font-bold">Adicionar Novo Evento</DialogTitle>
+                <DialogDescription className="text-slate-400">Preencha os detalhes do novo evento.</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleAddSubmit}>
-                <div className="grid gap-4 py-4">
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="clientId" className="text-right">Cliente</Label>
-                    <Select value={newEvent.clientId} onValueChange={handleSelectChange('clientId')}>
-                      <SelectTrigger className="col-span-3">
-                        <SelectValue placeholder="Selecione um cliente" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {clients?.map(client => (
-                          <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="date" className="text-right">Data</Label>
-                    <Popover>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" className={cn("col-span-3 justify-start text-left font-normal", !newEvent.date && "text-muted-foreground")}>
-                          <CalendarIcon className="mr-2 h-4 w-4" />
-                          {newEvent.date ? format(newEvent.date, "PPP", { locale: ptBR }) : <span>Escolha uma data</span>}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-0">
-                        <Calendar mode="single" selected={newEvent.date} onSelect={handleDateChange} locale={ptBR} initialFocus />
-                      </PopoverContent>
-                    </Popover>
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="time" className="text-right">Hora</Label>
-                    <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="local" className="text-right">Local</Label>
-                    <Input id="local" value={newEvent.local} onChange={handleInputChange} className="col-span-3" />
-                  </div>
-                  <div className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor="payment" className="text-right">Valor</Label>
-                    <Input id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} className="col-span-3" />
+              <form onSubmit={handleAddSubmit} className="space-y-4 pt-4">
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label htmlFor="clientId" className="text-right text-slate-300">Cliente</Label>
+                  <Select value={newEvent.clientId} onValueChange={handleSelectChange('clientId')}>
+                    <SelectTrigger className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200">
+                      <SelectValue placeholder="Selecione um cliente" />
+                    </SelectTrigger>
+                    <SelectContent className="bg-[#1a1f2e] border-slate-700 text-slate-200">
+                      {clients?.map(client => (
+                        <SelectItem key={client.id} value={client.id}>{client.name}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label className="text-right text-slate-300">Data</Label>
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button variant="outline" className={cn("col-span-2 justify-start text-left font-normal bg-[#2d3748] border-slate-700 text-slate-200 hover:bg-[#323d4f] hover:text-white", !newEvent.date && "text-muted-foreground")}>
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {newEvent.date ? format(newEvent.date, "d 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0 bg-[#1a1f2e] border-slate-700">
+                      <Calendar mode="single" selected={newEvent.date} onSelect={handleDateChange} locale={ptBR} initialFocus />
+                    </PopoverContent>
+                  </Popover>
+                </div>
+
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label htmlFor="time" className="text-right text-slate-300">Hora</Label>
+                  <Input id="time" type="time" value={newEvent.time} onChange={handleInputChange} className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200" />
+                </div>
+
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label htmlFor="local" className="text-right text-slate-300">Local</Label>
+                  <Input id="local" placeholder="Local do evento" value={newEvent.local} onChange={handleInputChange} className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200" />
+                </div>
+
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label className="text-right text-slate-300">Artistas</Label>
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button variant="outline" className="col-span-2 justify-between bg-[#2d3748] border-slate-700 text-slate-200 hover:bg-[#323d4f] hover:text-white font-normal">
+                        {newEvent.artistIds.length > 0 
+                          ? `${newEvent.artistIds.length} selecionado(s)` 
+                          : "Selecione artistas"}
+                        <ChevronDown className="h-4 w-4 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent className="w-56 bg-[#1a1f2e] border-slate-700 text-slate-200">
+                      {artists?.map(artist => (
+                        <DropdownMenuCheckboxItem
+                          key={artist.id}
+                          checked={newEvent.artistIds.includes(artist.id)}
+                          onCheckedChange={(checked) => {
+                            setNewEvent(prev => ({
+                              ...prev,
+                              artistIds: checked 
+                                ? [...prev.artistIds, artist.id]
+                                : prev.artistIds.filter(id => id !== artist.id)
+                            }))
+                          }}
+                          className="hover:bg-slate-800 focus:bg-slate-800"
+                        >
+                          {artist.name}
+                        </DropdownMenuCheckboxItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+                </div>
+
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label className="text-right text-slate-300">Com ou Sem Som</Label>
+                  <div className="flex items-center gap-2 col-span-2">
+                    <span className="text-xs text-slate-500">Sem Som</span>
+                    <Switch 
+                      checked={newEvent.withSound} 
+                      onCheckedChange={(checked) => setNewEvent(prev => ({ ...prev, withSound: checked }))} 
+                    />
+                    <span className="text-xs text-slate-500">Com Som</span>
                   </div>
                 </div>
-                <DialogFooter>
-                  <Button type="submit">Salvar</Button>
+
+                <div className="grid grid-cols-3 items-center gap-4">
+                  <Label htmlFor="payment" className="text-right text-slate-300">Pagamento (R$)</Label>
+                  <Input id="payment" type="number" value={newEvent.payment || ''} onChange={handleInputChange} className="col-span-2 bg-[#2d3748] border-slate-700 text-slate-200" />
+                </div>
+
+                <DialogFooter className="pt-4">
+                  <Button type="submit" className="bg-cyan-500 hover:bg-cyan-600 text-white w-24">Salvar</Button>
                 </DialogFooter>
               </form>
             </DialogContent>
