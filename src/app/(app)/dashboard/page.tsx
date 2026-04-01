@@ -72,6 +72,7 @@ export default function DashboardPage() {
 
   const calculateTotalWithInterest = (principal: number, rate: number, installments: number, type: 'Simples' | 'Composto') => {
     if (principal <= 0) return 0;
+    if (installments <= 0) return principal;
     if (rate <= 0) return principal;
     if (type === 'Simples') {
       return principal + (principal * (rate / 100) * installments);
