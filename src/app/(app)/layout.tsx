@@ -57,7 +57,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   // If user is loaded and present, render the app layout
   return (
     <div className="flex flex-col h-screen">
-       <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 bg-background/80 backdrop-blur-sm border-b md:px-8">
+       <header className="sticky top-0 z-10 flex items-center justify-between h-16 px-4 bg-background border-b md:px-8">
           <div className="flex items-center gap-4">
             {!isTopLevel && (
               <Button variant="ghost" size="icon" onClick={() => router.back()}>
@@ -86,7 +86,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <main className="flex-1 overflow-y-auto p-4 md:p-8 pb-20">
         {children}
       </main>
-      <nav className="fixed bottom-0 z-10 w-full flex items-center justify-center h-16 px-4 bg-background/80 backdrop-blur-sm border-t">
+      <nav className="fixed bottom-0 z-10 w-full flex items-center justify-center h-16 px-4 bg-background border-t">
           <MainNav />
       </nav>
     </div>
