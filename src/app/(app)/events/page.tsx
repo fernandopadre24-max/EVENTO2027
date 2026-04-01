@@ -331,6 +331,8 @@ export default function EventsPage() {
                   <TableHead className="text-slate-400 font-medium">Cliente</TableHead>
                   <TableHead className="text-slate-400 font-medium whitespace-nowrap">Data e Hora</TableHead>
                   <TableHead className="text-slate-400 font-medium">Local</TableHead>
+                  <TableHead className="text-slate-400 font-medium">Artistas</TableHead>
+                  <TableHead className="text-slate-400 font-medium">Som</TableHead>
                   <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
                   <TableHead className="text-slate-400 font-medium">Status</TableHead>
                   <TableHead className="text-slate-400 font-medium">Pagamento</TableHead>
@@ -342,19 +344,29 @@ export default function EventsPage() {
                   const client = clients?.find(c => c.id === event.clientId);
                   return (
                     <TableRow key={event.id} className="hover:bg-slate-800/20 border-slate-800 group px-4">
-                      <TableCell className="font-medium text-slate-200">{client?.name || 'Evento Privado'}</TableCell>
-                      <TableCell className="text-slate-400">
+                      <TableCell className="font-medium text-slate-200 whitespace-nowrap">{client?.name || 'Evento Privado'}</TableCell>
+                      <TableCell className="text-slate-400 whitespace-nowrap">
                         {format(parseISO(event.date), "d MMM, yyyy", { locale: ptBR })} às {event.time || '00:00'}
                       </TableCell>
                       <TableCell className="text-slate-400">{event.local}</TableCell>
-                      <TableCell className="text-slate-200 font-medium">R$ {event.payment.toLocaleString('pt-BR')}</TableCell>
+                      <TableCell className="text-slate-400">
+                        {artists?.filter(a => event.artistIds.includes(a.id)).map(a => a.name).join(', ') || '-'}
+                      </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs', statusColors[event.status])}>
+                        <Switch 
+                          checked={event.hasSound} 
+                          disabled 
+                          className="scale-75 data-[state=checked]:bg-[#00e5ff] opacity-70"
+                        />
+                      </TableCell>
+                      <TableCell className="text-slate-200 font-medium whitespace-nowrap">R$ {event.payment.toLocaleString('pt-BR')}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap', statusColors[event.status])}>
                           {event.status}
                         </Badge>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs', paymentStatusColors[event.paymentStatus])}>
+                        <Badge variant="outline" className={cn('font-semibold rounded-full px-3 py-0.5 text-xs whitespace-nowrap', paymentStatusColors[event.paymentStatus])}>
                           {event.paymentStatus}
                         </Badge>
                       </TableCell>
